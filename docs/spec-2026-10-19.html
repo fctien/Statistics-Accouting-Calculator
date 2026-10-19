@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BACalc 規格書（Design Spec）</title>
+<style>
+body { font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+       max-width: 960px; margin: 0 auto; padding: 16px; line-height: 1.7;
+       color: #1f2d3d; background: #fff; }
+h1, h2 { color: #1565c0; border-bottom: 2px solid #bbdefb; padding-bottom: 4px; }
+h3 { color: #1976d2; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 15px; }
+th, td { border: 1px solid #bbdefb; padding: 6px 8px; vertical-align: top; }
+th { background: #e3f2fd; }
+code { background: #f1f8ff; padding: 1px 4px; border-radius: 3px; }
+pre { background: #f1f8ff; padding: 12px; overflow-x: auto; }
+blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
+             background: #f5faff; }
+</style></head><body>
+<h1>BACalc 規格書（Design Spec）</h1>
+<ul>
+<li>日期：2026-10-19</li>
+<li>狀態：<strong>待審閱</strong>（使用者同意設計於 2026-10-19，本文件同意後才寫實作計畫）</li>
+<li>參考：TI BA II Plus／BA II Plus Professional（Texas Instruments）</li>
+</ul>
+<hr />
+<h2>0. 目的與成功條件</h2>
+<h3>0.1 目的</h3>
+<ol>
+<li>做一個仿 BA II Plus Professional 的<strong>財務／會計計算 PWA</strong>，手機與電腦都能用、可離線</li>
+<li>把整個開發過程變成<strong>教學案例</strong>：從 CLAUDE.md 設定 → 下 Prompt → 驗收，一步一步帶學生做出來</li>
+</ol>
+<h3>0.2 成功條件</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>條件</th>
+<th>驗收方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>每個工作表的結果與 TI 官方手冊範例、Excel 公式一致</td>
+<td><code>pytest</code> 全過；golden 值附出處</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>同一份 Python 引擎在 Pyodide 中算出相同結果</td>
+<td>瀏覽器內一致性測試頁全綠</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>手機（Android Chrome／iOS Safari）可安裝成 App、斷網可用</td>
+<td>實機安裝＋飛航模式操作</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>資料只存本機；可匯出／匯入 JSON；可選擇同步 Google Drive</td>
+<td>e2e 來回測試（匯出 → 清空 → 匯入 → 值相同）</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>算不出來時明確說明原因，絕不顯示「看起來正常的錯數字」</td>
+<td>錯誤情境測試（IRR 無解、除以零、N 非正數…）</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>兩份教材（AI Agent 版、EMBA 版）＋兩份 Prompt 卡，每個步驟都有對應 git tag 可接手</td>
+<td>教材自測：卡片中的驗收指令在對應 tag 上可執行</td>
+</tr>
+</tbody>
+</table>
+<h3>0.3 不做（YAGNI）</h3>
+<ul>
+<li>不做帳本／分錄記帳系統（那是 MoneyBook 的範圍）</li>
+<li>不做 OneDrive／Dropbox 專屬 API（用 JSON 匯出存到任何雲端資料夾即可）</li>
+<li>不做多人共用、登入帳號、伺服器端儲存</li>
+<li>不做三角函數／雙曲函數鍵（BA II Plus 有，但會計用途低）；保留 <code>ln</code>、<code>eˣ</code>、<code>yˣ</code></li>
+</ul>
+<hr />
+<h2>1. 架構</h2>
+<h3>1.1 技術選擇（已決定）</h3>
+<ul>
+<li><strong>Pyodide</strong>（Python 編譯成 WebAssembly）在瀏覽器執行 Python 計算引擎 → 純靜態檔、可部署到 GitHub Pages、可完全離線</li>
+<li>介面用原生 HTML／CSS／少量 JavaScript（不用框架，教學上好讀）</li>
+<li>Pyodide 版本實作時鎖定一個確切版本（pinned），由 CDN（jsDelivr）載入，Service Worker 首次安裝時預先快取（precache），之後離線可用</li>
+<li>首次載入大小與手機啟動時間<strong>目前不確定</strong>，M2 階段實測並寫入 dev log；若手機啟動超過 8 秒，回報再決定是否改成把 Pyodide 檔案放進 repo 一起部署</li>
+</ul>
+<h3>1.2 MVC 分層</h3>
+<pre><code>┌──────────── View（web/index.html, css/, js/views/*.js）───────────┐
+│  表單、表格、紙帶、設定頁；只負責顯示與收集輸入                    │
+└───────────────▲──────────────────────────────┬────────────────────┘
+                │ 結果（dict → JSON）           │ 使用者事件
+┌───────────────┴──── Controller ──────────────▼────────────────────┐
+│  js/app.js：路由、事件、呼叫 bridge                                │
+│  engine/bridge.py：唯一對外入口 call(worksheet, action, payload)   │
+└───────────────▲──────────────────────────────┬────────────────────┘
+                │                               │
+┌───────────────┴──── Model（engine/*.py，純 Python，無 I/O）───────┐
+│  tvm / amort / cashflow / iconv / stats / bond / depr / business   │
+│  / calc / memory / fmt                                             │
+└────────────────────────────────────────────────────────────────────┘
+Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（選用）
+</code></pre>
+<ul>
+<li><strong>Model 不依賴瀏覽器</strong>：可以在電腦上直接 <code>pytest</code>，也可以在 Pyodide 裡跑</li>
+<li><strong>bridge.py 統一回傳格式</strong>：</li>
+</ul>
+<pre><code class="language-json">{&quot;ok&quot;: true,  &quot;values&quot;: {&quot;PMT&quot;: -599.55}, &quot;display&quot;: {&quot;PMT&quot;: &quot;-599.55&quot;}, &quot;warnings&quot;: []}
+{&quot;ok&quot;: false, &quot;error&quot;: &quot;IRR 無解：現金流沒有正負號變化&quot;, &quot;field&quot;: &quot;CF&quot;}
+</code></pre>
+<h3>1.3 目錄結構</h3>
+<pre><code>BACalc/
+├── CLAUDE.md               專案規範（給 AI 讀）
+├── DEVLOG.md               開發歷程（只追加）
+├── README.md
+├── engine/                 Model（Python）
+│   ├── tvm.py amort.py cashflow.py iconv.py stats.py
+│   ├── bond.py depr.py business.py calc.py memory.py fmt.py
+│   └── bridge.py
+├── tests/                  pytest
+│   ├── golden/             golden 值（JSON，每題附出處）
+│   └── test_*.py
+├── web/                    PWA（部署根目錄）
+│   ├── index.html manifest.webmanifest sw.js
+│   ├── css/ js/ icons/
+│   ├── py/                 建置時從 engine/ 複製（不手改）
+│   └── selftest.html       Pyodide 內一致性測試頁
+├── tools/                  build_web.py（複製 engine → web/py、升版號）、check_shell.py
+├── e2e/                    端到端測試
+├── logs/                   實驗／驗證 HTML log（附 commit hash）
+├── docs/                   規格、計畫、Google OAuth 申請說明
+└── teaching/               教材（單一來源 prompts.py → 卡片與簡報）
+</code></pre>
+<hr />
+<h2>2. 功能規格</h2>
+<h3>2.1 共通的人性化輸入規則</h3>
+<ol>
+<li><strong>留空求解</strong>：工作表中留一格空白，按「計算」就解那一格；留兩格以上空白時提示「請只留一格空白」</li>
+<li><strong>現金流方向</strong>：TVM／CF 用「收到 ↓／付出 ↑」切換，內部轉成正負號；同時顯示 TI 的正負號慣例，讓學生能對照實體計算機</li>
+<li><strong>欄位說明</strong>：每個欄位有中文名稱＋英文縮寫（例：每期付款 PMT），點 ⓘ 顯示說明與範例</li>
+<li><strong>輸入容錯</strong>：接受 <code>1,000</code>、<code>1000</code>、<code>1e3</code>、<code>5%</code>（轉 0.05 或 5，依欄位定義）；格式錯誤時欄位標紅並說明</li>
+<li><strong>即時驗證</strong>：例如 P/Y 必須大於 0、N 必須大於 0</li>
+<li><strong>儲存情境</strong>：每個工作表可以把目前輸入存成具名情境（例：「房貸 30 年」），之後可以載入</li>
+<li><strong>鍵盤操作</strong>：電腦上 Enter 計算、Tab 換欄、Esc 清除；手機上叫出數字鍵盤（<code>inputmode="decimal"</code>）</li>
+<li><strong>匯出</strong>：表格類結果（攤還表、折舊表、CF）可以匯出 CSV；任何結果都可以一鍵複製</li>
+</ol>
+<h3>2.2 工作表</h3>
+<table>
+<thead>
+<tr>
+<th>工作表</th>
+<th>輸入</th>
+<th>輸出／可求解</th>
+<th>備註</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>計算機 CALC</strong></td>
+<td>算式字串</td>
+<td>結果、紙帶</td>
+<td>支援 <code>+ − × ÷ ( ) % √ x² 1/x yˣ ln eˣ n! nPr nCr</code>、<code>ANS</code>；用安全解析器（AST 白名單），<strong>不用 <code>eval</code></strong></td>
+</tr>
+<tr>
+<td><strong>記憶 MEM</strong></td>
+<td>—</td>
+<td>M0–M9</td>
+<td><code>STO n</code>、<code>RCL n</code>、<code>M+</code>、<code>M−</code>、<code>M×</code>、<code>M÷</code>；累加器顯示 Σ 與筆數</td>
+</tr>
+<tr>
+<td><strong>TVM</strong></td>
+<td>N、I/Y、PV、PMT、FV、P/Y、C/Y、BGN／END</td>
+<td>任一個</td>
+<td>I/Y 用牛頓法（Newton），失敗時改用二分法（bisection）；無解時回報原因</td>
+</tr>
+<tr>
+<td><strong>AMORT</strong></td>
+<td>沿用 TVM、P1、P2</td>
+<td>BAL、PRN、INT；完整攤還表</td>
+<td>最後一期的尾差要明確標示</td>
+</tr>
+<tr>
+<td><strong>CF</strong></td>
+<td>CF0、C01…Cnn、F01…Fnn、I、RI（再投資率）</td>
+<td>NPV、IRR、NFV、PB、DPB、MIRR</td>
+<td>現金流有多次正負號變化時警告「IRR 可能有多個解」</td>
+</tr>
+<tr>
+<td><strong>ICONV</strong></td>
+<td>NOM、EFF、C/Y</td>
+<td>NOM ↔ EFF</td>
+<td>雙向即時換算</td>
+</tr>
+<tr>
+<td><strong>STAT</strong></td>
+<td>X、Y 資料表；模式 1-V／LIN／Ln／EXP／PWR</td>
+<td>n、x̄、Sx、σx、ȳ、Sy、σy、a、b、r、Σx、Σx²、Σy、Σy²、Σxy、預測 X'／Y'</td>
+<td>Sx 用 n−1、σx 用 n（與 TI 相同）</td>
+</tr>
+<tr>
+<td><strong>BOND</strong></td>
+<td>SDT、CPN、RDT、RV、ACT／360、2/Y／1/Y、YLD 或 PRI</td>
+<td>PRI、YLD、AI</td>
+<td>規則依 TI 手冊；golden 值必須取自手冊範例</td>
+</tr>
+<tr>
+<td><strong>DEPR</strong></td>
+<td>SL／SYD／DB／DBX、LIF、M01、DB%、CST、SAL、YR</td>
+<td>各年 DEP、RBV、RDV；完整折舊表</td>
+<td>DBX 在直線法較有利時自動轉換</td>
+</tr>
+<tr>
+<td><strong>商業</strong></td>
+<td>—</td>
+<td>—</td>
+<td>包含下面五項</td>
+</tr>
+<tr>
+<td>　PROFIT</td>
+<td>CST、SEL、MAR／MU</td>
+<td>任一個</td>
+<td>毛利率（margin）與加成率（markup）兩種都有</td>
+</tr>
+<tr>
+<td>　BRKEVN</td>
+<td>FC、VC、P、PFT、Q</td>
+<td>任一個</td>
+<td></td>
+</tr>
+<tr>
+<td>　Δ%</td>
+<td>OLD、NEW、%CH、#PD</td>
+<td>任一個</td>
+<td>#PD &gt; 1 時是複利成長</td>
+</tr>
+<tr>
+<td>　DATE</td>
+<td>DT1、DT2、DBD、ACT／360</td>
+<td>DBD 或任一日期</td>
+<td>顯示星期</td>
+</tr>
+<tr>
+<td>　稅務</td>
+<td>金額、稅率、內含／外加</td>
+<td>未稅、稅額、含稅</td>
+<td>預設營業稅 5%；另有扣繳、二代健保補充保費等預設，<strong>稅率實作時查證並附官方連結</strong>，可在設定中修改</td>
+</tr>
+<tr>
+<td><strong>設定 FORMAT</strong></td>
+<td>小數位數 0–9 或浮動、千分位（<code>1,000.00</code> 或 <code>1.000,00</code>）、日期格式（US／EUR）、運算順序（AOS／Chain）、深色模式、稅率預設</td>
+<td>—</td>
+<td>即時預覽</td>
+</tr>
+</tbody>
+</table>
+<h3>2.3 數值規則</h3>
+<ol>
+<li>引擎內部用 Python <code>float</code>（雙精度）；<strong>只在顯示時</strong>依設定四捨五入</li>
+<li>稅務與金額合計用 <code>decimal.Decimal</code>，四捨五入規則為 <code>ROUND_HALF_UP</code>（與一般會計習慣相同）</li>
+<li>疊代求解（I/Y、IRR、YLD）的收斂條件：|f(x)| &lt; 1e-10，最多 200 次；未收斂回傳錯誤，不回傳最後一次猜測值</li>
+<li><strong>任何算不出來的情況回傳 <code>ok: false</code> 加上原因</strong>，不用 0、不用預設值、不猜</li>
+</ol>
+<hr />
+<h2>3. 儲存與雲端</h2>
+<h3>3.1 本機（IndexedDB）</h3>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>內容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings</code></td>
+<td>顯示設定、稅率、雲端設定</td>
+</tr>
+<tr>
+<td><code>scenarios</code></td>
+<td>各工作表的具名情境 <code>{id, worksheet, name, inputs, updated_at}</code></td>
+</tr>
+<tr>
+<td><code>tape</code></td>
+<td>計算機紙帶（最多 500 行，超過時捨棄最舊的）</td>
+</tr>
+<tr>
+<td><code>memory</code></td>
+<td>M0–M9、累加器</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 JSON 匯出入</h3>
+<pre><code class="language-json">{&quot;app&quot;: &quot;BACalc&quot;, &quot;schema&quot;: 1, &quot;exported_at&quot;: &quot;2026-10-19T10:00:00+08:00&quot;,
+ &quot;data&quot;: {&quot;settings&quot;: {}, &quot;scenarios&quot;: [], &quot;tape&quot;: [], &quot;memory&quot;: {}}}
+</code></pre>
+<ul>
+<li>匯入前先驗證 <code>app</code> 與 <code>schema</code>；不合格就拒絕並說明原因</li>
+<li>匯入方式可選「合併」或「取代」；選取代時要先確認</li>
+<li>使用者可以把檔案存到任何雲端資料夾（OneDrive、Dropbox、iCloud…）</li>
+</ul>
+<h3>3.3 Google Drive 同步（選用，預設關閉）</h3>
+<ul>
+<li>用 Google Identity Services 的 token client，權限範圍（scope）只要 <code>drive.appdata</code>（App 專屬隱藏資料夾，看不到使用者其他檔案）</li>
+<li>檔名 <code>bacalc-backup.json</code>；動作有「上傳」、「下載」、「比較時間」</li>
+<li>衝突處理：雲端檔案比本機新時，<strong>不自動覆蓋</strong>，顯示雙方時間讓使用者選擇</li>
+<li><strong>需要你親自做</strong>：在 Google Cloud Console 建立 OAuth Client ID，並把部署網址加進授權來源；申請步驟寫在 <code>docs/google-oauth-setup.html</code></li>
+<li>Client ID 在設定頁輸入，存在本機（不寫死在程式碼裡）</li>
+</ul>
+<hr />
+<h2>4. 測試計畫</h2>
+<table>
+<thead>
+<tr>
+<th>層級</th>
+<th>工具</th>
+<th>內容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 引擎單元測試</td>
+<td><code>pytest</code></td>
+<td>每個工作表至少 3 題 golden 值（出處：TI Guidebook 範例頁碼，或 Excel 公式＋儲存格輸入）；外加錯誤情境</td>
+</tr>
+<tr>
+<td>2. 突變測試</td>
+<td><code>tools/mutate.py</code>（自寫）</td>
+<td>故意改壞公式（例如把 BGN 因子拿掉），測試必須失敗；至少 15 個突變</td>
+</tr>
+<tr>
+<td>3. Pyodide 一致性</td>
+<td><code>web/selftest.html</code></td>
+<td>在瀏覽器載入同一份 golden JSON 逐題比對</td>
+</tr>
+<tr>
+<td>4. 端到端</td>
+<td>in-app 瀏覽器（本機）；Playwright（<strong>需安裝，安裝前會先問你</strong>）</td>
+<td>每個工作表操作一次、離線重新載入、匯出 → 清空 → 匯入來回測試</td>
+</tr>
+<tr>
+<td>5. PWA 檢查</td>
+<td><code>tools/check_shell.py</code></td>
+<td>所有檔案都列在 <code>sw.js</code> 快取清單、版本號同步</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>每次驗證產生 <code>logs/verify-YYYYMMDD-HHMM.html</code>，記錄 commit hash、測試結果、修改過程</li>
+<li>跑驗證前先確認 git 是乾淨的</li>
+</ul>
+<hr />
+<h2>5. 教學產出</h2>
+<h3>5.1 兩個版本</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>AI Agent 版</th>
+<th>EMBA 版</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>對象</td>
+<td>會基本 Python，第一次用 Claude Code 做完整專案</td>
+<td>幾乎不寫程式的商管學生</td>
+</tr>
+<tr>
+<td>時數</td>
+<td>約 3 小時</td>
+<td>約 3 小時（可再調整）</td>
+</tr>
+<tr>
+<td>重點</td>
+<td>CLAUDE.md、plan mode、TDD、Skill、Loop、部署</td>
+<td>怎麼描述需求、怎麼驗收（拿計算機或 Excel 對答案）、怎麼請 AI 修正</td>
+</tr>
+<tr>
+<td>程式碼</td>
+<td>學生自己跟著 Prompt 產生</td>
+<td>每一步從對應的 git tag 接手，只做該步驟的關鍵 Prompt 與驗收</td>
+</tr>
+</tbody>
+</table>
+<h3>5.2 步驟（兩版共用 git tag）</h3>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>步驟</th>
+<th>產出</th>
+<th>驗收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>step0</code></td>
+<td>兩層 CLAUDE.md（使用者層級 → 專案層級）</td>
+<td><code>CLAUDE.md</code></td>
+<td>AI 能複述規則</td>
+</tr>
+<tr>
+<td><code>step1</code></td>
+<td>用 plan mode 規劃</td>
+<td><code>docs/plan.md</code></td>
+<td>計畫包含 MVC 與測試</td>
+</tr>
+<tr>
+<td><code>step2</code></td>
+<td>TDD：TVM 引擎</td>
+<td><code>engine/tvm.py</code>、測試</td>
+<td><code>pytest tests/test_tvm.py</code></td>
+</tr>
+<tr>
+<td><code>step3</code></td>
+<td>其他工作表引擎</td>
+<td><code>engine/*.py</code></td>
+<td><code>pytest</code> 全過＋突變測試</td>
+</tr>
+<tr>
+<td><code>step4</code></td>
+<td>PWA 殼＋Pyodide 橋接</td>
+<td><code>web/</code>、<code>bridge.py</code></td>
+<td><code>selftest.html</code> 全綠</td>
+</tr>
+<tr>
+<td><code>step5</code></td>
+<td>人性化 UI</td>
+<td>各工作表畫面</td>
+<td>e2e 操作</td>
+</tr>
+<tr>
+<td><code>step6</code></td>
+<td>本機儲存＋JSON 匯出入</td>
+<td><code>js/storage/</code></td>
+<td>來回測試</td>
+</tr>
+<tr>
+<td><code>step7</code></td>
+<td>Google Drive 同步</td>
+<td><code>js/storage/gdrive.js</code></td>
+<td>手動上傳／下載</td>
+</tr>
+<tr>
+<td><code>step8</code></td>
+<td>自我驗證 Loop → 寫成 Skill</td>
+<td><code>.claude/skills/verify-bacalc/</code></td>
+<td>一個指令跑完全部測試並產生 log</td>
+</tr>
+<tr>
+<td><code>step9</code></td>
+<td>部署到 GitHub Pages、安裝到手機</td>
+<td>線上網址</td>
+<td>手機飛航模式可用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>實作順序就照這個步驟走，每完成一步打一個 tag，所以教材中的 Prompt 都是實際用過的。</p>
+</blockquote>
+<h3>5.3 教材檔案</h3>
+<ul>
+<li>單一來源 <code>teaching/prompts.py</code>（步驟、Prompt 原文、預期產出、驗收指令、常見坑，兩版共用欄位、內容分開）產生：</li>
+<li><code>Prompt卡_AI.html</code>、<code>Prompt卡_EMBA.html</code>（單一 HTML，可列印）</li>
+<li><code>deck/build_deck.py</code> → <code>BACalc_AI.pptx</code>、<code>BACalc_EMBA.pptx</code>（create-info-ppt 淺藍風格、北科 logo、字級 16pt 以上（可例外 14）、不用句點、每頁備忘稿有【講稿】與【投影片說明】）</li>
+<li>學生版 zip：簡報只放 PDF、不含解答</li>
+<li>課前演練：用子代理（subagent）當學生，逐步照卡片下 Prompt，確認每一步都能重現；演練中遇到的坑寫進卡片的「常見坑」</li>
+</ul>
+<hr />
+<h2>6. 階段與里程碑（實作計畫會再細分）</h2>
+<table>
+<thead>
+<tr>
+<th>階段</th>
+<th>內容</th>
+<th>對應 tag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1</td>
+<td>專案規範、計畫、引擎＋pytest＋突變測試</td>
+<td>step0–3</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>PWA 殼、Pyodide、一致性測試、實測載入時間</td>
+<td>step4</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>全部工作表 UI</td>
+<td>step5</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>儲存、匯出入、Google Drive</td>
+<td>step6–7</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>驗證 Skill、e2e、部署</td>
+<td>step8–9</td>
+</tr>
+<tr>
+<td>M6</td>
+<td>教材：prompts.py → 卡片 × 2、PPT × 2、學生版、演練</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2>7. 需要你決定或親自操作的事</h2>
+<ol>
+<li>安裝套件前會先列清單請你同意（預計：<code>pytest</code>（可能已有）、<code>python-pptx</code>、Playwright（選用）、<code>pptxgenjs</code>（可能已有））</li>
+<li>Google Cloud OAuth Client ID 的申請（M4）</li>
+<li>建立 GitHub repo 與推送（M5，推送前會先問你）</li>
+<li>實機安裝測試（M5，需要你的手機）</li>
+</ol>
+<h2>8. 風險與不確定之處</h2>
+<table>
+<thead>
+<tr>
+<th>風險</th>
+<th>處理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pyodide 在手機上首次載入慢</td>
+<td>M2 實測；超過 8 秒再討論改用 repo 內附檔案</td>
+</tr>
+<tr>
+<td>BOND 的日期慣例細節容易錯</td>
+<td>只用 TI 手冊範例當 golden 值；對不上就回報，不硬湊</td>
+</tr>
+<tr>
+<td>稅率會變動</td>
+<td>做成設定值，並附官方來源連結與查證日期</td>
+</tr>
+<tr>
+<td>iOS Safari 對 PWA 儲存空間有限制、可能被清除</td>
+<td>設定頁提醒定期匯出；說明寫進教材常見坑</td>
+</tr>
+<tr>
+<td>TI Guidebook 的著作權</td>
+<td>只引用範例的數字與頁碼，不複製原文</td>
+</tr>
+</tbody>
+</table>
+</body></html>
