@@ -511,3 +511,23 @@
 
 **待辦**
 - UI 依 bridge 模組 docstring 的鍵對照表接線；MicroPython 上驗證 json.dumps(allow_nan=False) 行為
+
+## 2026-10-20 Task 16 修正輪 1（bridge 可攜性與比率衝突）
+**需求**
+- MicroPython 相容：json.dumps 無 allow_nan、無 RecursionError；profit 另給比率與算出值衝突不可默默覆蓋
+
+**做法**
+- 回應先用 result._all_finite 遞迴檢查，非有限則改回 err，再用純 json.dumps；解析例外改 (ValueError, TypeError, RuntimeError)；bridge.py 已無其他 CPython 專用名稱
+- _r_profit：CST、SEL 皆已知且另一比率有給，算出值差超過 1e-9 相對誤差即回「MAR 與 MU 不一致」
+
+**產出**
+- engine/bridge.py、tests/test_bridge.py（新增 inf 回應、比率衝突兩測試）
+
+**驗證**
+- test_bridge 9 passed、全套 pytest 通過、check_portable 0、golden_dump 無 null
+
+**問題與修正**
+- 失敗的嘗試：無
+
+**待辦**
+- 無

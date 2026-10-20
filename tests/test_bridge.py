@@ -95,3 +95,23 @@ def test_schedule_and_calc():
     r = _call({"sheet": "calc", "action": "eval",
                "inputs": {"EXPR": "1+2*3"}, "settings": {"mode": "CHAIN"}})
     assert r["values"]["value"] == 9
+
+
+def test_nonfinite_response_is_valid_json(monkeypatch):
+    from engine import bridge
+    monkeypatch.setitem(bridge.ROUTES, ("tvm", "solve"),
+                        lambda inp, st: {"ok": True,
+                                         "values": {"x": [float("inf")]},
+                                         "warnings": []})
+    text = call(json.dumps(_tvm()))
+    assert "Infinity" not in text and "NaN" not in text
+    assert json.loads(text)["ok"] is False
+
+
+def test_profit_conflicting_rate():
+    r = _call({"sheet": "business", "action": "profit",
+               "inputs": {"CST": 80, "SEL": 100, "MU": 99, "MAR": None}})
+    assert not r["ok"] and "不一致" in r["error"]
+    r = _call({"sheet": "business", "action": "profit",
+               "inputs": {"CST": 80, "SEL": 100, "MU": 25, "MAR": None}})
+    assert r["ok"]

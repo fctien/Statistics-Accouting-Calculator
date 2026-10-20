@@ -48,7 +48,7 @@ import json
 from engine import (amort, bond, business, calc, cashflow, dates, depr,
                     iconv, stats, tvm)
 from engine.fmt import format_number
-from engine.result import err, is_finite
+from engine.result import _all_finite, err, is_finite
 
 _MAX_ABS = 1e300       # 超過視為數值過大，避免後續運算溢位
 _MAX_PERIODS = 10000   # 攤還／折舊表的期數上限，防止 UI 卡死
@@ -296,7 +296,15 @@ def _r_profit(inp, st):
         unknown = "MAR"
     else:
         raise _blank_error(blanks)
-    return business.profit(v["CST"], v["SEL"], v["MAR"], v["MU"], unknown)
+    res = business.profit(v["CST"], v["SEL"], v["MAR"], v["MU"], unknown)
+    if res.get("ok") and unknown in ("MAR", "MU"):
+        # CST、SEL 皆已知時，若使用者另給的比率與算出值不符，不可默默覆蓋
+        other = "MU" if unknown == "MAR" else "MAR"
+        if v[other] is not None:
+            got = res["values"][other]
+            if abs(got - v[other]) > 1e-9 * max(1.0, abs(got)):
+                return err("MAR 與 MU 不一致", other)
+    return res
 
 
 def _r_breakeven(inp, st):
@@ -414,7 +422,7 @@ def _handle(request_json):
     """解析、驗證、路由，回傳結果 dict。"""
     try:
         req = json.loads(request_json)
-    except (ValueError, TypeError, RecursionError):
+    except (ValueError, TypeError, RuntimeError):
         return err("請求不是合法的 JSON", None)
     if not isinstance(req, dict):
         return err("請求必須是 JSON 物件", None)
@@ -447,6 +455,8 @@ def call(request_json):
     except Exception as e:  # 任何未預期例外都包成 err
         result = err("內部錯誤：" + type(e).__name__, None)
     try:
-        return json.dumps(result, allow_nan=False)
+        if not _all_finite(result):  # MicroPython 會把 inf／nan 寫成非法 JSON
+            result = err("計算結果超出範圍（溢位）", None)
+        return json.dumps(result)
     except Exception as e:
         return json.dumps(err("內部錯誤：" + type(e).__name__, None))
