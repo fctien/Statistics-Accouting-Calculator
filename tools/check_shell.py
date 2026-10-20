@@ -48,7 +48,7 @@ def read_app_shell(web_dir):
 def shell_hash(web_dir, entries, overrides=None):
     """APP_SHELL 檔案內容的 SHA-256（前 HASH_LEN 字元）。
 
-    依路徑排序，每檔雜湊「路徑、NUL、長度、NUL、位元組」；略過 "./"（＝index.html）
+    依路徑排序，每檔雜湊「路徑、NUL、長度、NUL、位元組（CRLF→LF）」；略過 "./"（＝index.html）
     與 sw.js 本身。overrides={相對路徑: bytes} 優先於磁碟（build_web 尚未寫檔時用）；
     不存在的檔案略過（由 check 另行回報）。
     """
@@ -62,6 +62,8 @@ def shell_hash(web_dir, entries, overrides=None):
             data = (web / rel).read_bytes()
         else:
             continue
+        # 換行正規化：Windows（core.autocrlf，CRLF）與 CI（LF）算出相同雜湊
+        data = data.replace(b"\r\n", b"\n")
         h.update(rel.encode("utf-8") + b"\0" + str(len(data)).encode()
                  + b"\0" + data)
     return h.hexdigest()[:HASH_LEN]

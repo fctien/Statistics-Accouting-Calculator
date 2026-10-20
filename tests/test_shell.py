@@ -249,3 +249,16 @@ def test_sw_precache_bypasses_http_cache():
     assert 'cache: "reload"' in text
     assert "ignoreSearch: true" in text
     assert "cache.addAll" not in text
+
+
+def test_shell_hash_ignores_line_endings(built):
+    """Windows（CRLF）與 CI（LF）簽出結果的 SHELL_HASH 相同。"""
+    web = built / "web"
+    shell = check_shell.read_app_shell(web)
+    before = check_shell.shell_hash(web, shell)
+    css = web / "css" / "app.css"
+    lf = css.read_bytes().replace(b"\r\n", b"\n")
+    css.write_bytes(lf.replace(b"\n", b"\r\n"))
+    assert check_shell.shell_hash(web, shell) == before
+    css.write_bytes(lf)
+    assert check_shell.shell_hash(web, shell) == before
