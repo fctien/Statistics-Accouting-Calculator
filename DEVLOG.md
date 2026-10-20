@@ -622,3 +622,30 @@
 **待辦**
 - 使用者決定是否還原「Tien Research」根目錄 package.json／package-lock.json／node_modules/@micropython
 - 繼續 Task 19
+
+## 2026-10-20 Task 19：MicroPython 雙執行環境 golden 測試
+
+**需求**
+- tools/run_mpy_golden.mjs：在 Node 的 MicroPython 內跑 golden 與錯誤路徑案例，與 CPython 比對；package.json 加 test:mpy
+
+**做法**
+- 共用載入邏輯抽到 tools/mpy_util.mjs（spike_float.mjs 保持不動）
+- golden：runner.run 全過，且 dump 與 tools/golden_dump.py 的 CPython 結果相對差 <= 1e-9（max(1,|b|) 為底），只比數值不比顯示字串（裁定）
+- 錯誤路徑：新增 tests/golden/error_cases.json（24 案，含 expected），由 tools/error_dump.py 以 CPython bridge 產生；MicroPython 回應須與 expected 的 ok／error／field 完全相同，另即時重算 CPython 防期望值過期
+- --self-test：在暫存目錄弄壞 golden 與 error expected 的副本，確認 exit 1，repo 不被修改
+
+**產出**
+- tools/run_mpy_golden.mjs、tools/mpy_util.mjs、tools/error_dump.py、tests/golden/error_cases.json、package.json scripts
+
+**驗證**
+- npm run test:mpy：51/51 passed, max diff vs CPython 1.25e-16；24/24 error cases identical
+- --self-test：未損壞 exit 0、壞 golden exit 1、壞 error expected exit 1
+- pytest 全過、check_portable 0
+
+**問題與修正**
+- 失敗的嘗試：第一次用 bash heredoc 一次寫多個檔案，shell 因引號解析錯誤整段未執行，改用 Write 工具
+- error_dump 初版 amort N 非整數案例缺 PY 欄位，錯誤落在 PY 而非 N，補齊欄位；移除重複的 tvm 案例（24 案）
+- error_dump 輸出改 ensure_ascii 以免 Windows cp950 主控台弄壞中文
+
+**待辦**
+- 之後納入一鍵驗證（verify）流程

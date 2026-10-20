@@ -1,0 +1,462 @@
+[
+ {
+  "expected": {
+   "error": "請求不是合法的 JSON",
+   "field": null,
+   "ok": false
+  },
+  "id": "invalid_json",
+  "raw": "not json"
+ },
+ {
+  "expected": {
+   "error": "請求必須是 JSON 物件",
+   "field": null,
+   "ok": false
+  },
+  "id": "non_dict_list",
+  "raw": "[1, 2]"
+ },
+ {
+  "expected": {
+   "error": "請求必須是 JSON 物件",
+   "field": null,
+   "ok": false
+  },
+  "id": "non_dict_number",
+  "raw": "42"
+ },
+ {
+  "expected": {
+   "error": "未知的功能：nope / x",
+   "field": null,
+   "ok": false
+  },
+  "id": "unknown_route",
+  "request": {
+   "action": "x",
+   "inputs": {},
+   "settings": {},
+   "sheet": "nope"
+  }
+ },
+ {
+  "expected": {
+   "error": "未知的功能：tvm / nope",
+   "field": null,
+   "ok": false
+  },
+  "id": "unknown_action",
+  "request": {
+   "action": "nope",
+   "inputs": {},
+   "settings": {},
+   "sheet": "tvm"
+  }
+ },
+ {
+  "expected": {
+   "error": "請只留一格空白（目前空白：PMT、FV）",
+   "field": null,
+   "ok": false
+  },
+  "id": "tvm_two_blanks",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "FV": null,
+    "IY": 5,
+    "N": 10,
+    "PMT": null,
+    "PV": -100
+   },
+   "settings": {},
+   "sheet": "tvm"
+  }
+ },
+ {
+  "expected": {
+   "error": "請只留一格空白（目前空白：無）",
+   "field": null,
+   "ok": false
+  },
+  "id": "tvm_all_filled",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "FV": 0,
+    "IY": 5,
+    "N": 10,
+    "PMT": 0,
+    "PV": -100
+   },
+   "settings": {},
+   "sheet": "tvm"
+  }
+ },
+ {
+  "expected": {
+   "error": "N 必須是有限數字",
+   "field": "N",
+   "ok": false
+  },
+  "id": "tvm_string_field",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "FV": null,
+    "IY": 5,
+    "N": "abc",
+    "PMT": 0,
+    "PV": -100
+   },
+   "settings": {},
+   "sheet": "tvm"
+  }
+ },
+ {
+  "expected": {
+   "error": "IY 必須是有限數字",
+   "field": "IY",
+   "ok": false
+  },
+  "id": "tvm_bool_field",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "FV": null,
+    "IY": true,
+    "N": 10,
+    "PMT": 0,
+    "PV": -100
+   },
+   "settings": {},
+   "sheet": "tvm"
+  }
+ },
+ {
+  "expected": {
+   "error": "PV 必須是有限數字",
+   "field": "PV",
+   "ok": false
+  },
+  "id": "tvm_string_numeric_text",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "FV": null,
+    "IY": 5,
+    "N": 10,
+    "PMT": 0,
+    "PV": "100"
+   },
+   "settings": {},
+   "sheet": "tvm"
+  }
+ },
+ {
+  "expected": {
+   "error": "N 必須為整數期數",
+   "field": "N",
+   "ok": false
+  },
+  "id": "amort_N_noninteger",
+  "request": {
+   "action": "schedule",
+   "inputs": {
+    "BGN": false,
+    "CY": 12,
+    "FV": 0,
+    "IY": 5,
+    "N": 12.5,
+    "PMT": -10,
+    "PV": 100,
+    "PY": 12
+   },
+   "settings": {},
+   "sheet": "amort"
+  }
+ },
+ {
+  "expected": {
+   "error": "IRR 無解：現金流沒有正負號變化",
+   "field": "CF",
+   "ok": false
+  },
+  "id": "irr_no_sign_change",
+  "request": {
+   "action": "irr",
+   "inputs": {
+    "CF0": 100,
+    "I": 10,
+    "RI": null,
+    "flows": [
+     [
+      3000,
+      1
+     ],
+     [
+      4200,
+      1
+     ]
+    ]
+   },
+   "settings": {},
+   "sheet": "cashflow"
+  }
+ },
+ {
+  "expected": {
+   "error": "CF0 須為負值（初始投資）",
+   "field": "CF",
+   "ok": false
+  },
+  "id": "payback_cf0_nonneg",
+  "request": {
+   "action": "pb",
+   "inputs": {
+    "CF0": 100,
+    "I": 10,
+    "RI": null,
+    "flows": [
+     [
+      3000,
+      1
+     ],
+     [
+      4200,
+      1
+     ]
+    ]
+   },
+   "settings": {},
+   "sheet": "cashflow"
+  }
+ },
+ {
+  "expected": {
+   "error": "除以零（第 2 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_div_zero",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "1/0"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "ln 的引數須大於 0（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_ln_zero",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "ln(0)"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "括號不平衡，缺少右括號（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_unclosed_paren",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "(1+2"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "數字超出範圍（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_1e999",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "1e999"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "無法辨識的字元「π」（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_pi_char",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "π"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "EXP 模式需要正數 Y",
+   "field": "Y",
+   "ok": false
+  },
+  "id": "stats_exp_negative_y",
+  "request": {
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3
+    ],
+    "Y": [
+     2,
+     -3,
+     4
+    ],
+    "model": "EXP"
+   },
+   "settings": {},
+   "sheet": "stats"
+  }
+ },
+ {
+  "expected": {
+   "error": "結算日（SDT）必須早於贖回日（RDT）",
+   "field": "SDT",
+   "ok": false
+  },
+  "id": "bond_sdt_ge_rdt",
+  "request": {
+   "action": "price",
+   "inputs": {
+    "CPN": 7.0,
+    "PRI": null,
+    "RDT": [
+     2026,
+     6,
+     12
+    ],
+    "RV": 100.0,
+    "SDT": [
+     2036,
+     1,
+     1
+    ],
+    "YLD": 8.0,
+    "basis": "ACT",
+    "freq": 2
+   },
+   "settings": {},
+   "sheet": "bond"
+  }
+ },
+ {
+  "expected": {
+   "error": "SYD 部分年度需 TI 手冊範例驗證，目前僅支援 M01=1",
+   "field": "M01",
+   "ok": false
+  },
+  "id": "depr_syd_m01_7",
+  "request": {
+   "action": "year",
+   "inputs": {
+    "CST": 10000,
+    "DB": 200,
+    "LIF": 5,
+    "M01": 7,
+    "SAL": 1000,
+    "YR": 1,
+    "method": "SYD"
+   },
+   "settings": {},
+   "sheet": "depr"
+  }
+ },
+ {
+  "expected": {
+   "error": "金額絕對值必須小於 1e13 元",
+   "field": "amount",
+   "ok": false
+  },
+  "id": "tax_amount_1e14",
+  "request": {
+   "action": "tax",
+   "inputs": {
+    "AMOUNT": 100000000000000.0,
+    "MODE": "exclusive",
+    "RATE": 5
+   },
+   "settings": {},
+   "sheet": "business"
+  }
+ },
+ {
+  "expected": {
+   "error": "DT1 必須是合法日期 [年, 月, 日]",
+   "field": "DT1",
+   "ok": false
+  },
+  "id": "date_invalid_feb30",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "DBD": null,
+    "DT1": [
+     2026,
+     2,
+     30
+    ],
+    "DT2": [
+     2026,
+     3,
+     1
+    ],
+    "basis": "ACT"
+   },
+   "settings": {},
+   "sheet": "date"
+  }
+ },
+ {
+  "expected": {
+   "error": "decimals 必須是 0～9 的整數或 null",
+   "field": "decimals",
+   "ok": false
+  },
+  "id": "settings_bad_decimals",
+  "request": {
+   "action": "solve",
+   "inputs": {
+    "FV": null,
+    "IY": 5,
+    "N": 10,
+    "PMT": 0,
+    "PV": -100
+   },
+   "settings": {
+    "decimals": 12
+   },
+   "sheet": "tvm"
+  }
+ }
+]

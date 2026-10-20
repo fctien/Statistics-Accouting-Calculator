@@ -5,5 +5,8 @@
   "type": "module",
   "dependencies": {
     "@micropython/micropython-webassembly-pyscript": "1.29.0-6"
+  },
+  "scripts": {
+    "test:mpy": "node tools/run_mpy_golden.mjs"
   }
 }
