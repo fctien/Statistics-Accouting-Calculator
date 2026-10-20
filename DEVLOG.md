@@ -465,3 +465,25 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 15（顯示格式與輸入解析 engine/fmt.py）
+**需求**
+- format_number（固定 0～9 位／浮動、us／eu 分隔）與 parse_number（千分位、科學記號、全形數字）
+
+**做法**
+- 以 '%.15g' 取十進位字串，展開指數形式成（有效數字, 小數點位置），在字串上做 half away from zero 進位；不用 round()／format 規格
+- 浮動模式最多 10 位有效數字，指數 >= 10 或 < -9 用科學記號 E 表示，其餘仍分千分位；-0.0 與進位後為零一律無負號；不合法輸入回「錯誤」不拋例外
+- parse_number 不用 re，逐字檢查千分位分組（首組 1～3 位、其後每組 3 位）
+
+**產出**
+- engine/fmt.py、tests/test_fmt.py
+
+**驗證**
+- 先 RED（ModuleNotFoundError），實作後 test_fmt 與全套 pytest 通過、check_portable 通過、engine/ 無 "eval("
+
+**問題與修正**
+- 失敗的嘗試：無（首次實作即通過）；測試中誤放一行全形句點的無意義斷言，已刪除
+- MicroPython 上 '%.15g' 行為待 M2 spike 驗證
+
+**待辦**
+- bridge 接線時決定 sep／decimals 的來源；M2 spike 實機驗證
