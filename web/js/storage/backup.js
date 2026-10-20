@@ -5,10 +5,16 @@
 import { fromJSON as memFromJSON } from "../memstore.js";
 import { createTape, MAX_ENTRIES } from "../tape.js";
 import { sanitize as sanitizeSettings } from "../settings.js";
+import { SHEETS } from "../sheets.js";
 
 export const APP_NAME = "BACalc";
 export const SCHEMA = 1;
 export const MAX_TAPE = MAX_ENTRIES;
+export const MAX_SCENARIOS = 1000;
+export const MAX_NAME = 80;
+export const MAX_GRID_ROWS = 500;
+export const MAX_GRID_COLS = 10;
+export const GRID_KEY = "__grid"; // 情境 inputs 內存放表格（CF、STAT）內容的鍵
 
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const toMs = (now) => (now instanceof Date ? now.getTime() : Number(now));
@@ -88,13 +94,54 @@ function normalizeTape(list) {
   return createTape(MAX_TAPE, clean).toJSON();
 }
 
+/** 表格內容：1～500 列、每列 1～10 欄的字串；形狀不合回傳 null。 */
+export function sanitizeGrid(g) {
+  if (!Array.isArray(g) || g.length < 1 || g.length > MAX_GRID_ROWS) return null;
+  for (const row of g) {
+    if (!Array.isArray(row) || row.length < 1 || row.length > MAX_GRID_COLS) return null;
+    if (!row.every((c) => typeof c === "string" && c.length <= 100)) return null;
+  }
+  return g.map((r) => r.slice());
+}
+
+/** 一個欄位的儲存狀態：只留 text／direction／exact／checked 四種合法形狀；不合法回傳 null。 */
+function sanitizeFieldState(st) {
+  if (!isObj(st)) return null;
+  if (typeof st.checked === "boolean" && !("text" in st)) return { checked: st.checked };
+  if (typeof st.text !== "string" || st.text.length > 1000) return null;
+  const out = { text: st.text };
+  if (st.direction === "in" || st.direction === "out") out.direction = st.direction;
+  if (typeof st.exact === "number" && Number.isFinite(st.exact)) out.exact = st.exact;
+  return out;
+}
+
+/** 清理情境的 inputs：只留該工作表已知的輸入欄位 id 與合法的表格內容。 */
+export function sanitizeScenarioInputs(worksheet, inputs) {
+  const known = new Set(SHEETS[worksheet].fields.filter((f) => !f.output).map((f) => f.id));
+  const out = {};
+  for (const [k, v] of Object.entries(inputs)) {
+    if (k === GRID_KEY) {
+      const g = sanitizeGrid(v);
+      if (g) out[GRID_KEY] = g;
+    } else if (known.has(k)) {
+      const st = sanitizeFieldState(v);
+      if (st) out[k] = st;
+    }
+  }
+  return out;
+}
+
 /** 把已通過 validateImport 的 data 清理成可安全寫入的形狀：不合格的設定鍵、記憶值、紙帶項目被丟棄。 */
 export function normalizeData(data) {
   return {
     settings: sanitizeSettings(data.settings),
-    scenarios: data.scenarios.map((s) => ({
-      id: s.id, worksheet: s.worksheet, name: s.name, inputs: s.inputs, updated_at: s.updated_at,
-    })),
+    scenarios: data.scenarios
+      .filter((s) => Object.prototype.hasOwnProperty.call(SHEETS, s.worksheet)) // 不認得的工作表丟棄
+      .slice(0, MAX_SCENARIOS)
+      .map((s) => ({
+        id: s.id, worksheet: s.worksheet, name: s.name.slice(0, MAX_NAME),
+        inputs: sanitizeScenarioInputs(s.worksheet, s.inputs), updated_at: s.updated_at,
+      })),
     tape: normalizeTape(data.tape),
     memory: memFromJSON(data.memory).toJSON(),
   };

@@ -7,7 +7,7 @@ import * as settingsStore from "../settings.js";
 import { readCfTable } from "../tables.js";
 import { renderForm } from "./form.js";
 import { runEngineAction, watchStale, markStale } from "./run.js";
-import { createGrid } from "./grid.js";
+import { createGrid, attachScenarioHooks } from "./grid.js";
 
 const SHEET = "cashflow";
 const TABLE_FIELD = "flows"; // 由表格取代的欄位（仍以 flows 送給引擎）
@@ -57,5 +57,6 @@ export function mount(container) {
   form.querySelector('.field[data-field="CF0"]').after(section);
 
   watchStale(SHEET);
+  attachScenarioHooks(form, grid); // 具名情境：一併存取表格內容
   form.addEventListener("form-reset", () => grid.reset()); // 清除鈕／Esc：表格一併還原
 }

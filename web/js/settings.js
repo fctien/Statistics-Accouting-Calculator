@@ -51,8 +51,9 @@ export function get() {
 }
 
 /** 背景寫入 IndexedDB；失敗（idb.js 已提示）不影響目前運作。 */
+/** 回傳是否真的寫進 IndexedDB（false＝只在記憶體或失敗）。 */
 function persist(value) {
-  return idb.put("settings", { key: "settings", value }).catch(() => {});
+  return idb.put("settings", { key: "settings", value }).catch(() => false);
 }
 
 /**
@@ -79,8 +80,8 @@ export async function init() {
     if (legacy !== null) {
       saved = legacy;
       cache = { ...DEFAULTS, ...saved };
-      await persist(cache);
-      if (idb.isPersistent()) {
+      const written = await persist(cache);
+      if (written === true) {
         try {
           ls.removeItem(KEY);
         } catch (e) {

@@ -189,3 +189,47 @@ test("匯出再匯入：往返後相同", () => {
   const r = importBackup(exported, emptyData(), "replace");
   assert.deepEqual(r.data, data);
 });
+
+// ---- Task 25 修正輪 1：情境表格與匯入加固
+import { sanitizeGrid, sanitizeScenarioInputs, MAX_SCENARIOS } from "../../web/js/storage/backup.js";
+
+test("sanitizeGrid：表格往返不變；形狀不合回傳 null", () => {
+  const g = [["-1500", "1"], ["300", "5"]];
+  assert.deepEqual(sanitizeGrid(g), g);
+  assert.notEqual(sanitizeGrid(g), g); // 複本
+  for (const bad of [null, [], "x", [["1"], 5], [[1, 2]], [[]], Array.from({ length: 501 }, () => ["1"]), [[("x").repeat(101)]]]) {
+    assert.equal(sanitizeGrid(bad), null);
+  }
+  assert.notEqual(sanitizeGrid(Array.from({ length: 500 }, () => ["1"])), null);
+});
+
+test("sanitizeScenarioInputs：只留已知輸入欄位、合法狀態與表格", () => {
+  const out = sanitizeScenarioInputs("cashflow", {
+    CF0: { text: "-1000", direction: "out", exact: -1000, stale: true, extra: 1 },
+    IY: { text: "5" },
+    bogus: { text: "1" },
+    NPV: { text: "99" }, // 輸出欄位不收
+    __grid: [["1", "1"]],
+  });
+  assert.deepEqual(out.CF0, { text: "-1000", direction: "out", exact: -1000 });
+  assert.ok(!("bogus" in out));
+  assert.deepEqual(out.__grid, [["1", "1"]]);
+  const bad = sanitizeScenarioInputs("tvm", {
+    N: { text: 5 }, IY: { text: "5", direction: "sideways", exact: Infinity }, PV: "x", BGN: { checked: true }, __grid: "no",
+  });
+  assert.ok(!("N" in bad) && !("PV" in bad) && !("__grid" in bad));
+  assert.deepEqual(bad.IY, { text: "5" });
+  assert.deepEqual(bad.BGN, { checked: true });
+});
+
+test("normalizeData：丟棄未知工作表、名稱截到 80 字、情境數上限 1000", () => {
+  const mk = (id, ws, name = "n") => ({ id, worksheet: ws, name, inputs: {}, updated_at: "2026-10-19T10:00:00+08:00" });
+  const out = normalizeData({
+    settings: {}, tape: [], memory: {},
+    scenarios: [mk("a", "tvm", "x".repeat(200)), mk("b", "nope"), mk("c", "constructor"), mk("d", "__proto__")],
+  });
+  assert.deepEqual(out.scenarios.map((s) => s.id), ["a"]);
+  assert.equal(out.scenarios[0].name.length, 80);
+  const many = Array.from({ length: MAX_SCENARIOS + 50 }, (_, i) => mk("s" + i, "tvm"));
+  assert.equal(normalizeData({ settings: {}, tape: [], memory: {}, scenarios: many }).scenarios.length, MAX_SCENARIOS);
+});

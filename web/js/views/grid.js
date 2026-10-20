@@ -208,5 +208,22 @@ export function createGrid(opts) {
   });
 
   reset();
-  return { root, table, getCells, setCells, reset, markError, clearError, setMessage };
+  return { root, table, width, maxRows, getCells, setCells, reset, markError, clearError, setMessage };
+}
+
+/**
+ * 讓表格參與具名情境（scenarios.js）：form 上的 "scenario-capture" 事件把表格內容放進 detail.__grid；
+ * "scenario-apply" 事件有 detail.__grid（欄數相符、列數不超過上限）就還原，沒有就把表格重設為空白起始狀態，
+ * 避免新情境的 CF0／I 與舊表格內容混在一起。
+ */
+export function attachScenarioHooks(form, grid) {
+  form.addEventListener("scenario-capture", (e) => { e.detail.__grid = grid.getCells(); });
+  form.addEventListener("scenario-apply", (e) => {
+    const g = e.detail.__grid;
+    const ok = Array.isArray(g) && g.length >= 1 && g.length <= grid.maxRows
+      && g.every((r) => Array.isArray(r) && r.length === grid.width && r.every((c) => typeof c === "string"));
+    grid.clearError();
+    if (ok) grid.setCells(g);
+    else grid.reset();
+  });
 }

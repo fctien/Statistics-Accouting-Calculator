@@ -37,6 +37,14 @@ export async function flushTape() {
   await writeTape(e);
 }
 
+// 關閉分頁或切到背景時立刻寫出尚未寫入的紙帶（debounce 期間不遺失資料）
+if (typeof globalThis.addEventListener === "function") {
+  globalThis.addEventListener("pagehide", () => { flushTape(); });
+  globalThis.document?.addEventListener?.("visibilitychange", () => {
+    if (globalThis.document.visibilityState === "hidden") flushTape();
+  });
+}
+
 /** 放棄尚未寫出的紙帶（匯入／清除之前，避免舊資料蓋掉新資料）。 */
 export function cancelTape() {
   if (tapeTimer !== null) clearTimeout(tapeTimer);

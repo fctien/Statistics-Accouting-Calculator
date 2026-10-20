@@ -115,13 +115,14 @@ export function get(store, key) {
   return exec(store, "readonly", (s) => s.get(key), (m) => m.get(key));
 }
 
-/** 寫入（取代同鍵）一筆；value 必須含該庫的 keyPath 欄位。 */
+/** 寫入（取代同鍵）一筆；value 必須含該庫的 keyPath 欄位。成功寫進 IndexedDB 回傳 true，只存進記憶體備援回傳 false。 */
 export function put(store, value) {
   const kp = STORE_KEYS[store];
   if (value === null || typeof value !== "object" || value[kp] === undefined) {
     return Promise.reject(new Error(`寫入 ${store} 的資料缺少 ${kp}`));
   }
-  return exec(store, "readwrite", (s) => s.put(value), (m) => { m.set(value[kp], structuredClone(value)); });
+  return exec(store, "readwrite", (s) => s.put(value), (m) => { m.set(value[kp], structuredClone(value)); })
+    .then((key) => key !== undefined);
 }
 
 /** 讀全部（陣列）。 */

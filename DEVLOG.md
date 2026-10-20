@@ -1008,3 +1008,28 @@
 **待辦**
 - 表格式輸入（CF 現金流表、STAT 資料）不在情境內，目前情境只存表單欄位
 - Task 26 之後：雲端同步（選用）
+
+## 2026-10-20 Task 25 修正輪 1：情境表格、匯入加固、紙帶 flush
+
+**需求**
+- 審查：CF、STAT 的情境沒存表格內容，載入後舊表格與新 CF0／I 混在一起；另有匯入加固、關頁前 flush 紙帶、搬家只在 IDB 真的寫入成功時移除舊鍵
+
+**做法**
+- grid.js 新增 attachScenarioHooks：form 上的 scenario-capture／scenario-apply 事件，存 inputs.__grid；載入時有表格就還原，沒有（或形狀不符）就重設為空白；CF、STAT 掛上；AMORT／DEPR 的輸出表由載入後送出的 change 事件清掉
+- backup.js：sanitizeGrid、sanitizeScenarioInputs（只留該工作表已知輸入欄位、text 字串、direction in/out、exact 有限數）；normalizeData 丟棄未知工作表、名稱截 80 字、情境上限 1000
+- idb.put 回傳是否真的寫進 IndexedDB；settings 搬家只在 true 時移除 localStorage 舊鍵
+- persist.js：pagehide 與 visibilitychange（hidden）立刻 flush 紙帶
+
+**產出**
+- 修改 grid.js、cashflow.js、stats.js、scenarios.js、backup.js、idb.js、settings.js、persist.js；新增測試 sanitizeGrid／sanitizeScenarioInputs／normalizeData 加固／搬家失敗保留舊鍵
+
+**驗證**
+- node --test 114 pass、pytest 全綠、build_web／check_shell 通過
+- 瀏覽器：CF 存三筆現金流的情境，改表格後載入，三筆還原；先算 NPV=80.4449 再載入，輸出清空；舊情境（無表格）載入後表格重設為空白
+
+**問題與修正**
+- 瀏覽器模組快取舊檔，第一次驗證沒載到新程式（結果錯誤是舊 grid.js），以 fetch cache reload 後重載才正確
+- 單元測試只涵蓋純函式；attachScenarioHooks 以瀏覽器驗證，STAT 未另行目視（同一個掛鉤）
+
+**待辦**
+- 無

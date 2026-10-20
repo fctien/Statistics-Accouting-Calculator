@@ -6,7 +6,7 @@ import * as settingsStore from "../settings.js";
 import { readStatTable } from "../tables.js";
 import { renderForm } from "./form.js";
 import { runEngineAction, watchStale, markStale } from "./run.js";
-import { createGrid } from "./grid.js";
+import { createGrid, attachScenarioHooks } from "./grid.js";
 
 const SHEET = "stats";
 const TABLE_FIELDS = new Set(["X", "F", "Y"]); // 由表格取代的欄位
@@ -58,5 +58,6 @@ export function mount(container) {
   form.querySelector('.field[data-field="model"]').before(section);
 
   watchStale(SHEET);
+  attachScenarioHooks(form, grid); // 具名情境：一併存取表格內容
   form.addEventListener("form-reset", () => grid.reset());
 }

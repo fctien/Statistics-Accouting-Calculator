@@ -54,14 +54,25 @@ export function captureInputs(worksheet) {
       inputs[f.id] = rest;
     }
   }
+  // 表格（CF、STAT）透過 "scenario-capture" 事件把內容放進 __grid
+  const detail = {};
+  formOf(worksheet)?.dispatchEvent(new CustomEvent("scenario-capture", { detail }));
+  if (detail.__grid) inputs.__grid = detail.__grid;
   return inputs;
+}
+
+function formOf(worksheet) {
+  return document.querySelector(`#sheet form.sheet-form[data-sheet="${CSS.escape(worksheet)}"]`);
 }
 
 /** 把情境還原到表單，並讓結果失效（要重新計算）。 */
 export function applyScenario(worksheet, scenario) {
   for (const [id, state] of Object.entries(scenario.inputs)) {
-    if (state && typeof state === "object") setFieldState(worksheet, id, state);
+    if (id !== "__grid" && state && typeof state === "object") setFieldState(worksheet, id, state);
   }
+  // 表格：有存就還原，沒存就重設為空白（舊內容不可混進新情境）
+  const detail = { __grid: scenario.inputs.__grid };
+  formOf(worksheet)?.dispatchEvent(new CustomEvent("scenario-apply", { detail }));
   markStale(worksheet);
   // 通知專屬畫面（例：攤還表、表格）清除自己的輸出
   document.querySelector(`#sheet form.sheet-form[data-sheet="${CSS.escape(worksheet)}"]`)

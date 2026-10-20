@@ -119,3 +119,14 @@ test("init：IndexedDB 內容壞掉或 localStorage 丟例外：不影響運作"
   assert.equal(get().sep, "eu");
   cleanup();
 });
+
+test("init 搬家：IndexedDB 寫入失敗（退回記憶體）時不移除舊鍵", async () => {
+  globalThis.indexedDB = makeFakeIndexedDB({ failPut: true });
+  idb._reset();
+  const st = fakeStorage({ "bacalc.settings": JSON.stringify({ decimals: 3 }) });
+  globalThis.localStorage = st;
+  _resetCache();
+  assert.equal((await init()).decimals, 3);
+  assert.equal(st.map.has("bacalc.settings"), true);
+  cleanup();
+});
