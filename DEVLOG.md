@@ -590,3 +590,35 @@
 - 決定 %.15g tie-breaking 差異是否接受（或引擎端改用 repr 自行進位）
 - 使用者決定是否還原「Tien Research」根目錄 package.json／package-lock.json／node_modules/@micropython
 - 繼續 Task 19
+
+## Task 18 修正輪 1：engine MicroPython 可攜性修正
+
+**需求**
+- Controller 裁定：採用 MicroPython；%.15g 中點進位與 %.17g 補 0 差異接受
+- 修正 spike 發現的可攜性 bug：Exception.__init__、money.to_cents 大數值；spike 的 g4、g5、g6 必須通過，接受項目標 accepted (ruling)
+
+**做法**
+- calc.py、bridge.py：Exception.__init__(self, …) → super().__init__(…)；check_portable 新增規則禁止「內建型別.__init__(」
+- calc.py：識別字改用 ASCII 字母表判斷（MicroPython 的 isalpha 只認 ASCII，修好 __init__ 後 g5 才露出此差異）
+- money.to_cents：改以 '%.15g' 取十進位值、整數運算進位到分（half away from zero）；MAX_AMOUNT = 1e13 元，超過拋 ValueError；business.tax 先驗證回 err（field amount）
+- spike：accepted (ruling) 由程式以 CPython Decimal 驗證「差異全是精確中點」才給；all_pass 只計未接受項目；新增 g7 to_cents 跨環境比對（約 18000 值）
+
+**產出**
+- engine/calc.py、engine/bridge.py、engine/money.py、engine/business.py、tools/check_portable.py、tools/spike_float.mjs
+- tests：test_portable（+2）、test_money（+2）、test_business（+1）、test_calc（+1）
+- logs/spike-micropython-20261020.html 新增「修正輪 1」段落與新決策行
+
+**驗證**
+- 6 個新測試先 RED 後 GREEN；全套 pytest 通過；check_portable 0；mutate.py 18/18 killed
+- spike 重跑（HEAD 0f99f5a，git 乾淨）：all_pass True；通過 29、裁定接受 5、不通過 0；g4/g5/g6 通過
+- 決策：採用 MicroPython（雙精度通過；%.15g 中點進位與 %.17g 差異經裁定接受；engine 可攜性問題已修正並重跑通過）
+
+**問題與修正**
+- 失敗的嘗試：to_cents 改 '%.15g' 後先用 controller 建議的上限 1e15，重跑 g7 發現 1e13 以上 '%.15g' 只剩 1 位小數，分位被截掉（11579813144864.25 兩端都錯），上限改為 1e13
+- 舊 '%.6f' 作法在 CPython 本身對 ~1e9 元以上也會露出二進位誤差（116455781560.185 → 少 1 分），新作法一併修正
+- 剩餘差異：g7 18168 值中 1 個 %.15g 精確中點（9992958372198.125：MicroPython …13 分、CPython …12 分），屬裁定接受範圍
+- 第一次跑 mutate.py 被拒（engine/ 有未提交變更），先 commit 修正再跑
+
+**待辦**
+- 使用者決定是否還原「Tien Research」根目錄 package.json／package-lock.json／node_modules/@micropython
+- 繼續 Task 19

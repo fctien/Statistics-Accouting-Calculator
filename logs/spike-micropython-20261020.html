@@ -10,7 +10,7 @@ h1{font-size:1.5em}h2{font-size:1.15em;margin-top:1.6em;border-bottom:1px solid 
 table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
 td:nth-child(2){white-space:nowrap}td:nth-child(3){word-break:break-all;max-width:480px}
 code,pre{background:var(--code);font-family:Consolas,monospace}pre{padding:8px;overflow:auto;max-height:420px;font-size:12px}
-.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}
+.ok{color:var(--ok);font-weight:600}.acc{color:#a86b00;font-weight:600}.ng{color:var(--ng);font-weight:600}
 .decision{font-size:1.2em;font-weight:700;padding:10px;border:2px solid var(--ok)}
 .wrap{overflow-x:auto}
 </style></head><body>
@@ -30,7 +30,7 @@ code,pre{background:var(--code);font-family:Consolas,monospace}pre{padding:8px;o
 <li>載入＋寫入 VFS＋import 合計：67.5 ms</li>
 <li>golden 51 案例 run + dump + 收集完整回應（共 3 輪）：91 ms</li>
 </ul>
-<h2>檢查清單（checklist）</h2>
+<h2>檢查清單（checklist，修正前初跑）</h2>
 <div class="wrap"><table><tr><th>項目</th><th>結果</th><th>觀察值（observed）</th><th>說明</th></tr>
 <tr><td><code>a1_1e300x10_same_as_cpython</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1e+301&quot;, &quot;cpython&quot;: &quot;1e+301&quot;, &quot;note&quot;: &quot;brief 原文期望 inf，但雙精度下 1e301 為有限值，CPython 亦同&quot;}</code></td><td>brief 原文期望 1e300*10 == inf，但 1e301 在雙精度內為有限值，CPython 同樣為 False；改為與 CPython 比對，並以 a1b 驗證真正溢位</td></tr>
 <tr><td><code>a1b_overflow_1e308x10_inf</code></td><td class='ok'>通過</td><td><code>&quot;inf&quot;</code></td><td>真正的溢位檢查</td></tr>
@@ -72,10 +72,67 @@ code,pre{background:var(--code);font-family:Consolas,monospace}pre{padding:8px;o
 <li>golden 51 案例失敗清單為空；與 CPython 的數值最大相對差 1.25e-16（&lt; 1e-9）；51 案例的 display 字串與 CPython 逐字相同</li>
 <li>不通過項目皆非浮點精度問題：(1) %.17g 等超過 16 位的格式化；(2) %.15g 在「二進位精確中點」的 tie-breaking（half-up vs half-even）；(3) 三個引擎可攜性 bug（calc.py:28、bridge.py:61、money.py:18-21），依裁定不在本任務修正，交由 controller 另派修正</li>
 </ul>
-<p class="decision">決策：採用 MicroPython</p>
-<p>理由：雙精度成立、golden 全數通過且與 CPython 差異僅 1e-16 等級；發現的問題都是可在引擎端修正的可攜性 bug 或格式化 tie 邊界，不是退回 Pyodide 的理由。</p>
+<p>初版決策（修正前）：採用 MicroPython。理由：雙精度成立、golden 全數通過且與 CPython 差異僅 1e-16 等級；發現的問題都是可在引擎端修正的可攜性 bug 或格式化 tie 邊界，不是退回 Pyodide 的理由。</p>
+
+<h2>修正輪 1</h2>
+<p>Controller 裁定：使用者的關卡是雙精度（已通過）；%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受，因引擎從不格式化超過 15 位有效數字。</p>
+<p>重跑時 HEAD：<code>0f99f5ac0e95964def299ed50ff976ca9e9c1858</code>（修正 commit，重跑前 <code>git status --short</code> 乾淨）</p>
+<h3>修正內容</h3>
+<ul>
+<li><code>engine/calc.py:28</code>、<code>engine/bridge.py:61</code>：<code>Exception.__init__(self, …)</code> 改 <code>super().__init__(…)</code>；<code>tools/check_portable.py</code> 新增規則禁止「內建型別.__init__(」寫法</li>
+<li><code>engine/calc.py</code>：識別字字母改用 ASCII 字母表（MicroPython 的 <code>str.isalpha()</code> 只認 ASCII，修正後兩端對「π」「é」都回「無法辨識的字元」）</li>
+<li><code>engine/money.py</code> <code>to_cents</code>：改以 <code>'%.15g'</code> 取十進位值再用整數進位到分（half away from zero），不再用 <code>'%.6f'</code>；新增 <code>MAX_AMOUNT = 1e13</code> 元（15 位有效數字 = 13 位整數 + 2 位小數），超過拋 ValueError；<code>business.tax</code> 先驗證，回 err「金額絕對值必須小於 1e13 元」（field amount）</li>
+<li>上限由 controller 建議的 1e15 改為 1e13：重跑時發現 1e13 以上 <code>'%.15g'</code> 只剩 1 位小數，分位會被截掉（例 11579813144864.25 兩端都錯）</li>
+<li>連帶修正：舊 <code>'%.6f'</code> 作法在 CPython 本身對 ~1e9 元以上的輸入會露出二進位誤差（116455781560.185 → 少 1 分），新作法回傳 …19</li>
+<li><code>tools/spike_float.mjs</code>：裁定接受的項目標示 accepted (ruling)，且程式以 CPython Decimal 驗證差異確實全是精確中點才接受；all_pass 只計未接受項目；新增 g7 to_cents 跨環境比對</li>
+</ul>
+<h3>驗證</h3>
+<ul>
+<li>pytest 全部通過（新增 6 個測試，皆先 RED 後 GREEN）；check_portable exit 0；tools/mutate.py 18/18 killed</li>
+<li>spike 重跑：all_pass = True；通過 29、裁定接受 5、不通過 0（共 34 項）</li>
+<li>計時：載入 MicroPython 17.8 ms、import engine.bridge 33.7 ms、合計 65 ms；golden 3 輪 85.3 ms</li>
+<li>g7 剩 1 個差異（9992958372198.125：MicroPython …13、CPython …12），為 %.15g 精確中點，屬裁定接受範圍</li>
+</ul>
+<h3>重跑檢查清單</h3>
+<div class="wrap"><table><tr><th>項目</th><th>結果</th><th>觀察值（observed）</th><th>說明</th></tr>
+<tr><td><code>a1_1e300x10_same_as_cpython</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1e+301&quot;, &quot;cpython&quot;: &quot;1e+301&quot;, &quot;note&quot;: &quot;brief 原文期望 inf，但雙精度下 1e301 為有限值，CPython 亦同&quot;}</code></td><td></td></tr>
+<tr><td><code>a1b_overflow_1e308x10_inf</code></td><td class='ok'>通過</td><td><code>&quot;inf&quot;</code></td><td></td></tr>
+<tr><td><code>a2_point1_plus_point2</code></td><td class='ok'>通過</td><td><code>&quot;0.30000000000000004&quot;</code></td><td></td></tr>
+<tr><td><code>a3_subnormal</code></td><td class='ok'>通過</td><td><code>&quot;4.940656458412465e-324&quot;</code></td><td></td></tr>
+<tr><td><code>a4_2pow53</code></td><td class='ok'>通過</td><td><code>&quot;9007199254740992.0&quot;</code></td><td></td></tr>
+<tr><td><code>a5_repr_roundtrip</code></td><td class='ok'>通過</td><td><code>{&quot;repr_1_3&quot;: &quot;0.3333333333333333&quot;, &quot;repr_0.1+0.2&quot;: &quot;0.30000000000000004&quot;, &quot;not_roundtrip&quot;: []}</code></td><td></td></tr>
+<tr><td><code>b_fmt17_01</code></td><td class='acc'>裁定接受</td><td><code>{&quot;micropython&quot;: &quot;0.1&quot;, &quot;cpython&quot;: &quot;0.10000000000000001&quot;}</code></td><td>accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受</td></tr>
+<tr><td><code>b_fmt_15e12</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1500000000000&quot;, &quot;cpython&quot;: &quot;1500000000000&quot;}</code></td><td></td></tr>
+<tr><td><code>b_fmt_1_3</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.333333333333333&quot;, &quot;cpython&quot;: &quot;0.333333333333333&quot;}</code></td><td></td></tr>
+<tr><td><code>b_fmt_1e5</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1e-05&quot;, &quot;cpython&quot;: &quot;1e-05&quot;}</code></td><td></td></tr>
+<tr><td><code>b_fmt_2675</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;2.675&quot;, &quot;cpython&quot;: &quot;2.675&quot;}</code></td><td></td></tr>
+<tr><td><code>b_info_fmt16_01</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.1&quot;, &quot;cpython&quot;: &quot;0.1&quot;, &quot;same&quot;: true}</code></td><td></td></tr>
+<tr><td><code>b_info_fmt17_1_3</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.3333333333333333&quot;, &quot;cpython&quot;: &quot;0.33333333333333331&quot;, &quot;same&quot;: false}</code></td><td></td></tr>
+<tr><td><code>b_info_fmt20f_01</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.10000000000000000000&quot;, &quot;cpython&quot;: &quot;0.10000000000000000555&quot;, &quot;same&quot;: false}</code></td><td></td></tr>
+<tr><td><code>b_info_ties</code></td><td class='ok'>通過</td><td><code>{&quot;differing&quot;: [{&quot;x&quot;: &quot;100000000000000.5&quot;, &quot;micropython&quot;: [&quot;100000000000001&quot;, &quot;100000000000000.500000&quot;, &quot;100000000000000.50&quot;, &quot;100,000,000,000,001.00&quot;, &quot;1E14&quot;], &quot;cpython&quot;: [&quot;100000000000000&quot;, &quot;100000000000000.500000&quot;, &quot;100000000000000.50&quot;, &quot;100,000,000,000,000.00&quot;, &quot;1E14&quot;], &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;}, {&quot;x&quot;: &quot;0.125&quot;, &quot;micropython&quot;: [&quot;0.125&quot;, &quot;0.125000&quot;, &quot;0.13&quot;, &quot;0.13&quot;, &quot;0.125&quot;], &quot;cpython&quot;: [&quot;0.125&quot;, &quot;0.125000&quot;, &quot;0.12&quot;, &quot;0.13&quot;, &quot;0.125&quot;], &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;}, {&quot;x&quot;: &quot;0.0078125&quot;, &quot;micropython&quot;: [&quot;0.0078125&quot;, &quot;0.007813&quot;, &quot;0.01&quot;, &quot;0.01&quot;, &quot;0.0078125&quot;], &quot;cpython&quot;: [&quot;0.0078125&quot;, &quot;0.007812&quot;, &quot;0.01&quot;, &quot;0.01&quot;, &quot;0.0078125&quot;], &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;}]}</code></td><td></td></tr>
+<tr><td><code>b_random_15g_4000</code></td><td class='acc'>裁定接受</td><td><code>{&quot;mismatches&quot;: 10, &quot;list&quot;: [[335, &quot;-1.50534485812639e+16&quot;, &quot;-1.50534485812638e+16&quot;], [1259, &quot;-281434728848399&quot;, &quot;-281434728848398&quot;], [1505, &quot;-5.15661727492313e+15&quot;, &quot;-5.15661727492312e+15&quot;], [1820, &quot;550832606486979&quot;, &quot;550832606486978&quot;], [1968, &quot;722102905966843&quot;, &quot;722102905966842&quot;], [2850, &quot;484445212889485&quot;, &quot;484445212889484&quot;], [2864, &quot;76587679049164.3&quot;, &quot;76587679049164.2&quot;], [3488, &quot;599597461686.563&quot;, &quot;599597461686.562&quot;], [3668, &quot;84698132973202.3&quot;, &quot;84698132973202.2&quot;], [3885, &quot;-186112338884229&quot;, &quot;-186112338884228&quot;]]}</code></td><td>accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；已用 CPython Decimal 驗證全部差異皆為精確中點</td></tr>
+<tr><td><code>b_random_format_number_4000</code></td><td class='acc'>裁定接受</td><td><code>{&quot;mismatches&quot;: 5, &quot;list&quot;: [[1259, &quot;-281.434.728.848.399,000000000&quot;, &quot;-281.434.728.848.398,000000000&quot;], [1968, &quot;722,102,905,966,843.0000&quot;, &quot;722,102,905,966,842.0000&quot;], [2864, &quot;76,587,679,049,164.300000000&quot;, &quot;76,587,679,049,164.200000000&quot;], [3488, &quot;599,597,461,686.5630&quot;, &quot;599,597,461,686.5620&quot;], [3668, &quot;84,698,132,973,202.3000&quot;, &quot;84,698,132,973,202.2000&quot;]]}</code></td><td>accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；差異索引全部屬於上列精確中點</td></tr>
+<tr><td><code>b_sweep_engine_formats</code></td><td class='acc'>裁定接受</td><td><code>{&quot;values&quot;: 29, &quot;mismatches&quot;: [{&quot;i&quot;: 5, &quot;fmt&quot;: &quot;%.2f&quot;, &quot;micropython&quot;: &quot;0.13&quot;, &quot;cpython&quot;: &quot;0.12&quot;}, {&quot;i&quot;: 21, &quot;fmt&quot;: &quot;%.6f&quot;, &quot;micropython&quot;: &quot;1e+300&quot;, &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.000000&quot;}, {&quot;i&quot;: 21, &quot;fmt&quot;: &quot;%.2f&quot;, &quot;micropython&quot;: &quot;1e+300&quot;, &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.00&quot;}]}</code></td><td>accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；0.125 的 %.2f 為精確中點；1e300 的 %f 指數形式超出引擎使用範圍（引擎已不用 %.6f；to_cents 上限 1e13）</td></tr>
+<tr><td><code>c1_math_funcs</code></td><td class='ok'>通過</td><td><code>[&quot;log&quot;, &quot;exp&quot;, &quot;sqrt&quot;, &quot;pow&quot;, &quot;floor&quot;]</code></td><td></td></tr>
+<tr><td><code>c2_json_roundtrip</code></td><td class='ok'>通過</td><td><code>&quot;{\&quot;a\&quot;: 1.5, \&quot;b\&quot;: [1, 2]}&quot;</code></td><td></td></tr>
+<tr><td><code>c3_json_dumps_inf</code></td><td class='ok'>通過</td><td><code>&quot;produces &#x27;inf&#x27;&quot;</code></td><td></td></tr>
+<tr><td><code>d1_RuntimeError_exists</code></td><td class='ok'>通過</td><td><code>&quot;RuntimeError&quot;</code></td><td></td></tr>
+<tr><td><code>d2_RecursionError_exists</code></td><td class='ok'>通過</td><td><code>false</code></td><td></td></tr>
+<tr><td><code>d3_deep_recursion_RuntimeError</code></td><td class='ok'>通過</td><td><code>&quot;RuntimeError: maximum recursion depth exceeded&quot;</code></td><td></td></tr>
+<tr><td><code>e1_bigint_le_float</code></td><td class='ok'>通過</td><td><code>&quot;False&quot;</code></td><td></td></tr>
+<tr><td><code>e2_bigint_eq_inf</code></td><td class='ok'>通過</td><td><code>&quot;True&quot;</code></td><td></td></tr>
+<tr><td><code>f1_isdigit_sup2</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: false, &quot;cpython&quot;: true}</code></td><td></td></tr>
+<tr><td><code>g1_golden_fails_empty</code></td><td class='ok'>通過</td><td><code>{&quot;cases&quot;: 51, &quot;fails&quot;: []}</code></td><td></td></tr>
+<tr><td><code>g2_dump_vs_cpython</code></td><td class='ok'>通過</td><td><code>{&quot;max_rel_diff&quot;: 1.2503656402067165e-16, &quot;at&quot;: &quot;tvm_n_lump&quot;, &quot;null_mismatch&quot;: [], &quot;compared&quot;: 51}</code></td><td></td></tr>
+<tr><td><code>g3_display_strings_same</code></td><td class='ok'>通過</td><td><code>{&quot;compared&quot;: 51, &quot;diffs&quot;: []}</code></td><td></td></tr>
+<tr><td><code>g4_tax_large_amounts</code></td><td class='ok'>通過</td><td><code>{&quot;compared&quot;: 15, &quot;diffs&quot;: []}</code></td><td>|金額| ≥ 1e13 兩端皆回 err「金額絕對值必須小於 1e13 元」field amount</td></tr>
+<tr><td><code>g5_calc_unicode</code></td><td class='ok'>通過</td><td><code>{&quot;compared&quot;: 7, &quot;diffs&quot;: []}</code></td><td>兩端錯誤訊息一致（識別字只認 ASCII）</td></tr>
+<tr><td><code>g6_bridge_input_errors</code></td><td class='ok'>通過</td><td><code>{&quot;compared&quot;: 5, &quot;diffs&quot;: []}</code></td><td>兩端皆回原本的中文訊息與欄位</td></tr>
+<tr><td><code>g7_to_cents_random</code></td><td class='acc'>裁定接受</td><td><code>{&quot;compared&quot;: 18168, &quot;mismatches&quot;: 1, &quot;list&quot;: [{&quot;x&quot;: &quot;9992958372198.125&quot;, &quot;micropython&quot;: 999295837219813, &quot;cpython&quot;: 999295837219812}]}</code></td><td>accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；to_cents 以 %.15g 取十進位值，差異全部是 %.15g 精確中點（已用 CPython Decimal 驗證），即小數第 3 位以後剛好為二進位精確的 5（如 .125）</td></tr>
+</table></div>
+<p class="decision">決策：採用 MicroPython（雙精度通過；%.15g 中點進位與 %.17g 差異經裁定接受；engine 可攜性問題已修正並重跑通過）</p>
 <h2>原始 JSON</h2>
-<details><summary>展開</summary><pre>{
+<details><summary>修正前初跑</summary><pre>{
  &quot;env&quot;: {
   &quot;node&quot;: &quot;v22.15.0&quot;,
   &quot;package&quot;: &quot;@micropython/micropython-webassembly-pyscript@1.29.0-6&quot;,
@@ -704,6 +761,437 @@ code,pre{background:var(--code);font-family:Consolas,monospace}pre{padding:8px;o
   }
  },
  &quot;all_pass&quot;: false,
+ &quot;stderr&quot;: []
+}</pre></details>
+<details><summary>修正輪 1 重跑</summary><pre>{
+ &quot;env&quot;: {
+  &quot;node&quot;: &quot;v22.15.0&quot;,
+  &quot;package&quot;: &quot;@micropython/micropython-webassembly-pyscript@1.29.0-6&quot;,
+  &quot;heapsize&quot;: 16777216,
+  &quot;pystack&quot;: 2048,
+  &quot;cpython&quot;: &quot;Python 3.11.7&quot;
+ },
+ &quot;import_error&quot;: null,
+ &quot;timing_ms&quot;: {
+  &quot;load_micropython&quot;: 17.8,
+  &quot;import_engine_bridge&quot;: 33.7,
+  &quot;load_plus_import_total&quot;: 65,
+  &quot;golden_run_and_dump&quot;: 85.3
+ },
+ &quot;checks&quot;: {
+  &quot;c3_json_dumps_inf&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;produces &#x27;inf&#x27;&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;c1_math_funcs&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: [
+    &quot;log&quot;,
+    &quot;exp&quot;,
+    &quot;sqrt&quot;,
+    &quot;pow&quot;,
+    &quot;floor&quot;
+   ],
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;a5_repr_roundtrip&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;repr_1_3&quot;: &quot;0.3333333333333333&quot;,
+    &quot;repr_0.1+0.2&quot;: &quot;0.30000000000000004&quot;,
+    &quot;not_roundtrip&quot;: []
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;d2_RecursionError_exists&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: false,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;d3_deep_recursion_RuntimeError&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;RuntimeError: maximum recursion depth exceeded&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;e1_bigint_le_float&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;False&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;e2_bigint_eq_inf&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;True&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;f1_isdigit_sup2&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: false,
+    &quot;cpython&quot;: true
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;a2_point1_plus_point2&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;0.30000000000000004&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;a1b_overflow_1e308x10_inf&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;inf&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;a4_2pow53&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;9007199254740992.0&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;d1_RuntimeError_exists&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;RuntimeError&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;a3_subnormal&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;4.940656458412465e-324&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;c2_json_roundtrip&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;{\&quot;a\&quot;: 1.5, \&quot;b\&quot;: [1, 2]}&quot;,
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;a1_1e300x10_same_as_cpython&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;1e+301&quot;,
+    &quot;cpython&quot;: &quot;1e+301&quot;,
+    &quot;note&quot;: &quot;brief 原文期望 inf，但雙精度下 1e301 為有限值，CPython 亦同&quot;
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_sweep_engine_formats&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;values&quot;: 29,
+    &quot;mismatches&quot;: [
+     {
+      &quot;i&quot;: 5,
+      &quot;fmt&quot;: &quot;%.2f&quot;,
+      &quot;micropython&quot;: &quot;0.13&quot;,
+      &quot;cpython&quot;: &quot;0.12&quot;
+     },
+     {
+      &quot;i&quot;: 21,
+      &quot;fmt&quot;: &quot;%.6f&quot;,
+      &quot;micropython&quot;: &quot;1e+300&quot;,
+      &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.000000&quot;
+     },
+     {
+      &quot;i&quot;: 21,
+      &quot;fmt&quot;: &quot;%.2f&quot;,
+      &quot;micropython&quot;: &quot;1e+300&quot;,
+      &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.00&quot;
+     }
+    ]
+   },
+   &quot;status&quot;: &quot;accepted (ruling)&quot;,
+   &quot;ruling&quot;: &quot;accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；0.125 的 %.2f 為精確中點；1e300 的 %f 指數形式超出引擎使用範圍（引擎已不用 %.6f；to_cents 上限 1e13）&quot;
+  },
+  &quot;b_info_fmt16_01&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.1&quot;,
+    &quot;cpython&quot;: &quot;0.1&quot;,
+    &quot;same&quot;: true
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_info_fmt17_1_3&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.3333333333333333&quot;,
+    &quot;cpython&quot;: &quot;0.33333333333333331&quot;,
+    &quot;same&quot;: false
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_info_fmt20f_01&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.10000000000000000000&quot;,
+    &quot;cpython&quot;: &quot;0.10000000000000000555&quot;,
+    &quot;same&quot;: false
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_fmt_1_3&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.333333333333333&quot;,
+    &quot;cpython&quot;: &quot;0.333333333333333&quot;
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_fmt_2675&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;2.675&quot;,
+    &quot;cpython&quot;: &quot;2.675&quot;
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_fmt_1e5&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;1e-05&quot;,
+    &quot;cpython&quot;: &quot;1e-05&quot;
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_fmt_15e12&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;1500000000000&quot;,
+    &quot;cpython&quot;: &quot;1500000000000&quot;
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_fmt17_01&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.1&quot;,
+    &quot;cpython&quot;: &quot;0.10000000000000001&quot;
+   },
+   &quot;status&quot;: &quot;accepted (ruling)&quot;,
+   &quot;ruling&quot;: &quot;accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受&quot;
+  },
+  &quot;g1_golden_fails_empty&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;cases&quot;: 51,
+    &quot;fails&quot;: []
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;g2_dump_vs_cpython&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;max_rel_diff&quot;: 1.2503656402067165e-16,
+    &quot;at&quot;: &quot;tvm_n_lump&quot;,
+    &quot;null_mismatch&quot;: [],
+    &quot;compared&quot;: 51
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;b_random_15g_4000&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;mismatches&quot;: 10,
+    &quot;list&quot;: [
+     [
+      335,
+      &quot;-1.50534485812639e+16&quot;,
+      &quot;-1.50534485812638e+16&quot;
+     ],
+     [
+      1259,
+      &quot;-281434728848399&quot;,
+      &quot;-281434728848398&quot;
+     ],
+     [
+      1505,
+      &quot;-5.15661727492313e+15&quot;,
+      &quot;-5.15661727492312e+15&quot;
+     ],
+     [
+      1820,
+      &quot;550832606486979&quot;,
+      &quot;550832606486978&quot;
+     ],
+     [
+      1968,
+      &quot;722102905966843&quot;,
+      &quot;722102905966842&quot;
+     ],
+     [
+      2850,
+      &quot;484445212889485&quot;,
+      &quot;484445212889484&quot;
+     ],
+     [
+      2864,
+      &quot;76587679049164.3&quot;,
+      &quot;76587679049164.2&quot;
+     ],
+     [
+      3488,
+      &quot;599597461686.563&quot;,
+      &quot;599597461686.562&quot;
+     ],
+     [
+      3668,
+      &quot;84698132973202.3&quot;,
+      &quot;84698132973202.2&quot;
+     ],
+     [
+      3885,
+      &quot;-186112338884229&quot;,
+      &quot;-186112338884228&quot;
+     ]
+    ]
+   },
+   &quot;status&quot;: &quot;accepted (ruling)&quot;,
+   &quot;ruling&quot;: &quot;accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；已用 CPython Decimal 驗證全部差異皆為精確中點&quot;
+  },
+  &quot;b_random_format_number_4000&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;mismatches&quot;: 5,
+    &quot;list&quot;: [
+     [
+      1259,
+      &quot;-281.434.728.848.399,000000000&quot;,
+      &quot;-281.434.728.848.398,000000000&quot;
+     ],
+     [
+      1968,
+      &quot;722,102,905,966,843.0000&quot;,
+      &quot;722,102,905,966,842.0000&quot;
+     ],
+     [
+      2864,
+      &quot;76,587,679,049,164.300000000&quot;,
+      &quot;76,587,679,049,164.200000000&quot;
+     ],
+     [
+      3488,
+      &quot;599,597,461,686.5630&quot;,
+      &quot;599,597,461,686.5620&quot;
+     ],
+     [
+      3668,
+      &quot;84,698,132,973,202.3000&quot;,
+      &quot;84,698,132,973,202.2000&quot;
+     ]
+    ]
+   },
+   &quot;status&quot;: &quot;accepted (ruling)&quot;,
+   &quot;ruling&quot;: &quot;accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；差異索引全部屬於上列精確中點&quot;
+  },
+  &quot;b_info_ties&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;differing&quot;: [
+     {
+      &quot;x&quot;: &quot;100000000000000.5&quot;,
+      &quot;micropython&quot;: [
+       &quot;100000000000001&quot;,
+       &quot;100000000000000.500000&quot;,
+       &quot;100000000000000.50&quot;,
+       &quot;100,000,000,000,001.00&quot;,
+       &quot;1E14&quot;
+      ],
+      &quot;cpython&quot;: [
+       &quot;100000000000000&quot;,
+       &quot;100000000000000.500000&quot;,
+       &quot;100000000000000.50&quot;,
+       &quot;100,000,000,000,000.00&quot;,
+       &quot;1E14&quot;
+      ],
+      &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;
+     },
+     {
+      &quot;x&quot;: &quot;0.125&quot;,
+      &quot;micropython&quot;: [
+       &quot;0.125&quot;,
+       &quot;0.125000&quot;,
+       &quot;0.13&quot;,
+       &quot;0.13&quot;,
+       &quot;0.125&quot;
+      ],
+      &quot;cpython&quot;: [
+       &quot;0.125&quot;,
+       &quot;0.125000&quot;,
+       &quot;0.12&quot;,
+       &quot;0.13&quot;,
+       &quot;0.125&quot;
+      ],
+      &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;
+     },
+     {
+      &quot;x&quot;: &quot;0.0078125&quot;,
+      &quot;micropython&quot;: [
+       &quot;0.0078125&quot;,
+       &quot;0.007813&quot;,
+       &quot;0.01&quot;,
+       &quot;0.01&quot;,
+       &quot;0.0078125&quot;
+      ],
+      &quot;cpython&quot;: [
+       &quot;0.0078125&quot;,
+       &quot;0.007812&quot;,
+       &quot;0.01&quot;,
+       &quot;0.01&quot;,
+       &quot;0.0078125&quot;
+      ],
+      &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;
+     }
+    ]
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;g5_calc_unicode&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 7,
+    &quot;diffs&quot;: []
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;g6_bridge_input_errors&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 5,
+    &quot;diffs&quot;: []
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;g4_tax_large_amounts&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 15,
+    &quot;diffs&quot;: []
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;g3_display_strings_same&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 51,
+    &quot;diffs&quot;: []
+   },
+   &quot;status&quot;: &quot;pass&quot;
+  },
+  &quot;g7_to_cents_random&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 18168,
+    &quot;mismatches&quot;: 1,
+    &quot;list&quot;: [
+     {
+      &quot;x&quot;: &quot;9992958372198.125&quot;,
+      &quot;micropython&quot;: 999295837219813,
+      &quot;cpython&quot;: 999295837219812
+     }
+    ]
+   },
+   &quot;status&quot;: &quot;accepted (ruling)&quot;,
+   &quot;ruling&quot;: &quot;accepted (ruling)：%.15g 中點進位（half-up vs half-even）與 %.17g 補 0 經裁定接受；to_cents 以 %.15g 取十進位值，差異全部是 %.15g 精確中點（已用 CPython Decimal 驗證），即小數第 3 位以後剛好為二進位精確的 5（如 .125）&quot;
+  }
+ },
+ &quot;all_pass&quot;: true,
  &quot;stderr&quot;: []
 }</pre></details>
 </body></html>
