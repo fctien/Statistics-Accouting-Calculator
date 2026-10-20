@@ -55,3 +55,26 @@
 
 **待辦**
 - 使用者審閱修訂版規格書 → 寫實作計畫
+
+---
+
+## 2026-10-20　實作計畫
+
+**需求**
+- 使用者同意修訂版規格書，要求寫實作計畫
+
+**做法**
+- 用 writing-plans 技能；確認環境：pytest 7.4、pywin32、python-pptx 1.0.2、Node 22、Excel 16、pptxgenjs 都已安裝 → golden 值改由 Excel COM 公式產生（PMT、RATE、IRR、MIRR、PRICE、YIELD、DAYS360…），JSON 進 repo
+- 31 個 Task 分 M1～M6，教學 tag step0～step9 對應到 Task
+
+**產出**
+- `docs/plan-2026-10-20.md`、`.html`
+
+**驗證**
+- 用 Python 核對計畫中手算的測試值：2026-10-20 是星期二、2026-01-01 加 59 天是 03-01、σx=2、含稅 1 元未稅 0.95 元、`%.15g` 對 2.675 輸出 2.675
+
+**問題與修正**
+- 自我檢查發現：算式文法讓 `-2^2` 變成 4（改成負號優先序低於 ^）；算式千分位逗號和 nCr 參數逗號衝突（算式不接受千分位）；TVM golden 測試的 unknown 讀法和 bridge 留空格式不一致；Task 19 取得 CPython 結果的方式太模糊 → 都已修正
+
+**待辦**
+- 使用者審閱計畫、選擇執行方式；決定 SYD／DBX 部分年度、稅率預設、Playwright 三個縮小範圍項目
