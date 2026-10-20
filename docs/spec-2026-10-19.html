@@ -20,6 +20,7 @@ blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
 <ul>
 <li>日期：2026-10-19</li>
 <li>狀態：<strong>待審閱</strong>（使用者同意設計於 2026-10-19，本文件同意後才寫實作計畫）</li>
+<li>修訂：2026-10-20 執行環境由 Pyodide 改為 <strong>MicroPython</strong>（解決手機首次載入慢），Pyodide 為退路</li>
 <li>參考：TI BA II Plus／BA II Plus Professional（Texas Instruments）</li>
 </ul>
 <hr />
@@ -46,8 +47,13 @@ blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
 </tr>
 <tr>
 <td>S2</td>
-<td>同一份 Python 引擎在 Pyodide 中算出相同結果</td>
-<td>瀏覽器內一致性測試頁全綠</td>
+<td>同一份 Python 引擎在 CPython 與 MicroPython 都算出相同結果</td>
+<td><code>pytest</code> 與 MicroPython 雙執行環境 golden 測試全綠</td>
+</tr>
+<tr>
+<td>S2b</td>
+<td>手機開啟 App 立刻看到畫面；Python 就緒前可先輸入</td>
+<td>實機量測：殼顯示 &lt; 1 秒、Python 就緒時間記入 log</td>
 </tr>
 <tr>
 <td>S3</td>
@@ -82,10 +88,48 @@ blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
 <h2>1. 架構</h2>
 <h3>1.1 技術選擇（已決定）</h3>
 <ul>
-<li><strong>Pyodide</strong>（Python 編譯成 WebAssembly）在瀏覽器執行 Python 計算引擎 → 純靜態檔、可部署到 GitHub Pages、可完全離線</li>
+<li><strong>MicroPython（WebAssembly 版）</strong> 在瀏覽器執行 Python 計算引擎 → 純靜態檔、可部署到 GitHub Pages、可完全離線</li>
 <li>介面用原生 HTML／CSS／少量 JavaScript（不用框架，教學上好讀）</li>
-<li>Pyodide 版本實作時鎖定一個確切版本（pinned），由 CDN（jsDelivr）載入，Service Worker 首次安裝時預先快取（precache），之後離線可用</li>
-<li>首次載入大小與手機啟動時間<strong>目前不確定</strong>，M2 階段實測並寫入 dev log；若手機啟動超過 8 秒，回報再決定是否改成把 Pyodide 檔案放進 repo 一起部署</li>
+<li>執行環境檔案鎖定確切版本（pinned），<strong>放進 repo 一起部署</strong>（<code>web/vendor/</code>），不依賴 CDN</li>
+</ul>
+<h4>為什麼不用 Pyodide（2026-10-20 實測 jsDelivr 傳輸大小）</h4>
+<table>
+<thead>
+<tr>
+<th>執行環境</th>
+<th>檔案</th>
+<th>原始</th>
+<th>傳輸（壓縮後）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pyodide 0.28.3</td>
+<td><code>pyodide.asm.wasm</code>＋<code>python_stdlib.zip</code>＋js</td>
+<td>約 12 MB</td>
+<td>約 5.3 MB</td>
+</tr>
+<tr>
+<td>MicroPython 1.29.0（<code>@micropython/micropython-webassembly-pyscript</code>）</td>
+<td><code>micropython.wasm</code>＋<code>micropython.mjs</code></td>
+<td>約 0.56 MB</td>
+<td>約 0.23 MB</td>
+</tr>
+</tbody>
+</table>
+<p>Pyodide 除了下載量大，首次還要編譯 8.6 MB wasm 並解開標準函式庫，中低階手機啟動慢；MicroPython 約小 23 倍</p>
+<h4>共用載入優化（不論執行環境都做）</h4>
+<ol>
+<li><strong>殼先顯示（app shell）</strong>：HTML／CSS／JS 由 Service Worker 快取，開啟即顯示，不等 Python</li>
+<li><strong>Web Worker 背景載入</strong>：Python 執行環境在 Worker 中載入，介面不卡；就緒前按「計算」的請求進佇列，就緒後自動算出；畫面顯示載入狀態</li>
+<li><strong>安裝時預先快取（precache）</strong>：Service Worker <code>install</code> 階段即快取執行環境與引擎檔，第二次起完全離線</li>
+<li><strong>啟動計時</strong>：記錄「殼顯示」與「Python 就緒」兩個時間點，顯示在設定頁的「關於」區，並寫入驗證 log</li>
+</ol>
+<h4>退路（fallback）</h4>
+<ul>
+<li>M2 第一件事是 <strong>spike</strong>：在 MicroPython WebAssembly 版驗證浮點數為<strong>雙精度（IEEE 754 double）</strong>，並確認 <code>math</code> 模組需要的函式（<code>log</code>、<code>exp</code>、<code>pow</code>、<code>sqrt</code>、<code>isfinite</code>、<code>factorial</code> 或自行實作）</li>
+<li>判定方式：<code>1e300 * 10</code> 不為 <code>inf</code>、<code>0.1 + 0.2 == 0.30000000000000004</code>、<code>sys.float_info</code>（若有）或 <code>struct.pack('d', ...)</code> 長度 8、TVM golden 測試誤差 &lt; 1e-9</li>
+<li><strong>不符就退回 Pyodide</strong>（保留上述共用優化），並在 DEVLOG 寫明原因；引擎因為是可攜子集，不需改寫</li>
 </ul>
 <h3>1.2 MVC 分層</h3>
 <pre><code>┌──────────── View（web/index.html, css/, js/views/*.js）───────────┐
@@ -93,7 +137,7 @@ blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
 └───────────────▲──────────────────────────────┬────────────────────┘
                 │ 結果（dict → JSON）           │ 使用者事件
 ┌───────────────┴──── Controller ──────────────▼────────────────────┐
-│  js/app.js：路由、事件、呼叫 bridge                                │
+│  js/app.js：路由、事件、經 Web Worker（js/py-worker.js）呼叫 bridge│
 │  engine/bridge.py：唯一對外入口 call(worksheet, action, payload)   │
 └───────────────▲──────────────────────────────┬────────────────────┘
                 │                               │
@@ -104,7 +148,11 @@ blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
 Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（選用）
 </code></pre>
 <ul>
-<li><strong>Model 不依賴瀏覽器</strong>：可以在電腦上直接 <code>pytest</code>，也可以在 Pyodide 裡跑</li>
+<li><strong>Model 不依賴瀏覽器</strong>：可以在電腦上直接 <code>pytest</code>，也可以在 MicroPython 裡跑</li>
+<li><strong>可攜子集（portable subset）</strong>：引擎只用 CPython 與 MicroPython 都支援的功能</li>
+<li>可用：<code>math</code>、<code>json</code>、基本型別、函式、類別、f-string、例外</li>
+<li>不用：<code>decimal</code>、<code>datetime</code>、<code>fractions</code>、<code>dataclasses</code>、<code>typing</code> 的執行期功能、<code>functools.lru_cache</code>、第三方套件</li>
+<li>由 <code>tools/check_portable.py</code> 掃描 <code>engine/</code> 的 import 與語法，違規就失敗</li>
 <li><strong>bridge.py 統一回傳格式</strong>：</li>
 </ul>
 <pre><code class="language-json">{&quot;ok&quot;: true,  &quot;values&quot;: {&quot;PMT&quot;: -599.55}, &quot;display&quot;: {&quot;PMT&quot;: &quot;-599.55&quot;}, &quot;warnings&quot;: []}
@@ -118,6 +166,7 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 ├── engine/                 Model（Python）
 │   ├── tvm.py amort.py cashflow.py iconv.py stats.py
 │   ├── bond.py depr.py business.py calc.py memory.py fmt.py
+│   ├── money.py dates.py    分整數四捨五入、序數日（取代 decimal／datetime）
 │   └── bridge.py
 ├── tests/                  pytest
 │   ├── golden/             golden 值（JSON，每題附出處）
@@ -126,8 +175,10 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 │   ├── index.html manifest.webmanifest sw.js
 │   ├── css/ js/ icons/
 │   ├── py/                 建置時從 engine/ 複製（不手改）
-│   └── selftest.html       Pyodide 內一致性測試頁
-├── tools/                  build_web.py（複製 engine → web/py、升版號）、check_shell.py
+│   ├── vendor/             MicroPython wasm／mjs（鎖定版本）
+│   └── selftest.html       MicroPython 內 golden 測試頁
+├── tools/                  build_web.py（複製 engine → web/py、升版號）、check_shell.py、
+│                           check_portable.py、run_mpy_golden.mjs（Node 執行 MicroPython golden 測試）
 ├── e2e/                    端到端測試
 ├── logs/                   實驗／驗證 HTML log（附 commit hash）
 ├── docs/                   規格、計畫、Google OAuth 申請說明
@@ -239,13 +290,13 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 <td>　DATE</td>
 <td>DT1、DT2、DBD、ACT／360</td>
 <td>DBD 或任一日期</td>
-<td>顯示星期</td>
+<td>顯示星期；日期用自寫的序數日（ordinal）演算法，不用 <code>datetime</code></td>
 </tr>
 <tr>
 <td>　稅務</td>
 <td>金額、稅率、內含／外加</td>
 <td>未稅、稅額、含稅</td>
-<td>預設營業稅 5%；另有扣繳、二代健保補充保費等預設，<strong>稅率實作時查證並附官方連結</strong>，可在設定中修改</td>
+<td>預設營業稅 5%；另有扣繳、二代健保補充保費等預設，<strong>稅率實作時查證並附官方連結</strong>，可在設定中修改；金額以「分」整數計算</td>
 </tr>
 <tr>
 <td><strong>設定 FORMAT</strong></td>
@@ -257,8 +308,9 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 </table>
 <h3>2.3 數值規則</h3>
 <ol>
-<li>引擎內部用 Python <code>float</code>（雙精度）；<strong>只在顯示時</strong>依設定四捨五入</li>
-<li>稅務與金額合計用 <code>decimal.Decimal</code>，四捨五入規則為 <code>ROUND_HALF_UP</code>（與一般會計習慣相同）</li>
+<li>引擎內部用 Python <code>float</code>（雙精度，M2 spike 驗證）；<strong>只在顯示時</strong>依設定四捨五入</li>
+<li>稅務與金額合計以「分」為單位的<strong>整數</strong>計算（MicroPython 沒有 <code>decimal</code>）；四捨五入規則為四捨五入到分、負數對稱（half away from zero），由 <code>engine/money.py</code> 統一提供，不各自實作</li>
+<li>日期以「自 0001-01-01 起的序數日」整數表示，提供 <code>to_ordinal</code>／<code>from_ordinal</code>／<code>weekday</code>，閏年規則用格里曆（Gregorian）</li>
 <li>疊代求解（I/Y、IRR、YLD）的收斂條件：|f(x)| &lt; 1e-10，最多 200 次；未收斂回傳錯誤，不回傳最後一次猜測值</li>
 <li><strong>任何算不出來的情況回傳 <code>ok: false</code> 加上原因</strong>，不用 0、不用預設值、不猜</li>
 </ol>
@@ -330,9 +382,19 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 <td>故意改壞公式（例如把 BGN 因子拿掉），測試必須失敗；至少 15 個突變</td>
 </tr>
 <tr>
-<td>3. Pyodide 一致性</td>
-<td><code>web/selftest.html</code></td>
-<td>在瀏覽器載入同一份 golden JSON 逐題比對</td>
+<td>3. MicroPython 雙執行環境</td>
+<td><code>tools/run_mpy_golden.mjs</code>（Node）＋<code>web/selftest.html</code>（瀏覽器）</td>
+<td>同一份 golden JSON 在 MicroPython 逐題比對；CPython 與 MicroPython 結果差異 &gt; 1e-9 即失敗</td>
+</tr>
+<tr>
+<td>3b. 可攜性</td>
+<td><code>tools/check_portable.py</code></td>
+<td><code>engine/</code> 不得 import 子集以外的模組</td>
+</tr>
+<tr>
+<td>3c. 載入效能</td>
+<td>瀏覽器 Performance API</td>
+<td>記錄殼顯示與 Python 就緒時間；模擬 Slow 4G 與離線各量一次</td>
 </tr>
 <tr>
 <td>4. 端到端</td>
@@ -409,9 +471,9 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 </tr>
 <tr>
 <td><code>step2</code></td>
-<td>TDD：TVM 引擎</td>
+<td>TDD：TVM 引擎（可攜子集）</td>
 <td><code>engine/tvm.py</code>、測試</td>
-<td><code>pytest tests/test_tvm.py</code></td>
+<td><code>pytest tests/test_tvm.py</code>＋<code>check_portable.py</code></td>
 </tr>
 <tr>
 <td><code>step3</code></td>
@@ -421,9 +483,9 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 </tr>
 <tr>
 <td><code>step4</code></td>
-<td>PWA 殼＋Pyodide 橋接</td>
-<td><code>web/</code>、<code>bridge.py</code></td>
-<td><code>selftest.html</code> 全綠</td>
+<td>PWA 殼＋MicroPython（Web Worker）橋接</td>
+<td><code>web/</code>、<code>bridge.py</code>、<code>py-worker.js</code></td>
+<td>MicroPython golden 全綠、殼先顯示、離線可開</td>
 </tr>
 <tr>
 <td><code>step5</code></td>
@@ -486,7 +548,7 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 </tr>
 <tr>
 <td>M2</td>
-<td>PWA 殼、Pyodide、一致性測試、實測載入時間</td>
+<td><strong>先 spike 驗證 MicroPython 雙精度</strong>（不符退回 Pyodide）→ PWA 殼、Web Worker、雙執行環境測試、實測載入時間</td>
 <td>step4</td>
 </tr>
 <tr>
@@ -513,7 +575,7 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 </table>
 <h2>7. 需要你決定或親自操作的事</h2>
 <ol>
-<li>安裝套件前會先列清單請你同意（預計：<code>pytest</code>（可能已有）、<code>python-pptx</code>、Playwright（選用）、<code>pptxgenjs</code>（可能已有））</li>
+<li>安裝套件前會先列清單請你同意（預計：<code>pytest</code>（可能已有）、<code>python-pptx</code>、Playwright（選用）、<code>pptxgenjs</code>（可能已有）、npm <code>@micropython/micropython-webassembly-pyscript@1.29.0-6</code>（M2 spike 用））</li>
 <li>Google Cloud OAuth Client ID 的申請（M4）</li>
 <li>建立 GitHub repo 與推送（M5，推送前會先問你）</li>
 <li>實機安裝測試（M5，需要你的手機）</li>
@@ -529,7 +591,19 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 <tbody>
 <tr>
 <td>Pyodide 在手機上首次載入慢</td>
-<td>M2 實測；超過 8 秒再討論改用 repo 內附檔案</td>
+<td><strong>已處理</strong>：改用 MicroPython（約 0.23 MB）＋殼先顯示＋Web Worker＋預先快取</td>
+</tr>
+<tr>
+<td>MicroPython 浮點數不是雙精度，或缺少 <code>math</code> 函式</td>
+<td>M2 第一步 spike；不符退回 Pyodide，引擎因可攜子集不需改寫</td>
+</tr>
+<tr>
+<td>MicroPython 與 CPython 的數值行為細微差異（<code>round</code>、字串格式化）</td>
+<td>引擎不依賴內建 <code>round</code> 與格式化，統一用 <code>money.py</code>／<code>fmt.py</code>；雙執行環境 golden 測試把關</td>
+</tr>
+<tr>
+<td>學生寫出 MicroPython 不支援的程式</td>
+<td><code>check_portable.py</code> 自動檢查；寫進教材常見坑</td>
 </tr>
 <tr>
 <td>BOND 的日期慣例細節容易錯</td>

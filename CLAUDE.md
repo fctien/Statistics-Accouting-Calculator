@@ -1,6 +1,6 @@
 # BACalc 專案規範
 
-仿 TI BA II Plus Professional 的財務／會計計算 PWA。Python 計算引擎透過 Pyodide 在瀏覽器執行，
+仿 TI BA II Plus Professional 的財務／會計計算 PWA。Python 計算引擎透過 MicroPython（WebAssembly，在 Web Worker 中）於瀏覽器執行，
 純靜態檔、可離線，手機與電腦皆可用。同時是教學案例（`teaching/`）。
 
 規格書：`docs/spec-2026-10-19.md`（HTML 版同名）
@@ -11,7 +11,8 @@
 2. **絕不產生看起來正常但錯誤的數字**：算不出來就回 `ok: false` 加原因，不用 0、不用預設值、不回傳未收斂的猜測值
 3. **資料只存本機**（IndexedDB）；Google Drive 同步預設關閉，使用者設定後才啟用
 4. 計算機算式用 AST 白名單解析，**禁止 `eval`**
-5. golden 值必須附出處（TI Guidebook 頁碼或 Excel 公式），對不上就回報，不硬湊
+5. **可攜子集**：`engine/` 只能用 CPython 與 MicroPython 都支援的功能（不用 decimal、datetime、dataclasses）；金額用「分」整數（`engine/money.py`）、日期用序數日（`engine/dates.py`）
+6. golden 值必須附出處（TI Guidebook 頁碼或 Excel 公式），對不上就回報，不硬湊
 
 ## 常用指令
 
