@@ -12,7 +12,7 @@ const KEY = "bacalc.settings";
  */
 export const DEFAULTS = Object.freeze({
   decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "",
-  gdriveClientId: "", gdriveLastSync: "", // Google Drive 同步（選用）：Client ID、上次同步的雲端時間
+  gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "", // Google Drive 同步（選用）：Client ID、上次同步的雲端時間
 });
 
 const VALID = {
@@ -24,6 +24,7 @@ const VALID = {
   taxPreset: (v) => typeof v === "string" && v.length <= 40,
   gdriveClientId: (v) => typeof v === "string" && (v === "" || /^[A-Za-z0-9._-]{1,200}\.apps\.googleusercontent\.com$/.test(v)),
   gdriveLastSync: (v) => typeof v === "string" && v.length <= 40,
+  gdriveLastSyncHash: (v) => typeof v === "string" && /^[0-9a-f]{0,64}$/.test(v),
 };
 
 let cache = null;

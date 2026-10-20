@@ -9,7 +9,7 @@ import * as settingsStore from "../settings.js";
 import { formatDate } from "../datefmt.js";
 import { download } from "../csv.js";
 import * as persist from "../storage/persist.js";
-import { makeExport, importBackup, backupFilename, emptyData, localStamp } from "../storage/backup.js";
+import { makeExport, importBackup, backupFilename, emptyData, localStamp, normalizeData } from "../storage/backup.js";
 import { replaceState } from "./calc.js";
 import * as gdrive from "../storage/gdrive.js";
 
@@ -281,17 +281,30 @@ export function mount(container, ctx = {}) {
     if (offline && !gdStatus.textContent && gdError.hidden) gdStatus.textContent = "目前離線：Google Drive 同步暫時無法使用（其他功能照常）";
   }
 
-  async function doUpload() {
+  /** 本機資料的內容雜湊（經 normalizeData，與上傳內容一致）。 */
+  const hashLocal = (d) => gdrive.hashData(normalizeData({ ...emptyData(), ...gdrive.stripLocalOnly(d) }));
+  const markSynced = async (remoteTime) => {
+    settingsStore.commit({ gdriveLastSync: remoteTime || "", gdriveLastSyncHash: hashLocal(await localData()) });
+  };
+
+  /** expected：決定動作時看到的雲端修改時間（null＝當時沒有檔案）；之後雲端若又變了就中止。 */
+  async function doUpload(expected) {
     gdConflict.hidden = true;
-    const d = gdrive.stripLocalOnly(await localData());
-    const r = await gdrive.upload(JSON.stringify(makeExport(d, Date.now()), null, 2));
-    settingsStore.commit({ gdriveLastSync: r.modifiedTime || "" });
+    const local = await localData();
+    if (gdrive.isLocalEmpty(local)
+        && !globalThis.confirm("本機沒有資料，上傳會用空白資料覆蓋雲端備份，確定嗎？")) {
+      showGdOk("已取消，雲端備份沒有改變");
+      return;
+    }
+    const d = gdrive.stripLocalOnly(local);
+    const r = await gdrive.upload(JSON.stringify(makeExport(d, Date.now()), null, 2), expected);
+    await markSynced(r.modifiedTime);
     showGdOk(`已上傳到雲端（情境 ${d.scenarios.length} 個、紙帶 ${d.tape.length} 筆），雲端時間 ${stamp(r.modifiedTime)}`);
   }
 
-  async function doDownload() {
+  async function doDownload(mode, expected) {
     gdConflict.hidden = true;
-    const got = await gdrive.download();
+    const got = await gdrive.download(expected);
     if (!got) {
       showGdOk("雲端還沒有備份檔");
       return;
@@ -303,7 +316,6 @@ export function mount(container, ctx = {}) {
       showGdError("雲端的備份檔不是有效的 JSON，本機資料沒有改變");
       return;
     }
-    const mode = gdModeValue();
     const local = await localData();
     // 先驗證、清理、合併，全部通過才寫入本機（不留下寫一半的狀態）
     const r = importBackup(obj, gdrive.stripLocalOnly(local), mode);
@@ -313,33 +325,45 @@ export function mount(container, ctx = {}) {
     }
     const c = r.counts;
     const summary = `情境 ${c.scenarios} 個、紙帶 ${c.tape} 筆、設定 ${c.settings} 項、記憶 ${c.memory} 格`;
-    if (mode === "replace"
-        && !globalThis.confirm(`取代會刪除這台裝置目前的全部資料，改成雲端備份的內容（${summary}）。確定要取代嗎？`)) {
-      showGdOk("已取消，資料沒有改變");
-      return;
+    if (mode === "replace") {
+      if (!globalThis.confirm(`取代會刪除這台裝置目前的全部資料，改成雲端備份的內容（${summary}）。確定要取代嗎？`)) {
+        showGdOk("已取消，資料沒有改變");
+        return;
+      }
+    } else {
+      // 合併時，記憶與設定仍是以雲端為準，會蓋掉本機的；有差異時先問
+      const o = gdrive.overwriteSummary(normalizeData({ ...emptyData(), ...gdrive.stripLocalOnly(local) }), r.data);
+      if ((o.memory || o.settings)
+          && !globalThis.confirm(`雲端的${[o.memory ? "記憶" : "", o.settings ? "設定" : ""].filter(Boolean).join("與")}會覆蓋本機的（雲端備份：${summary}）。情境與紙帶則是合併。確定要下載嗎？`)) {
+        showGdOk("已取消，資料沒有改變");
+        return;
+      }
     }
-    const keep = { gdriveClientId: local.settings.gdriveClientId || "" };
-    await applyData({ ...r.data, settings: { ...r.data.settings, ...keep } });
-    settingsStore.commit({ gdriveLastSync: got.modifiedTime || "" });
+    await applyData({ ...r.data, settings: { ...r.data.settings, gdriveClientId: local.settings.gdriveClientId || "" } });
+    await markSynced(got.modifiedTime);
     showGdOk(`已從雲端下載（${mode === "merge" ? "合併" : "取代"}）：${summary}`);
   }
 
-  /** 顯示雙方時間，讓使用者選擇；不自動覆蓋。 */
+  /** 顯示雙方時間，讓使用者選擇；不自動覆蓋。remoteSeen：此刻看到的雲端修改時間。 */
   function askConflict(localIso, remoteIso, lastSync) {
     gdConflict.replaceChildren(
-      el("p", {}, `雲端與本機版本不同。本機最後更新：${stamp(localIso)}；雲端最後修改：${stamp(remoteIso)}；上次同步：${stamp(lastSync)}。請選擇要保留哪一份：`),
+      el("p", {}, `雲端與本機版本不同。本機最後更新：${stamp(localIso)}；雲端最後修改：${stamp(remoteIso)}；上次同步：${stamp(lastSync)}。請選擇：`),
     );
-    const useCloud = el("button", { type: "button", class: "btn", id: "gd-use-cloud" }, "用雲端版本（下載）");
-    const useLocal = el("button", { type: "button", class: "btn", id: "gd-use-local" }, "用本機版本（上傳覆蓋雲端）");
-    const cancel = el("button", { type: "button", class: "btn btn-ghost", id: "gd-cancel" }, "取消");
-    useCloud.addEventListener("click", () => guarded(doDownload));
-    useLocal.addEventListener("click", () => guarded(doUpload));
-    cancel.addEventListener("click", () => {
-      gdConflict.hidden = true;
-      showGdOk("已取消，資料沒有改變");
-    });
+    const mk = (id, label, fn, cls = "btn") => {
+      const b = el("button", { type: "button", class: cls, id }, label);
+      b.addEventListener("click", fn);
+      return b;
+    };
     const r = el("div", { class: "scenario-row" });
-    r.append(useCloud, useLocal, cancel);
+    r.append(
+      mk("gd-use-cloud", "用雲端版本（取代本機）", () => guarded(() => doDownload("replace", remoteIso))),
+      mk("gd-merge-cloud", "合併雲端與本機", () => guarded(() => doDownload("merge", remoteIso))),
+      mk("gd-use-local", "用本機版本（上傳覆蓋雲端）", () => guarded(() => doUpload(remoteIso))),
+      mk("gd-cancel", "取消", () => {
+        gdConflict.hidden = true;
+        showGdOk("已取消，資料沒有改變");
+      }, "btn btn-ghost"),
+    );
     gdConflict.append(r);
     gdConflict.hidden = false;
     showGdError("");
@@ -362,19 +386,21 @@ export function mount(container, ctx = {}) {
   async function decideAndRun(kind) {
     const local = await localData();
     const info = await gdrive.find();
-    const lastSync = settingsStore.get().gdriveLastSync || null;
+    const s = settingsStore.get();
+    const lastSync = s.gdriveLastSync || null;
     const localIso = gdrive.localUpdatedAt(local);
     const remoteIso = info ? info.modifiedTime : null;
     if (kind === "download" && !info) {
       showGdOk("雲端還沒有備份檔");
       return;
     }
-    const decision = gdrive.decideConflict(localIso, remoteIso, lastSync);
+    const changed = gdrive.isLocalChanged(normalizeData({ ...emptyData(), ...gdrive.stripLocalOnly(local) }), s.gdriveLastSyncHash);
+    const decision = gdrive.decideConflict(changed, remoteIso, lastSync, !gdrive.isLocalEmpty(local));
     if (decision === "ask" || (kind === "upload" && decision === "download")) {
       askConflict(localIso, remoteIso, lastSync);
       return;
     }
-    await (kind === "upload" ? doUpload() : doDownload());
+    await (kind === "upload" ? doUpload(remoteIso) : doDownload(gdModeValue(), remoteIso));
   }
 
   gdSave.addEventListener("click", () => {
@@ -384,7 +410,7 @@ export function mount(container, ctx = {}) {
       return;
     }
     const cur = settingsStore.get();
-    settingsStore.commit({ gdriveClientId: v, gdriveLastSync: v === cur.gdriveClientId ? cur.gdriveLastSync : "" });
+    settingsStore.commit({ gdriveClientId: v, gdriveLastSync: v === cur.gdriveClientId ? cur.gdriveLastSync : "", gdriveLastSyncHash: v === cur.gdriveClientId ? cur.gdriveLastSyncHash : "" });
     showGdOk(v ? "已儲存 Client ID（只存在這台裝置）" : "已清除 Client ID，Google Drive 同步已關閉");
     syncGd();
   });

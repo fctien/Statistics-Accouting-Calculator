@@ -1061,3 +1061,26 @@
 **待辦**
 - Step 3：使用者申請 Client ID 後手動測：上傳 → 改本機 → 下載出現衝突提示 → 選雲端版本
 - 本機「是否改過」只由情境 updated_at 與紙帶 ts 判斷，單改設定／記憶不會被視為變動
+
+## 2026-10-20 Task 26 修正輪 1：內容雜湊偵測本機變更、覆蓋前確認
+
+**需求**
+- 審查：本機變更只看情境／紙帶時間，下載（預設合併）會無提示覆蓋記憶與設定；衝突對話框的「用雲端版本」其實是合併
+
+**做法**
+- gdrive.js：stableStringify、hashData（純 JS cyrb53，鍵順序無關、排除只屬本機的設定）、isLocalEmpty、isLocalChanged（無雜湊時有資料即視為改過）、overwriteSummary；decideConflict 第一參數改為 localChanged 布林；LOCAL_ONLY_KEYS 加 gdriveLastSyncHash
+- 每次上傳／下載成功後存 gdriveLastSyncHash；upload／download 接受 expectedModified，雲端在決定動作後被改過就中止（不寫入）
+- 設定頁：下載時記憶或設定會被覆蓋則先 confirm（合併與取代皆然）；本機為空時上傳先 confirm；衝突對話框改為「用雲端版本（取代本機）」「合併雲端與本機」「用本機版本（上傳覆蓋雲端）」「取消」
+
+**產出**
+- 修改 gdrive.js、views/settings.js、settings.js、兩個測試檔（新增 5 項測試）
+
+**驗證**
+- node --test 137 pass、pytest 全綠、build_web／check_shell 通過；瀏覽器載入新模組正常
+- 真正的 Google 流程仍未測（需使用者的 Client ID）
+
+**問題與修正**
+- 舊審查意見的「兩個時間比較」改為內容雜湊後，localUpdatedAt 只剩顯示用途
+
+**待辦**
+- 使用者以自己的 Client ID 手動測：上傳 → 只改記憶 → 下載應出現衝突／覆蓋確認

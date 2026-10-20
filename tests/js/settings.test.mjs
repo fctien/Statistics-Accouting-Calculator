@@ -19,7 +19,7 @@ function fakeStorage(initial = {}) {
 test("預設值：還沒 init 時 get 回預設，set 只在記憶體生效", () => {
   _resetCache();
   assert.deepEqual(get(), {
-    decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "",
+    decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "",
   });
   assert.deepEqual(DEFAULTS, get());
   const r = set({ decimals: 4 });
@@ -43,13 +43,13 @@ test("init：讀 IndexedDB；不合法值忽略；set 寫回 IndexedDB", async (
   _resetCache();
   await init();
   assert.deepEqual(get(), {
-    decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "",
+    decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "",
   });
   const r = set({ decimals: null, mode: "CHAIN", sep: "fr", bogus: 1 });
   assert.deepEqual(Object.keys(r.errors), ["sep"]);
   await new Promise((res) => setTimeout(res, 50));
   assert.deepEqual((await idb.get("settings", "settings")).value,
-    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "" });
+    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "" });
   assert.deepEqual(toEngine(), { decimals: null, sep: "us", mode: "CHAIN" });
   cleanup();
 });

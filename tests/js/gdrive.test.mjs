@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import {
   FILE_NAME, SCOPE, GIS_URL, isValidClientId, buildMultipartBody, parseFileList, decideConflict,
-  localUpdatedAt, stripLocalOnly, describeHttpError, createDrive, GDriveError, currentToken, isConnected,
+  localUpdatedAt, stripLocalOnly, stableStringify, hashData, isLocalEmpty, isLocalChanged, overwriteSummary, describeHttpError, createDrive, GDriveError, currentToken, isConnected,
 } from "../../web/js/storage/gdrive.js";
 
 const resp = (status, body, text) => ({
@@ -66,25 +66,98 @@ test("parseFileList：空、同名多筆取最新、忽略其他名稱、壞輸�
   assert.equal(r.id, "new");
 });
 
-test("decideConflict 矩陣", () => {
+test("decideConflict 矩陣（本機是否改過由內容雜湊決定）", () => {
   const T = (n) => `2026-10-${String(n).padStart(2, "0")}T00:00:00Z`;
   // 雲端沒有 → 上傳
-  assert.equal(decideConflict(T(5), null, T(1)), "upload");
-  assert.equal(decideConflict(null, undefined, null), "upload");
+  assert.equal(decideConflict(true, null, T(1)), "upload");
+  assert.equal(decideConflict(false, undefined, null), "upload");
   // 從未同步：本機有資料 → ask；本機空 → download
-  assert.equal(decideConflict(T(5), T(6), null), "ask");
-  assert.equal(decideConflict(null, T(6), null), "download");
+  assert.equal(decideConflict(true, T(6), null, true), "ask");
+  assert.equal(decideConflict(false, T(6), null, false), "download");
   // 雲端新、本機沒動 → download
-  assert.equal(decideConflict(T(1), T(6), T(2)), "download");
-  assert.equal(decideConflict(null, T(6), T(2)), "download");
+  assert.equal(decideConflict(false, T(6), T(2)), "download");
   // 雲端新、本機也動過 → ask（不自動覆蓋）
-  assert.equal(decideConflict(T(5), T(6), T(2)), "ask");
-  // 雲端沒動、本機動過 → upload
-  assert.equal(decideConflict(T(5), T(2), T(2)), "upload");
-  // 都沒動 → upload（無害）
-  assert.equal(decideConflict(T(1), T(2), T(2)), "upload");
+  assert.equal(decideConflict(true, T(6), T(2)), "ask");
+  // 雲端沒動、本機動過 → upload；都沒動 → upload
+  assert.equal(decideConflict(true, T(2), T(2)), "upload");
+  assert.equal(decideConflict(false, T(2), T(2)), "upload");
   // 無法解析的雲端時間當作沒有
-  assert.equal(decideConflict(T(5), "garbage", T(2)), "upload");
+  assert.equal(decideConflict(true, "garbage", T(2)), "upload");
+});
+
+const DATA = () => ({
+  settings: { decimals: 4, mode: "AOS", gdriveClientId: "a.apps.googleusercontent.com" },
+  scenarios: [{ id: "a", worksheet: "tvm", name: "A", inputs: { N: { text: "1" } }, updated_at: "2026-10-19T10:00:00+08:00" }],
+  tape: [{ expr: "1+1", value: 2, ts: 5 }], memory: { M1: 5, ACC: { count: 0 } },
+});
+
+test("stableStringify／hashData：與鍵順序無關、忽略只屬本機的鍵、內容改變則雜湊改變", () => {
+  assert.equal(stableStringify({ b: 1, a: [2, { d: 1, c: 2 }] }), stableStringify({ a: [2, { c: 2, d: 1 }], b: 1 }));
+  const d = DATA();
+  const reordered = { memory: { ACC: { count: 0 }, M1: 5 }, tape: [{ ts: 5, value: 2, expr: "1+1" }],
+    scenarios: [{ updated_at: "2026-10-19T10:00:00+08:00", inputs: { N: { text: "1" } }, name: "A", worksheet: "tvm", id: "a" }],
+    settings: { mode: "AOS", decimals: 4 } };
+  assert.equal(hashData(d), hashData(reordered));
+  assert.equal(hashData(d), hashData({ ...d, settings: { ...d.settings, gdriveLastSync: "x", gdriveLastSyncHash: "y", gdriveClientId: "z" } }));
+  assert.match(hashData(d), /^[0-9a-f]{14}$/);
+  for (const mut of [(x) => { x.memory.M1 = 6; }, (x) => { x.settings.decimals = 5; }, (x) => { x.tape[0].value = 3; }, (x) => { x.scenarios[0].name = "B"; }]) {
+    const x = DATA();
+    mut(x);
+    assert.notEqual(hashData(x), hashData(d));
+  }
+});
+
+test("isLocalEmpty：只看情境、紙帶、記憶", () => {
+  assert.equal(isLocalEmpty({ settings: { decimals: 9 }, scenarios: [], tape: [], memory: {} }), true);
+  assert.equal(isLocalEmpty({ scenarios: [], tape: [], memory: { M0: 0, M1: 0, ACC: { count: 0 } } }), true);
+  assert.equal(isLocalEmpty({ scenarios: [], tape: [], memory: { M3: 1 } }), false);
+  assert.equal(isLocalEmpty({ scenarios: [], tape: [], memory: { ACC: { count: 2 } } }), false);
+  assert.equal(isLocalEmpty({ scenarios: [], tape: [{ expr: "1", value: 1, ts: 1 }], memory: {} }), false);
+  assert.equal(isLocalEmpty({ scenarios: [{}], tape: [], memory: {} }), false);
+});
+
+test("isLocalChanged：無儲存雜湊時有資料即視為改過；有雜湊時比對內容（包含只改記憶或設定）", () => {
+  const d = DATA();
+  assert.equal(isLocalChanged(d, ""), true);
+  assert.equal(isLocalChanged({ scenarios: [], tape: [], memory: {} }, ""), false);
+  const h = hashData(d);
+  assert.equal(isLocalChanged(d, h), false);
+  const m = DATA();
+  m.memory.M1 = 99;
+  assert.equal(isLocalChanged(m, h), true);
+  const st = DATA();
+  st.settings.decimals = 0;
+  assert.equal(isLocalChanged(st, h), true);
+});
+
+test("overwriteSummary：記憶或設定有差異才標記", () => {
+  const a = DATA();
+  assert.deepEqual(overwriteSummary(a, DATA()), { memory: false, settings: false });
+  const b = DATA();
+  b.memory.M1 = 1;
+  assert.deepEqual(overwriteSummary(a, b), { memory: true, settings: false });
+  const c = DATA();
+  c.settings.mode = "CHAIN";
+  assert.deepEqual(overwriteSummary(a, c), { memory: false, settings: true });
+  const e = DATA();
+  e.settings.gdriveClientId = "other.apps.googleusercontent.com";
+  assert.deepEqual(overwriteSummary(a, e), { memory: false, settings: false });
+});
+
+test("雲端在決定動作後又被改過：上傳與下載都中止且不寫入", async () => {
+  const changed = { ...FILE, modifiedTime: "2026-10-20T05:00:00.000Z" };
+  const f = fake([resp(200, { files: [changed] })]);
+  await assert.rejects(createDrive(f, () => "T").upload("{}", FILE.modifiedTime), (e) => e.code === "conflict" && /被更新過/.test(e.message));
+  assert.equal(f.calls.length, 1, "沒有送出 PATCH／POST");
+  const f2 = fake([resp(200, { files: [changed] })]);
+  await assert.rejects(createDrive(f2, () => "T").download(FILE.modifiedTime), (e) => e.code === "conflict");
+  assert.equal(f2.calls.length, 1, "沒有下載內容");
+  // 當時沒有檔案、現在出現了 → 上傳中止
+  const f3 = fake([resp(200, { files: [FILE] })]);
+  await assert.rejects(createDrive(f3, () => "T").upload("{}", null), (e) => e.code === "conflict");
+  // 沒變 → 照常；未傳 expected → 不檢查
+  const f4 = fake([resp(200, { files: [FILE] }), resp(200, { id: "F1", modifiedTime: "2026-10-20T06:00:00.000Z" })]);
+  assert.equal((await createDrive(f4, () => "T").upload("{}", FILE.modifiedTime)).id, "F1");
 });
 
 test("localUpdatedAt：取情境與紙帶的最大時間", () => {

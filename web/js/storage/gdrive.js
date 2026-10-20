@@ -12,7 +12,7 @@ export const GIS_URL = "https://accounts.google.com/gsi/client";
 export const API = "https://www.googleapis.com/drive/v3/files";
 export const UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files";
 /** 只屬於本機、不上傳也不從雲端覆蓋的設定鍵。 */
-export const LOCAL_ONLY_KEYS = ["gdriveClientId", "gdriveLastSync"];
+export const LOCAL_ONLY_KEYS = ["gdriveClientId", "gdriveLastSync", "gdriveLastSyncHash"];
 
 /** 驗證 Client ID 的形狀（結尾必須是 .apps.googleusercontent.com）；不代表它真的有效。 */
 export function isValidClientId(id) {
@@ -41,24 +41,79 @@ const ms = (s) => {
   return Number.isFinite(t) ? t : null;
 };
 
+/** 穩定序列化：物件鍵依字母排序，與鍵的插入順序無關。 */
+export function stableStringify(v) {
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;
+  if (v !== null && typeof v === "object") {
+    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stableStringify(v[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(v) ?? "null";
+}
+
+/** 純 JS 的 53 位元字串雜湊（cyrb53）；用來偵測「內容有沒有變」，不作安全用途。 */
+function hash53(str) {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, "0");
+}
+
+/** 本機內容雜湊：設定（去掉只屬本機的鍵）、情境、紙帶、記憶；呼叫端先經 normalizeData。 */
+export function hashData(data) {
+  const d = stripLocalOnly(data);
+  return hash53(stableStringify({ settings: d.settings, scenarios: d.scenarios, tape: d.tape, memory: d.memory }));
+}
+
+/** 本機是否完全沒有使用者資料（無情境、紙帶為空、記憶全為 0；設定不算）。 */
+export function isLocalEmpty(data) {
+  if (!data) return true;
+  if ((data.scenarios || []).length > 0 || (data.tape || []).length > 0) return false;
+  const m = data.memory || {};
+  for (const [k, v] of Object.entries(m)) {
+    if (/^M\d$/.test(k) && v !== 0) return false;
+  }
+  return !(m.ACC && m.ACC.count > 0);
+}
+
+/** 本機自上次同步後是否改過：比對內容雜湊；沒有儲存的雜湊時，只要本機有資料就視為改過。 */
+export function isLocalChanged(data, storedHash) {
+  if (!storedHash) return !isLocalEmpty(data);
+  return hashData(data) !== storedHash;
+}
+
 /**
- * 判斷該上傳、下載還是詢問使用者。
+ * 判斷該上傳、下載還是詢問使用者。localChanged：本機自上次同步後內容是否改過（isLocalChanged）；
+ * hasLocalData：本機是否有任何資料（從未同步過時用）。
  * - 雲端沒有檔案 → "upload"
  * - 從未同步過（lastSync 空）：雲端有檔；本機有資料 → "ask"，本機是空的 → "download"
- * - 雲端比上次同步新 且 本機在上次同步之後也改過 → "ask"（絕不自動覆蓋）
+ * - 雲端比上次同步新 且 本機也改過 → "ask"（絕不自動覆蓋）
  * - 只有雲端變新 → "download"；其餘（只有本機改過，或都沒變）→ "upload"
  */
-export function decideConflict(localUpdatedAtIso, remoteModifiedTime, lastSync = null) {
+export function decideConflict(localChanged, remoteModifiedTime, lastSync = null, hasLocalData = true) {
   const remote = ms(remoteModifiedTime);
   if (remote === null) return "upload";
-  const local = ms(localUpdatedAtIso);
   const last = ms(lastSync);
-  if (last === null) return local === null ? "download" : "ask";
+  if (last === null) return hasLocalData ? "ask" : "download";
   const remoteChanged = remote > last;
-  const localChanged = local !== null && local > last;
   if (remoteChanged && localChanged) return "ask";
   if (remoteChanged) return "download";
   return "upload";
+}
+
+/** 下載（新資料 next 取代／合併後）會覆蓋掉本機的哪些東西；回傳 {memory, settings} 是否有差異（不看只屬本機的設定鍵）。 */
+export function overwriteSummary(localData, next) {
+  const l = stripLocalOnly(localData);
+  const n = stripLocalOnly(next);
+  return {
+    memory: stableStringify(l.memory || {}) !== stableStringify(n.memory || {}),
+    settings: stableStringify(l.settings || {}) !== stableStringify(n.settings || {}),
+  };
 }
 
 /** 本機資料的最後更新時間（情境 updated_at 與紙帶 ts 的最大值）；沒有任何帶時間的資料回傳 null。 */
@@ -141,6 +196,15 @@ export function createDrive(fetchFn, getToken, onUnauthorized = () => {}) {
     return res;
   }
 
+  /** 決定動作之後雲端若又被改過（修改時間與當時看到的不同；undefined＝不檢查），中止並說明。 */
+  function checkUnchanged(found, expectedModified) {
+    if (expectedModified === undefined) return;
+    const now = found ? found.modifiedTime : null;
+    if (now !== expectedModified) {
+      throw new GDriveError("雲端備份在你操作的期間被更新過了，為避免覆蓋，已中止。請重新按一次上傳或下載", "conflict");
+    }
+  }
+
   /** 找備份檔；回傳 {id, name, modifiedTime} 或 null。 */
   async function find() {
     const q = encodeURIComponent(`name='${FILE_NAME}'`);
@@ -157,9 +221,10 @@ export function createDrive(fetchFn, getToken, onUnauthorized = () => {}) {
   }
 
   /** 上傳 JSON 字串（物件會先轉成字串）；有檔案就更新、沒有就建立。回傳 {id, modifiedTime}。 */
-  async function upload(json) {
+  async function upload(json, expectedModified) {
     const content = typeof json === "string" ? json : JSON.stringify(json);
     const existing = await find();
+    checkUnchanged(existing, expectedModified);
     let res;
     if (existing) {
       res = await request(`${UPLOAD_API}/${encodeURIComponent(existing.id)}?uploadType=media&fields=id,modifiedTime`, {
@@ -176,8 +241,9 @@ export function createDrive(fetchFn, getToken, onUnauthorized = () => {}) {
   }
 
   /** 下載備份檔；回傳 {text, modifiedTime}，雲端沒有檔案回傳 null。內容由呼叫端驗證後才寫入。 */
-  async function download() {
+  async function download(expectedModified) {
     const f = await find();
+    checkUnchanged(f, expectedModified);
     if (!f) return null;
     const res = await request(`${API}/${encodeURIComponent(f.id)}?alt=media`);
     return { text: await res.text(), modifiedTime: f.modifiedTime };
@@ -266,7 +332,7 @@ function getDrive() {
   if (!drive) drive = createDrive((...a) => globalThis.fetch(...a), currentToken, clearToken);
   return drive;
 }
-export const upload = (json) => getDrive().upload(json);
-export const download = () => getDrive().download();
+export const upload = (json, expected) => getDrive().upload(json, expected);
+export const download = (expected) => getDrive().download(expected);
 export const remoteModified = () => getDrive().remoteModified();
 export const find = () => getDrive().find();
