@@ -1084,3 +1084,34 @@
 
 **待辦**
 - 使用者以自己的 Client ID 手動測：上傳 → 只改記憶 → 下載應出現衝突／覆蓋確認
+
+## 2026-10-20 Task 27 一鍵驗證與 verify-bacalc skill（tag step8）
+
+**需求**
+- `python tools/verify_all.py` 一次跑完全部檢查並產生 `logs/verify-YYYYMMDD-HHMM.html`；專案 skill 說明何時與如何使用；e2e 檢查表
+
+**做法**
+- verify_all.py：先 `git status --porcelain` 必須為空（否則 exit 1 並列出）；步驟依序 check_portable → pytest → build_web --check → check_shell → node --test → check_worker → test:mpy → test:mpy --self-test → mutate（--quick 略過並在 log 註明）；某項失敗仍繼續，任一失敗 exit 1
+- 子程序以 UTF-8（errors="replace"）解碼並設 PYTHONIOENCODING；stdout 也設 errors="replace"；node 測試直接呼叫 node（等同 npm run），測試檔清單由 Python 展開以避免 Windows glob 問題
+- log 沿用既有 verify-*.html 風格；含完整與短 commit、分支、+08:00 時間、Python／Node／MicroPython 套件版本、SHELL_HASH；失敗附末 60 行（HTML 跳脫）
+- `--allow-dirty` 僅示範：略過乾淨檢查，log 標題標「DIRTY — 不可作為實驗紀錄」
+- e2e：使用者尚未同意 Playwright，故只寫 `e2e/checklist.md`（13 張工作表各一個 golden 值、離線、SW 更新、情境、匯出入、設定、Drive 標「需使用者 Client ID」）
+
+**產出**
+- tools/verify_all.py、.claude/skills/verify-bacalc/SKILL.md、e2e/checklist.md
+- 完整驗證 log：logs/verify-20261020-2339.html（9 項全 PASS，mutate 約 102 秒，全程約 2 分 22 秒）
+
+**驗證**
+- 髒樹時 verify_all 拒絕並 exit 1（實測）
+- 示範：把 engine/tvm.py 的 `+ pmt * s` 改成 `- pmt * s`，`--allow-dirty --quick` → exit 1，pytest（tvm_iy_loan 等）、build_web --check（web/py 與 engine 不同）、test:mpy 及 --self-test 標 FAIL；以 `git checkout -- engine/tvm.py` 還原，樹乾淨；示範 log 已刪除，避免 DIRTY log 進 repo
+- 乾淨樹完整跑一次全 PASS
+
+**問題與修正**
+- 示範時 build_web --check 與 test:mpy 也跟著失敗，原因是 web/py 為舊的正確建置，與被改壞的 engine 不一致，屬預期
+- Git Bash 直接顯示輸出會亂碼（cp950），log 檔本身為 UTF-8，不影響
+- flake8 對 verify_all.py 有 7 處 E501（CSS 字串與一行指令），未處理
+- e2e 檢查表的毛利、損益兩平、Δ%、稅額預期值由公式推算，未經瀏覽器實測
+
+**待辦**
+- 使用者若同意安裝 Playwright，再把 e2e/checklist.md 自動化為 e2e/test_ui.py
+- 跑一次檢查表 A～F 並實測毛利／稅額等顯示格式
