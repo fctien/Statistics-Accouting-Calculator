@@ -195,3 +195,24 @@
 
 **待辦**
 - Task 6（AMORT）使用 tvm_residual／period_rate
+
+## 2026-10-20 Task 6＋8 AMORT 分期攤還、ICONV 利率轉換
+**需求**
+- 實作 engine/amort.py（amort、schedule）與 engine/iconv.py（nom_to_eff、eff_to_nom）
+
+**做法**
+- TDD：先寫 test_amort.py、test_iconv.py（RED：ModuleNotFoundError），再實作（GREEN）
+- AMORT 逐期遞推：INT=-(餘額×i)、PRN=PMT-INT、BAL=BAL+PRN；BGN 第 1 期利息 0；不做中途四捨五入
+- ICONV：EFF=((1+NOM/CY)^CY-1)，NOM 為其反函數；CY<=0 回 err("CY")
+
+**產出**
+- engine/amort.py、engine/iconv.py、tests/test_amort.py、tests/test_iconv.py
+
+**驗證**
+- 全套 pytest 46 項通過；golden amort 5 項、iconv 3 項皆在容差內；check_portable exit 0
+
+**問題與修正**
+- 無失敗嘗試；schedule 尾差以 BAL+FV 判斷，使 FV 非 0 時不誤報
+
+**待辦**
+- 無
