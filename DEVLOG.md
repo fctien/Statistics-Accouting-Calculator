@@ -133,3 +133,25 @@
 ## 2026-10-20 Task 2 修正輪 1
 **問題與修正**
 - amort BAL 改用 `=-FV(...)`（與 PV 同號、對應 TI BAL 顯示），重產 excel.json：BAL y1=296315.96486317005、y2=292404.7065002685；測試與可攜檢查通過
+
+## 2026-10-20 Task 3＋4 money／dates／solver
+**需求**
+- 分整數金額（money）、序數日日期（dates）、共用求根器（solver：牛頓＋二分）
+
+**做法**
+- TDD：先寫三個測試檔（RED：ModuleNotFoundError），再實作
+- days_360 先查本機 Excel DAYS360(FALSE) 實測 2 月底行為，依實測實作
+- solver：牛頓法數值微分，發散／出界／微分為 0 時退二分，二分僅限兩端異號
+
+**產出**
+- engine/money.py、engine/dates.py、engine/solver.py；tests/test_money.py、test_dates.py、test_solver.py
+
+**驗證**
+- 全部 pytest 通過（30 項）；check_portable engine／golden exit 0；golden date 5 筆全符
+
+**問題與修正**
+- 失敗的嘗試：稅率分母第一次誤用 1000000（rate_bp 為萬分比，應為 10000），測試 RED 後修正
+- 計畫稱 Excel FALSE 模式不特別處理 2 月底，但 Excel 實測：DAYS360(2026-02-28, 2026-03-31)=30、(2028-02-29,2028-03-31)=30、(2028-02-28,2028-03-31)=33、(2026-02-28,2026-02-28)=-2。故起日為 2 月最後一日視為 30，終日不因 2 月底調整；golden 現有 5 筆不涉及 2 月底，不受影響
+
+**待辦**
+- 可考慮將 Excel 2 月底案例加入 golden（需使用者同意改 golden 資料）
