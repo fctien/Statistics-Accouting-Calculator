@@ -54,7 +54,7 @@ const blank = (s) => String(s ?? "").trim() === "";
 /**
  * 讀 CF 表格 [金額 CFj, 次數 Fj] → {flows: [[金額, 次數], ...]}。
  * 結尾的空白列忽略；中間的空白列是錯誤（期別會錯位，沒有現金流的期請輸入 0）。
- * 次數須為 1～9999 的整數。金額空白且次數空白或預設的 "1"，視為空白列。
+ * 次數空白視為 1（TI 預設），否則須為 1～9999 的整數；金額空白但次數有填（不是 1）是錯誤。
  */
 export function readCfTable(cells, sep = "us") {
   const isBlankRow = (r) => blank(r[0]) && (blank(r[1]) || String(r[1]).trim() === "1");
@@ -70,8 +70,7 @@ export function readCfTable(cells, sep = "us") {
     if (blank(a)) return fail(`第 ${n} 列請輸入金額`, n, 1);
     const amount = parseNumber(a, sep);
     if (amount === null) return fail(`第 ${n} 列金額「${String(a).trim()}」不是數字`, n, 1);
-    if (blank(c)) return fail(`第 ${n} 列請輸入次數（至少 1）`, n, 2);
-    const count = parseNumber(c, sep);
+    const count = blank(c) ? 1 : parseNumber(c, sep); // 次數空白＝1（TI 預設）
     if (count === null) return fail(`第 ${n} 列次數「${String(c).trim()}」不是數字`, n, 2);
     if (!Number.isInteger(count) || count < 1 || count > MAX_COUNT) {
       return fail(`第 ${n} 列次數須為 1～${MAX_COUNT} 的整數`, n, 2);

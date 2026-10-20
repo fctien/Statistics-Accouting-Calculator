@@ -908,3 +908,26 @@
 **待辦**
 - controller 的 e2e（元素 id：cf-table、cf-add-row、stat-table、stat-add-row、depr-table、depr-csv、bond-calc、f-<sheet>-<field>）
 - DEPR CSV 實際下載內容未在瀏覽器逐格驗證（與 AMORT 同一套 exportSettings／plainNumberRows）
+
+## 2026-10-20 Task 23 修正輪 1：貼上單欄不可誤判兩欄、CF 次數空白視為 1
+
+**需求**
+- 審查發現：單欄 Excel 貼上含空白千分位（「1 234」）會被切成兩欄，CF 變成金額 1、次數 234，靜默錯誤資料；controller 另裁定 CF 金額有填、次數空白時次數預設 1
+
+**做法**
+- paste.js：沒有 tab 的多行貼上一律單欄（只以換行分隔，每行一格交給 parseNumber，「1 234」報錯並指出列欄）；只有單行才以半形空白或 tab 分隔；NBSP（U+00A0、U+202F）不當分隔符號
+- tables.js readCfTable：次數空白 → 1；金額空白但次數有填（非 1）仍報錯；CF 表格提示文字更新
+
+**產出**
+- 修改 web/js/paste.js、tables.js、views/grid.js（hint 選項）、views/cashflow.js；tests/js/paste.test.mjs、tables.test.mjs
+
+**驗證**
+- node --test 64 pass；pytest 全綠；build_web、check_shell 通過
+- 瀏覽器：CF 貼上 NBSP 千分位兩行 → 「第 1 列第 1 欄「1 234」不是數字」，表格不變；貼上兩欄 3000／2、4200／1 正常
+
+**問題與修正**
+- 改測試檔時用 Python 三引號字串把 \n 展開成真正換行，造成語法錯誤，改用 raw 字串重寫該段
+- 原「沒有 tab 的多行多值視為多欄」測試被改為驗證報錯（行為刻意變更）
+
+**待辦**
+- 無

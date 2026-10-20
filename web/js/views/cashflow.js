@@ -48,6 +48,7 @@ export function mount(container) {
     initialRows: 4,
     getSep: () => settingsStore.get().sep,
     fill: { 1: "1" }, // 只貼一欄金額時，次數都是 1
+    hint: "可直接從 Excel 複製貼上（兩欄＝金額與次數，一欄＝金額）；次數留空視為 1；沒有現金流的期請輸入 0；Enter 計算",
     onEdit: () => markStale(SHEET),
   });
   const section = document.createElement("div");

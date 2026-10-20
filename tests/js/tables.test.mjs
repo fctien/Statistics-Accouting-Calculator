@@ -59,7 +59,7 @@ test("readCfTable：金額或次數不合法時指出列與欄", () => {
   assert.equal(c.col, 2);
   assert.equal(readCfTable([["5", "0"]]).col, 2);
   assert.equal(readCfTable([["5", "10000"]]).col, 2);
-  assert.equal(readCfTable([["5", ""]]).col, 2);
+  assert.deepEqual(readCfTable([["5", ""]]), { flows: [[5, 1]] }); // 次數空白＝1
   assert.equal(readCfTable([["", "3"]]).col, 1); // 有次數沒金額
 });
 

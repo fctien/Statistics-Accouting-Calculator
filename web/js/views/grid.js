@@ -32,7 +32,7 @@ function el(tag, attrs = {}, text = "") {
 export function createGrid(opts) {
   const {
     id, addId, caption, rowPrefix = "", columns, initialRows = 3, maxRows = MAX_ROWS,
-    getSep = () => "us", fill = {}, onEdit,
+    getSep = () => "us", fill = {}, onEdit, hint: hintText,
   } = opts;
   const width = columns.length;
   const root = el("div", { class: "grid-box" });
@@ -56,7 +56,7 @@ export function createGrid(opts) {
   const tools = el("div", { class: "grid-actions" });
   tools.append(add);
   const hint = el("p", { class: "grid-hint" },
-    "可直接從 Excel 複製貼上：點選要開始的格子再貼上；Tab 換欄、上下鍵換列、Enter 計算");
+    hintText || "可直接從 Excel 複製貼上：點選要開始的格子再貼上；Tab 換欄、上下鍵換列、Enter 計算");
   root.append(table, msg, tools, hint);
 
   const rowLabel = (i) => (rowPrefix ? rowPrefix + String(i + 1).padStart(2, "0") : String(i + 1));

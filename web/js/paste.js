@@ -3,8 +3,8 @@
 //
 // 接受的格式：
 //   - 有 tab：tab 分隔欄、換行（LF／CRLF／CR）分隔列（Excel 複製的標準格式）
-//   - 沒有 tab：單欄的清單，以換行或空白分隔（「1 2 3」或每行一個）；
-//     多行且每行都有多個以空白分隔的值時，視為空白分隔的多欄表格
+//   - 沒有 tab：單欄清單。多行時每行一格（只以換行分隔）；單行時才以半形空白分隔（「1 2 3」）；
+//     NBSP（U+00A0、U+202F）不當分隔符號，「1 234」之類的格子一律報錯，不猜成兩欄
 //   - 允許結尾的空行與每列結尾的 tab（Excel 常見）
 // 任何一格無法解析（含中間的空列、空白格）就整體回傳錯誤，並指出列與欄（1 起算），不猜測、不略過。
 import { parseNumber } from "./input.js";
@@ -32,10 +32,10 @@ export function parsePastedTable(text, sep = "us") {
 
   let grid = lines.map(splitTabs);
   if (Math.max(...grid.map((r) => r.length)) <= 1) {
-    // 沒有真正的多欄 tab：單欄清單（結尾 tab 已去掉），值可用換行或空白分隔
-    const toks = lines.map((l) => (l.trim() === "" ? [] : l.trim().split(/\s+/)));
-    if (lines.length === 1) grid = toks[0].map((t) => [t]); // 一行多值：視為一欄
-    else grid = toks; // 每行一個值＝一欄；每行多個值＝空白分隔的多欄
+    // 單欄：多行時每行就是一格（不再以空白切開，「1 234」這種千分位空白會報錯而不是變成兩欄）；
+    // 只有單行才以半形空白或 tab 切成多個值；NBSP（U+00A0、U+202F）不是分隔符號
+    if (lines.length === 1) grid = lines[0].trim().split(/[ 	]+/).map((t) => [t]);
+    else grid = lines.map((l) => (l.trim() === "" ? [] : [l.trim()]));
   }
 
   const width = Math.max(...grid.map((r) => r.length));

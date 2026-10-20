@@ -23,8 +23,25 @@ test("單欄：換行分隔、空白分隔、單行多值", () => {
   assert.deepEqual(parsePastedTable("  1   2\t"), { rows: [[1], [2]] });
 });
 
-test("沒有 tab 的多行多值視為空白分隔的多欄", () => {
-  assert.deepEqual(parsePastedTable("1 2\n3 4"), { rows: [[1, 2], [3, 4]] });
+test("沒有 tab 的多行永遠是單欄：「1 234」報錯，不變成兩欄", () => {
+  const r = parsePastedTable("1 234\n5 678");
+  assert.equal(r.rows, undefined);
+  assert.equal(r.row, 1);
+  assert.equal(r.col, 1);
+  assert.equal(parsePastedTable("1 2\n3 4").rows, undefined);
+});
+
+test("NBSP／窄 NBSP 千分位的單欄報錯（不是分隔符號）", () => {
+  for (const sp of ["\u00A0", "\u202F"]) {
+    const multi = parsePastedTable(`1${sp}234\n5${sp}678`);
+    assert.equal(multi.rows, undefined);
+    assert.equal(multi.row, 1);
+    assert.equal(parsePastedTable(`1${sp}234`).rows, undefined);
+  }
+});
+
+test("tab 分隔仍是兩欄", () => {
+  assert.deepEqual(parsePastedTable("1\t234\n5\t678"), { rows: [[1, 234], [5, 678]] });
 });
 
 test("千分位：US 逗號、EU 點，小數點依 sep", () => {
