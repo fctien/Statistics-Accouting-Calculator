@@ -60,3 +60,13 @@ def test_schedule_tail_warning():
     r2 = schedule(dict(BASE, N=360))
     assert r2["ok"] and not r2["warnings"]
     assert r2["values"]["rows"][0][0] == 1
+
+
+def test_non_finite_and_non_numeric():
+    inf, nan = float("inf"), float("nan")
+    assert amort(BASE, 1, inf)["field"] == "P2"
+    assert amort(BASE, nan, 5)["field"] == "P1"
+    for n in (inf, nan, "abc"):
+        for r in (amort(dict(BASE, N=n), 1, 5), schedule(dict(BASE, N=n))):
+            assert not r["ok"] and r["field"] == "N"
+    assert amort(BASE, "1", 5)["field"] == "P1"

@@ -235,3 +235,22 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 6 修正輪 2
+**需求**
+- int() 遇 inf／nan 會拋例外；N、P1、P2 須先驗證為有限數值
+
+**做法**
+- 新增 _is_num（排除 bool、字串、inf、nan），於 int() 之前檢查，失敗回對應欄位 err
+
+**產出**
+- engine/amort.py、tests/test_amort.py 更新
+
+**驗證**
+- test_amort、全套 pytest 通過；check_portable exit 0
+
+**問題與修正**
+- 失敗的嘗試：輪 1 直接 int(p) 比對整數，inf 擲 OverflowError、nan 擲 ValueError → 先判有限性再轉型
+
+**待辦**
+- 無

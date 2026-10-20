@@ -6,10 +6,16 @@ BAL 與 PV 同號。逐期遞推（不做中途四捨五入）：
     PRN_k = PMT - INT_k
     BAL_k = BAL_{k-1} + PRN_k
 """
-from engine.result import err, ok
+from engine.result import err, is_finite, ok
 from engine.tvm import period_rate
 
 _TAIL_TOL = 0.005
+
+
+def _is_num(x):
+    """是否為有限實數（排除 bool、字串、inf、nan）。"""
+    return (isinstance(x, (int, float)) and not isinstance(x, bool)
+            and is_finite(x))
 
 
 def _prepare(inputs):
@@ -23,6 +29,8 @@ def _prepare(inputs):
         return err("C/Y 必須大於 0", "CY")
     if 1 + inputs["IY"] / 100 / inputs["CY"] <= 0:
         return err("I/Y 數值不合理（利率低於 -100%）", "IY")
+    if not _is_num(inputs["N"]):
+        return err("N 必須為有限數值", "N")
     if inputs["N"] != int(inputs["N"]):
         return err("N 必須為整數期數", "N")
     n = int(inputs["N"])
@@ -48,6 +56,8 @@ def amort(inputs, p1, p2):
     for name, p in (("P1", p1), ("P2", p2)):
         if p is None:
             return err("缺少 %s" % name, name)
+        if not _is_num(p):
+            return err("%s 必須為有限數值" % name, name)
         if p != int(p):
             return err("%s 必須為整數期數" % name, name)
     if p1 < 1:
