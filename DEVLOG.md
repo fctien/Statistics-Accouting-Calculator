@@ -649,3 +649,25 @@
 
 **待辦**
 - 之後納入一鍵驗證（verify）流程
+
+## 2026-10-20 Task 19 審查修正 round 1
+
+**需求**
+- 修正 run_mpy_golden.mjs：NaN／非數值比較會空過；空集合或截斷集合仍 exit 0；self-test 強度不足
+
+**做法**
+- 數值比較先檢查 typeof number 且有限，失敗才記錄；判斷改為 !(d <= TOL)；CPython 或 MicroPython 為 null 也視為失敗
+- 案例數為 0（golden 或 error）即失敗；預設模式檢查 CPython dump 筆數等於案例數且每個 id 兩邊都有
+- self-test 擴充為 6 情境：未損壞、壞 golden（輸出須含 FAIL golden）、壞 error expected（須含 FAIL error case）、空 golden、golden expected 為字串、空 error 集合
+
+**產出**
+- tools/run_mpy_golden.mjs 修正
+
+**驗證**
+- test:mpy 51/51、24/24；--self-test 6 項全 OK；pytest 全過；check_portable 0
+
+**問題與修正**
+- 原本 NaN 使 d > TOL 為 false 而空過；已改為 !(d <= TOL)
+
+**待辦**
+- 無

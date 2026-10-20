@@ -56,19 +56,27 @@ async function runChecks() {
   const cpyDump = JSON.parse(cpython([join("tools", "golden_dump.py")]));
   let maxDiff = 0, maxId = null;
   const bad = [];
+  const isNum = (x) => typeof x === "number" && Number.isFinite(x);
   for (const [id, b] of Object.entries(cpyDump)) {
     const a = res.dump[id];
     if (a === null || a === undefined || b === null) {
-      if ((a ?? null) !== b) bad.push(`${id}: MicroPython=${a} CPython=${b}`);
+      if ((a ?? null) !== b || b === null) bad.push(`${id}: MicroPython=${a} CPython=${b}（無數值）`);
       continue;
     }
+    if (!isNum(a) || !isNum(b)) { bad.push(`${id}: 非有限數值 MicroPython=${a} CPython=${b}`); continue; }
     const d = Math.abs(a - b) / Math.max(1, Math.abs(b));
     if (d > maxDiff) { maxDiff = d; maxId = id; }
-    if (d > TOL) bad.push(`${id}: MicroPython=${a} CPython=${b} diff=${d}`);
+    if (!(d <= TOL)) bad.push(`${id}: MicroPython=${a} CPython=${b} diff=${d}`);
   }
+  // 防空集合／截斷：案例數必須 > 0，且兩邊 dump 的 id 集合一致（預設模式）
+  if (res.n === 0) bad.push("golden 案例數為 0");
   if (!CUSTOM) {
-    const missing = Object.keys(res.dump).filter((k) => !(k in cpyDump));
-    if (missing.length) bad.push("CPython 缺少案例：" + missing.join(","));
+    const ids = JSON.parse(readFileSync(GOLDEN, "utf-8")).map((c) => c.id);
+    if (Object.keys(cpyDump).length !== res.n) bad.push(`CPython dump 筆數 ${Object.keys(cpyDump).length} != 案例數 ${res.n}`);
+    for (const id of ids) {
+      if (!(id in cpyDump)) bad.push(`CPython dump 缺少 ${id}`);
+      if (!(id in res.dump)) bad.push(`MicroPython dump 缺少 ${id}`);
+    }
   }
   const passed = res.n - res.fails.length;
   res.fails.forEach((f) => console.log("FAIL golden: " + f));
@@ -80,7 +88,10 @@ async function runChecks() {
   // (2) 錯誤路徑：MicroPython 回應 === committed expected（非自訂檔時另用 CPython 即時重算，防期望值過期）
   const cases = JSON.parse(readFileSync(ERRORS, "utf-8"));
   const mism = [];
+  if (cases.length === 0) mism.push("錯誤路徑案例數為 0");
   for (const c of cases) {
+    if (!(c.id in res.errs)) { mism.push(`${c.id}
+  MicroPython 缺少回應`); continue; }
     const a = JSON.stringify(sortDeep(res.errs[c.id])), b = JSON.stringify(sortDeep(c.expected));
     if (a !== b) mism.push(`${c.id}\n  MicroPython: ${a}\n  expected   : ${b}`);
   }
@@ -113,9 +124,18 @@ function selfTest() {
     const base = run(g, e);
     const g2 = structuredClone(g); g2[0].expected = g2[0].expected * 1.5 + 1;
     const e2 = structuredClone(e); e2[0].expected.error += "X";
-    const r1 = run(g2, e), r2 = run(g, e2);
-    console.log(`未損壞副本 exit=${base.status}（應為 0）；壞 golden exit=${r1.status}（應為 1）；壞 error expected exit=${r2.status}（應為 1）`);
-    return base.status === 0 && r1.status === 1 && r2.status === 1;
+    const g3 = structuredClone(g); g3[0].expected = "abc";
+    const r1 = run(g2, e), r2 = run(g, e2), r3 = run([], e), r4 = run(g3, e), r5 = run(g, []);
+    const res = [
+      ["未損壞副本", base.status === 0],
+      ["壞 golden", r1.status === 1 && r1.stdout.includes("FAIL golden")],
+      ["壞 error expected", r2.status === 1 && r2.stdout.includes("FAIL error case")],
+      ["空 golden", r3.status === 1],
+      ["golden expected 為字串", r4.status === 1],
+      ["空 error 集合", r5.status === 1],
+    ];
+    res.forEach(([n, ok]) => console.log(`${ok ? "OK  " : "FAIL"} self-test: ${n}`));
+    return res.every(([, ok]) => ok);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
