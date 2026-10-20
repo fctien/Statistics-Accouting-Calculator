@@ -773,3 +773,33 @@
 - controller 瀏覽器驗證（手機寬／桌面寬、深色模式、Enter／Esc／Tab、TVM 示範、更多選單）
 - Task 22～24：各工作表專屬版面（CF 現金流表格、攤還／折舊表、STAT 資料表、CALC 按鍵與紙帶）；目前用通用表單暫代
 - Task 25：設定改存 IndexedDB；日期格式（US／EUR）與稅率預設尚未放進設定頁
+
+## 2026-10-20 Task 21 審查修正 round 1
+
+**需求**
+- STAT 預測不能重複使用：X'=6 → Y'=5.8 後改 X' 為 7，求出的 Y 和 X 一起送出，bridge 拒絕（須恰好給定 X 或 Y 其一）
+- AMORT 說明範例 98,772.00／-1,228.00／-5,966.60 與引擎值不同（畫面上出現錯誤數字違反核心原則）；測試必須要求範例等於引擎的 2 位小數顯示
+- 讓「重新求解」的行為看得到：有求出的欄位時顯示提示
+
+**做法**
+- sheets.js：predict 加 solve ["X","Y"]（引擎鍵），交給 input.resolveBlanks 處理；AMORT 範例與說明改為 98,771.99／-1,228.01／-5,966.59；ANS 範例改 14，與說明一致
+- form.js：有求出的輸入欄位（綠色、非輸出欄）時，表單下方顯示「綠色欄位是上次求出的結果；修改其他欄位後按 計算 會重新求出它」，那一格被改掉後提示自動移除；只有最近一次求出的格子會重算，較早求出的格子降為一般值，但仍保留完整精度；計算失敗時保留綠色標記與提示
+- 測試：test_web_sheets 改為範例 == 引擎 display（不再允許誤差）；新增「說明文字必須含範例數字」；新增 STAT 預測兩個方向的「預測 → 修改 → 再預測」迴歸測試（helpers/predict_resolve.mjs 模擬 readInputs 流程，再實際呼叫 bridge）
+
+**產出**
+- commit 6f34bbe；web/js/sheets.js、web/js/views/form.js、web/css/app.css（.resolve-hint）、web/sw.js（SHELL_HASH）、tests/test_web_sheets.py、tests/js/sheets.test.mjs、tests/js/helpers/predict_resolve.mjs
+- logs/verify-20261020-1607.html
+
+**驗證**
+- RED：收緊後的 test_web_sheets 有 4 項失敗（AMORT 三個範例、ANS 說明與範例不符、STAT 預測兩個方向改值後仍送出求出的值）
+- GREEN：test_web_sheets 7 passed；pytest 全部 267 passed；node --test 22 pass；build_web --check、check_shell、flake8 都通過
+- 瀏覽器上的提示顯示與 STAT 重複預測：待 controller 確認
+
+**問題與修正**
+- 新寫的 Python 測試檔透過 heredoc 產生，`"\n"` 在 python 字串中被展開成真正的換行，造成 SyntaxError → 用 Edit 工具修正
+- 發現：求出一格後再求另一格時，較早求出的格子還留著「求出」標記，下次可能出現兩格空白 → 只保留最近一次求出的格子
+- 驗證腳本執行超過 2 分鐘的工具逾時，改在背景完成；中途因 API 連線錯誤中斷，log 已確認對應 HEAD 6f34bbe 且全部通過
+
+**待辦**
+- controller 在瀏覽器確認重新求解提示與 STAT 重複預測
+- Task 22～24 各表專屬版面

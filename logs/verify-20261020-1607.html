@@ -1,0 +1,37 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task 21 修正輪 1 驗證：STAT 預測重算、範例精確、重新求解提示</title><style>
+:root{--bg:#fff;--fg:#1d2330;--line:#d9dee7;--ok:#0a7a3d;--ng:#b3261e;--code:#f3f5f9}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--line:#2c323c;--ok:#5fd18f;--ng:#ff8a80;--code:#1d2129}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;margin:0;padding:16px;max-width:1200px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
+code,pre{background:var(--code);font-family:Consolas,monospace}pre{margin:0;white-space:pre-wrap;font-size:12px}
+.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}</style></head><body>
+<h1>Task 21 修正輪 1 驗證：STAT 預測重算、範例精確、重新求解提示</h1>
+<p>時間：2026-10-20 16:07　分支：impl　HEAD：<code>6f34bbe703f3a5fcd2f9d8fbea7d8b40d1f62a88</code>　git 乾淨：是（執行前 <code>git status --porcelain</code> 為空）；執行後：乾淨</p>
+<p class=ok>總結：PASS（不含真實瀏覽器；畫面、鍵盤、TVM 示範由 controller 以瀏覽器驗證）</p>
+<h2>修改過程</h2><ul>
+<li>RED：收緊後的 test_web_sheets 失敗 4 項（AMORT 範例 98772.00／-1228.00／-5966.60 與引擎顯示 98,771.99／-1,228.01／-5,966.59 不同；ANS 說明 14 與範例 0 不同；STAT 預測兩方向改值後 Y／X 仍被送出）</li>
+<li>修正 sheets.js 範例與 predict 的 solve ["X","Y"] 後 GREEN（7 passed）</li>
+<li>form.js：重新求解提示；只有最近一次求出的格子會重算，較早的降為一般值但保留完整精度</li>
+</ul>
+<h2>指令</h2><table><tr><th>項目</th><th>指令</th><th>exit</th><th>輸出（末段）</th></tr><tr><td>建置</td><td><code>C:\ProgramData\anaconda3\python.exe tools/build_web.py</code></td><td class=ok>0</td><td><pre>已建置 web/py（19 個模組）與 web/vendor（1.29.0-6）</pre></td></tr><tr><td>建置檢查 --check</td><td><code>C:\ProgramData\anaconda3\python.exe tools/build_web.py --check</code></td><td class=ok>0</td><td><pre>web/ 建置檔皆為最新</pre></td></tr><tr><td>check_shell</td><td><code>C:\ProgramData\anaconda3\python.exe tools/check_shell.py</code></td><td class=ok>0</td><td><pre>check_shell：通過</pre></td></tr><tr><td>pytest 全部</td><td><code>C:\ProgramData\anaconda3\python.exe -m pytest -o addopts=-p no:hydra_pytest -q</code></td><td class=ok>0</td><td><pre>........................................................................ [ 26%]
+........................................................................ [ 53%]
+........................................................................ [ 80%]
+...................................................                      [100%]
+267 passed in 357.13s (0:05:57)</pre></td></tr><tr><td>JS 單元測試 node --test</td><td><code>C:\Program Files\nodejs\node.EXE --test tests/js/*.test.mjs</code></td><td class=ok>0</td><td><pre>  duration_ms: 0.4124
+  type: &#x27;test&#x27;
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 226.9319</pre></td></tr><tr><td>JS／Python 數字解析一致</td><td><code>C:\ProgramData\anaconda3\python.exe -m pytest -o addopts=-p no:hydra_pytest -q tests/test_web_input.py</code></td><td class=ok>0</td><td><pre>.                                                                        [100%]
+1 passed in 0.16s</pre></td></tr><tr><td>欄位範例端到端（sheets.js × bridge）</td><td><code>C:\ProgramData\anaconda3\python.exe -m pytest -o addopts=-p no:hydra_pytest -q tests/test_web_sheets.py</code></td><td class=ok>0</td><td><pre>.......                                                                  [100%]
+7 passed in 0.68s</pre></td></tr><tr><td>check_portable</td><td><code>C:\ProgramData\anaconda3\python.exe tools/check_portable.py</code></td><td class=ok>0</td><td><pre>可攜性檢查通過：engine</pre></td></tr><tr><td>Worker 檢查</td><td><code>C:\Program Files\nodejs\node.EXE tools/check_worker.mjs</code></td><td class=ok>0</td><td><pre>statuses loading -&gt; ready；佇列：送出時 loading，EFF=12.682503013196978
+golden 51、錯誤路徑 24 案
+PASS</pre></td></tr><tr><td>flake8（新 Python 測試）</td><td><code>C:\ProgramData\anaconda3\python.exe -m flake8 tests/_node.py tests/test_web_input.py tests/test_web_js.py tests/test_web_sheets.py</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/js/app.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/js/app.js</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/js/input.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/js/input.js</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/js/sheets.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/js/sheets.js</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/js/settings.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/js/settings.js</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/js/views/form.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/js/views/form.js</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/js/views/nav.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/js/views/nav.js</code></td><td class=ok>0</td><td><pre></pre></td></tr><tr><td>node --check web/sw.js</td><td><code>C:\Program Files\nodejs\node.EXE --check web/sw.js</code></td><td class=ok>0</td><td><pre></pre></td></tr></table>
+</body></html>
