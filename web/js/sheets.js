@@ -449,3 +449,34 @@ export function primaryAction(sheetId) {
 export function sheetByRoute(route) {
   return SHEET_ORDER.find((id) => SHEETS[id].route === route) || null;
 }
+
+/** 在欄位清單中依序找：引擎鍵（key ?? id）→ 回傳鍵 out → id → 別名 → 不分大小寫。 */
+function matchIn(fields, key) {
+  const low = String(key).toLowerCase();
+  return fields.find((f) => (f.key || f.id) === key)
+    || fields.find((f) => f.out === key)
+    || fields.find((f) => f.id === key)
+    || fields.find((f) => (f.alias || []).includes(key))
+    || fields.find((f) => f.id.toLowerCase() === low || (f.key || "").toLowerCase() === low)
+    || null;
+}
+
+/**
+ * 由引擎回傳的鍵（值的鍵或錯誤的 field）找欄位定義；找不到回傳 null。
+ * 給了 actionId 時先在該動作送出的欄位中找（例：STAT 預測的錯誤 field "X" 是 X' 欄，
+ * 不是資料清單 X），找不到再全域找（回傳鍵 out／id 優先，例：迴歸的 a、b 對到 A、B 欄）。
+ */
+export function fieldForKey(sheetId, key, actionId) {
+  if (key === null || key === undefined || key === "" || !SHEETS[sheetId]) return null;
+  if (actionId && SHEETS[sheetId].actions.some((x) => x.id === actionId)) {
+    const hit = matchIn(sendFields(sheetId, actionId), key);
+    if (hit) return hit;
+  }
+  const all = SHEETS[sheetId].fields;
+  const low = String(key).toLowerCase();
+  return all.find((f) => (f.out || f.id) === key)
+    || all.find((f) => f.id === key || f.key === key)
+    || all.find((f) => (f.alias || []).includes(key))
+    || all.find((f) => f.id.toLowerCase() === low)
+    || null;
+}

@@ -135,3 +135,18 @@ def test_stats_predict_can_be_reused(given, solved):
     model = {"X": lambda x: 2.2 + 0.6 * x, "Y": lambda y: (y - 2.2) / 0.6}
     assert abs(second["values"][solved.lower()]
                - model[given](second_inputs[given])) < 1e-9
+
+
+def test_predict_error_field_maps_to_prediction_box():
+    """X'、Y' 都填：bridge 回 field "X"，畫面要標在 X' 欄（XP），不是資料清單 X。"""
+    res = json.loads(call(json.dumps({
+        "sheet": "stats", "action": "predict",
+        "inputs": {"model": "LIN", "A": 2.2, "B": 0.6, "X": 6, "Y": 5}})))
+    assert not res["ok"]
+    proc = run_node(["-e", (
+        "import('./web/js/sheets.js').then(m => process.stdout.write("
+        "JSON.stringify([m.fieldForKey('stats', %s, 'predict')?.id,"
+        " m.fieldForKey('stats', %s, 'two_var')?.id])))")
+        % (json.dumps(res["field"]), json.dumps(res["field"]))])
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout) == ["XP", "X"]

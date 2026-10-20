@@ -73,9 +73,9 @@ async function runAction(sheetId, actionId) {
     const response = await callEngine({
       sheet: sheet.engine, action: actionId, inputs, settings: settingsStore.toEngine(),
     });
-    showResult(response, sheetId);
+    showResult(response, sheetId, actionId);
   } catch (e) {
-    showResult({ ok: false, error: (e && e.message) || String(e), field: null }, sheetId);
+    showResult({ ok: false, error: (e && e.message) || String(e), field: null }, sheetId, actionId);
   } finally {
     setBusy(sheetId, false);
   }

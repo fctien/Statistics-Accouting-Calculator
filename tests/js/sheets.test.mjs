@@ -3,7 +3,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { SHEETS, SHEET_ORDER, PRIMARY_SHEETS, KINDS, fieldMap, sendFields } from "../../web/js/sheets.js";
+import {
+  SHEETS, SHEET_ORDER, PRIMARY_SHEETS, KINDS, fieldMap, sendFields, fieldForKey,
+} from "../../web/js/sheets.js";
 
 const REQUIRED_SHEETS = [
   "tvm", "amort", "cashflow", "iconv", "stats", "bond", "depr", "business-profit",
@@ -83,4 +85,27 @@ test("留一格空白的動作都標了 solve", () => {
   }
   // STAT 預測：X'／Y' 恰給其一，求出的那格下次要重算（引擎鍵 X、Y）
   assert.deepEqual(SHEETS.stats.actions.find((x) => x.id === "predict").solve, ["X", "Y"]);
+});
+
+test("fieldForKey：先在剛執行的動作欄位中找，再全域找", () => {
+  const id = (sheet, key, action) => fieldForKey(sheet, key, action)?.id ?? null;
+  // STAT 預測的錯誤 field "X"／"Y" 指的是 X'／Y' 欄，不是資料清單
+  assert.equal(id("stats", "X", "predict"), "XP");
+  assert.equal(id("stats", "Y", "predict"), "YP");
+  // 迴歸、單變數的 "X"／"Y" 是資料清單
+  assert.equal(id("stats", "X", "two_var"), "X");
+  assert.equal(id("stats", "Y", "two_var"), "Y");
+  assert.equal(id("stats", "X", "one_var"), "X");
+  // 回傳值鍵（out）：預測的 x／y、迴歸的 a／b（不在 two_var 的送出欄位 → 全域）
+  assert.equal(id("stats", "y", "predict"), "YP");
+  assert.equal(id("stats", "a", "two_var"), "A");
+  // 沒給動作：維持全域順序
+  assert.equal(id("stats", "X"), "X");
+  // 別名與不分大小寫
+  assert.equal(id("cashflow", "CF", "pb"), "CF0");
+  assert.equal(id("tax", "amount", "tax"), "AMOUNT");
+  assert.equal(id("calc", "expr", "eval"), "EXPR");
+  assert.equal(id("tvm", "PMT", "solve"), "PMT");
+  assert.equal(id("tvm", "nope", "solve"), null);
+  assert.equal(id("tvm", null, "solve"), null);
 });

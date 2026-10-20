@@ -3,13 +3,13 @@
 // 只負責畫面；何時呼叫引擎由 Controller（app.js）決定，經 opts.onAction(actionId) 通知。
 // 鍵盤：Enter＝主要動作（計算）、Esc＝清除表單、Tab 依畫面順序換欄；
 // 多行清單（textarea）內 Enter 換行，Ctrl／⌘+Enter 計算；中文輸入法組字中的 Enter 不觸發。
-import { SHEETS, fieldMap, sendFields, primaryAction } from "../sheets.js";
+import { SHEETS, fieldMap, fieldForKey, sendFields, primaryAction } from "../sheets.js";
 import { collect, parseNumber, resolveBlanks, toSigned } from "../input.js";
 import * as settings from "../settings.js";
 
 const DIR_TEXT = { in: "收到 ↓", out: "付出 ↑" };
 const RESOLVE_HINT = "綠色欄位是上次求出的結果；修改其他欄位後按 計算 會重新求出它";
-const forms = new Map(); // sheetId -> {form, opts}
+const forms = new Map(); // sheetId -> {form, opts, lastAction}
 
 const domId = (prefix, sheetId, fieldId) => `${prefix}-${sheetId}-${fieldId}`;
 
@@ -350,6 +350,7 @@ export function readInputs(sheetId, actionId) {
   }
   // 沒有空白時：上次求出且未改動的欄位再當未知數（改了 N 直接按 Enter 就重算 PMT）
   const action = SHEETS[sheetId].actions.find((a) => a.id === actionId) || primaryAction(sheetId);
+  forms.get(sheetId).lastAction = action.id; // showResult 依此動作對應錯誤欄位
   return { inputs: resolveBlanks(inputs, action.solve, solvedKeys), errors };
 }
 
@@ -375,17 +376,6 @@ function showMessage(form, text) {
   const msg = form.querySelector(".form-message");
   msg.textContent = text;
   msg.hidden = false;
-}
-
-/** 由引擎的鍵（值或錯誤 field）找欄位：out／key／id，再試別名與不分大小寫。 */
-function findField(sheetId, key) {
-  if (!key) return null;
-  const fields = SHEETS[sheetId].fields;
-  return fields.find((f) => (f.out || f.id) === key)
-    || fields.find((f) => f.id === key || f.key === key)
-    || fields.find((f) => (f.alias || []).includes(key))
-    || fields.find((f) => f.id.toLowerCase() === String(key).toLowerCase())
-    || null;
 }
 
 /**
@@ -451,10 +441,12 @@ function fillField(form, sheetId, f, value, shown) {
  *   ok:true  → 求出的欄位填值並加 class "solved"，warnings 列在表單下方
  *   ok:false → field 對得到欄位：欄位加 class "error"、訊息顯示在欄位下方（aria-describedby）；
  *              否則顯示表單層級訊息
+ * actionId：剛執行的動作（省略時用最近一次 readInputs 的動作），錯誤 field 先在該動作的欄位中對應。
  * 回傳 {filled: [欄位 id], unmatched: [沒有對應欄位的回傳鍵，如 rows]}，給 Task 22～24 的版面使用。
  */
-export function showResult(response, sheetId) {
+export function showResult(response, sheetId, actionId) {
   const form = getForm(sheetId);
+  const act = actionId || forms.get(sheetId)?.lastAction;
   const result = { filled: [], unmatched: [] };
   if (!form) return result;
   clearMessages(form);
@@ -465,7 +457,7 @@ export function showResult(response, sheetId) {
   }
   if (!response || response.ok !== true) {
     const message = (response && response.error) || "計算失敗（沒有原因）";
-    const f = findField(sheetId, response && response.field);
+    const f = fieldForKey(sheetId, response && response.field, act);
     const wrap = f ? fieldWrap(form, f.id) : null;
     if (wrap) {
       setFieldError(wrap, message);
@@ -480,7 +472,7 @@ export function showResult(response, sheetId) {
   const display = response.display || {};
   const lines = [];
   for (const [key, v] of Object.entries(values)) {
-    const f = key === "rows" ? null : findField(sheetId, key);
+    const f = key === "rows" ? null : fieldForKey(sheetId, key, act);
     if (f && isUserValue(form, sheetId, f)) continue; // 引擎回傳的已知值：保留使用者輸入
     const shown = f ? fillField(form, sheetId, f, v, display[key]) : null;
     if (shown === null) {
