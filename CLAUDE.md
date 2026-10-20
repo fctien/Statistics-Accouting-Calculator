@@ -10,7 +10,7 @@
 1. **MVC**：Model 是 `engine/*.py`（純 Python、無 I/O、不依賴瀏覽器）；Controller 是 `engine/bridge.py` 與 `web/js/app.js`；View 是 HTML／CSS
 2. **絕不產生看起來正常但錯誤的數字**：算不出來就回 `ok: false` 加原因，不用 0、不用預設值、不回傳未收斂的猜測值
 3. **資料只存本機**（IndexedDB）；Google Drive 同步預設關閉，使用者設定後才啟用
-4. 計算機算式用 AST 白名單解析，**禁止 `eval`**
+4. 計算機算式用自寫遞迴下降剖析器（`engine/calc.py`），**禁止 `eval`**（MicroPython 沒有 `ast`）
 5. **可攜子集**：`engine/` 只能用 CPython 與 MicroPython 都支援的功能（不用 decimal、datetime、dataclasses）；金額用「分」整數（`engine/money.py`）、日期用序數日（`engine/dates.py`）
 6. golden 值必須附出處（TI Guidebook 頁碼或 Excel 公式），對不上就回報，不硬湊
 

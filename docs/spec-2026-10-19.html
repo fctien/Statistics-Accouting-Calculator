@@ -151,7 +151,7 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 <li><strong>Model 不依賴瀏覽器</strong>：可以在電腦上直接 <code>pytest</code>，也可以在 MicroPython 裡跑</li>
 <li><strong>可攜子集（portable subset）</strong>：引擎只用 CPython 與 MicroPython 都支援的功能</li>
 <li>可用：<code>math</code>、<code>json</code>、基本型別、函式、類別、f-string、例外</li>
-<li>不用：<code>decimal</code>、<code>datetime</code>、<code>fractions</code>、<code>dataclasses</code>、<code>typing</code> 的執行期功能、<code>functools.lru_cache</code>、第三方套件</li>
+<li>不用：<code>decimal</code>、<code>datetime</code>、<code>ast</code>、<code>fractions</code>、<code>dataclasses</code>、<code>typing</code> 的執行期功能、<code>functools.lru_cache</code>、第三方套件</li>
 <li>由 <code>tools/check_portable.py</code> 掃描 <code>engine/</code> 的 import 與語法，違規就失敗</li>
 <li><strong>bridge.py 統一回傳格式</strong>：</li>
 </ul>
@@ -212,7 +212,7 @@ Storage（js/storage/*.js）：IndexedDB ⇄ JSON 匯出入 ⇄ Google Drive（�
 <td><strong>計算機 CALC</strong></td>
 <td>算式字串</td>
 <td>結果、紙帶</td>
-<td>支援 <code>+ − × ÷ ( ) % √ x² 1/x yˣ ln eˣ n! nPr nCr</code>、<code>ANS</code>；用安全解析器（AST 白名單），<strong>不用 <code>eval</code></strong></td>
+<td>支援 <code>+ − × ÷ ( ) % √ x² 1/x yˣ ln eˣ n! nPr nCr</code>、<code>ANS</code>；自寫遞迴下降剖析器（recursive descent parser，<code>engine/calc.py</code>），<strong>不用 <code>eval</code></strong>（MicroPython 沒有 <code>ast</code> 模組）；AOS 與 Chain 兩種運算順序都支援</td>
 </tr>
 <tr>
 <td><strong>記憶 MEM</strong></td>
