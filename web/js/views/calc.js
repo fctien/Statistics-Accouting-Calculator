@@ -2,21 +2,44 @@
 // 所有運算與數字格式化都交給引擎（callEngine，sheet "calc" / action "eval"）：
 //   - 算式結果、記憶與 Σ 的顯示字串都由引擎依小數位數與千分位設定產生，JS 不自己格式化；
 //   - 記憶值以原始浮點數存在 memstore.js（鏡射 engine/memory.py），作為 MEM 送給引擎。
-// 狀態（紙帶、記憶、ANS）放在模組層級：切換工作表再回來仍在（持久化由 Task 25 接手）。
+// 狀態（紙帶、記憶、ANS）放在模組層級：切換工作表再回來仍在；紙帶與記憶另存 IndexedDB（storage/persist.js），
+// 啟動時由 app.js 呼叫 replaceState 還原（內容經 fromJSON／createTape 驗證，壞資料被丟棄）。
 // 錯誤不進紙帶，顯示在輸入框下方。
 import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
-import { createMemStore } from "../memstore.js";
-import { createTape, createWalker } from "../tape.js";
+import { createMemStore, fromJSON as memFromJSON } from "../memstore.js";
+import { createTape, createWalker, MAX_ENTRIES } from "../tape.js";
+import * as persist from "../storage/persist.js";
 import { createGuard } from "../generation.js";
 import { KEY_ROWS, insertAt, backspaceAt } from "../keypad.js";
 
-const memory = createMemStore();
+let memory = createMemStore();
 const tape = createTape();
 const walker = createWalker(tape);
 let ans = 0; // 上一次成功的值（原始浮點數）；初始 0，同引擎預設
 let ansDisplay = "";
 let listener = null; // 目前掛載的畫面對 bacalc-settings 的監聽（重新掛載時移除舊的）
+
+/**
+ * 以儲存的資料取代紙帶與記憶（啟動還原、匯入備份、清除全部資料用）。
+ * tapeEntries：紙帶項目陣列或 null；memoryData：memstore.toJSON() 形狀或 null（null＝清空）。
+ * 無效資料由 createTape／fromJSON 安全丟棄；這裡不會觸發儲存（呼叫端已處理）。
+ */
+export function replaceState(tapeEntries, memoryData) {
+  tape.clear();
+  if (Array.isArray(tapeEntries)) {
+    for (const e of createTape(MAX_ENTRIES, tapeEntries).list()) {
+      tape.add({ expr: e.expr, value: e.value, display: e.display, ts: e.ts });
+    }
+  }
+  memory = memoryData ? memFromJSON(memoryData) : createMemStore();
+  walker.reset();
+  ans = 0;
+  ansDisplay = "";
+}
+
+const saveTape = () => persist.saveTape(tape.toJSON());
+const saveMemory = () => persist.saveMemory(memory.toJSON());
 
 function el(tag, attrs = {}, text = "") {
   const node = document.createElement(tag);
@@ -206,6 +229,7 @@ export function mount(container) {
     renderResult();
     renderTape();
     renderMemory();
+    if (items.length) saveTape(); // 顯示字串改了：一併存起來
   }
 
   // ---- 動作
@@ -245,6 +269,7 @@ export function mount(container) {
         tape.add({ expr, value, display, ts: Date.now() });
         walker.reset();
         renderTape();
+        saveTape();
       }
       renderResult();
       return { value, display };
@@ -284,6 +309,7 @@ export function mount(container) {
       return;
     }
     const names = { sto: "STO", add: "M+", sub: "M−", mul: "M×", div: "M÷" };
+    saveMemory();
     if (op === "sigma") say(`Σ+ ${shown}`);
     else say(`${names[op]} M${i}（目前的值 ${shown}）`);
     renderMemory();
@@ -330,6 +356,7 @@ export function mount(container) {
   memClear.addEventListener("click", () => {
     memory.clearAll();
     say("已清除全部記憶與 Σ");
+    saveMemory();
     renderMemory();
   });
   cells.addEventListener("click", (e) => {
@@ -347,6 +374,7 @@ export function mount(container) {
     tape.clear();
     walker.reset();
     renderTape();
+    saveTape();
   });
 
   listener = () => {

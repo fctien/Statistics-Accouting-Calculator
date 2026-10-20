@@ -969,6 +969,7 @@ input[type="checkbox"].control {
 }
 
 .settings-preview,
+.settings-data,
 .settings-about {
   max-width: 640px;
   margin-top: 16px;
@@ -993,4 +994,55 @@ input[type="checkbox"].control {
   margin: 0;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+
+.scenario-bar {
+  max-width: 640px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.scenario-bar[hidden] {
+  display: none;
+}
+
+.scenario-bar h3,
+.settings-data h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.scenario-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.scenario-row .control {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.scenario-status {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.data-mode {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.storage-notice {
+  margin: 0;
+  padding: 8px 16px;
+  border-left: 4px solid var(--warn);
+  background: var(--surface);
+  color: var(--fg);
 }

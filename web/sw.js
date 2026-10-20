@@ -5,7 +5,7 @@
 // → 瀏覽器安裝新 SW、換新快取（不必每次手動 --bump）。
 // 全部是相對於 sw.js 的網址，部署在 GitHub Pages 子路徑下也正確。
 const CACHE_VERSION = "bacalc-v0.1.0";
-const SHELL_HASH = "8cce0aa9526b087d";
+const SHELL_HASH = "dfca129b0c4439f2";
 const CACHE_NAME = `${CACHE_VERSION}-${SHELL_HASH}`;
 const CACHE_PREFIX = "bacalc-"; // 同一 origin（github.io）可能有其他 App 的快取，只清自己的
 
@@ -29,6 +29,9 @@ const APP_SHELL = [
   "js/tables.js",
   "js/memstore.js",
   "js/tape.js",
+  "js/storage/idb.js",
+  "js/storage/backup.js",
+  "js/storage/persist.js",
   "js/keypad.js",
   "js/datefmt.js",
   "js/views/form.js",
@@ -46,6 +49,7 @@ const APP_SHELL = [
   "js/views/depr.js",
   "js/views/calc.js",
   "js/views/settings.js",
+  "js/views/scenarios.js",
   "js/views/datereadout.js",
   "icons/icon-192.png",
   "icons/icon-512.png",

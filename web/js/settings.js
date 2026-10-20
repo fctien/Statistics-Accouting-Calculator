@@ -1,6 +1,8 @@
-// Controller 輔助：使用者設定（settings）。目前只用 localStorage 當「單一裝置的便利記憶」，
-// Task 25 會改存 IndexedDB。localStorage 可能不存在或丟例外（私密視窗、Node 測試），一律 try/catch，
-// 讀不到就用預設值，畫面照常運作。
+// Controller 輔助：使用者設定（settings）。存在 IndexedDB（storage/idb.js，物件庫 settings，單一紀錄 key "settings"）。
+// 為了讓 get() 維持同步：啟動時（畫面掛載前）呼叫 init() 把設定載入記憶體，之後 get() 只讀記憶體，
+// set() 更新記憶體並在背景寫入 IndexedDB。IndexedDB 不可用時只在記憶體生效（idb.js 會提示使用者一次）。
+// init() 同時做一次性搬家：舊版存在 localStorage 的設定，寫進 IndexedDB 後移除舊的鍵。
+import * as idb from "./storage/idb.js";
 
 const KEY = "bacalc.settings";
 
@@ -23,7 +25,8 @@ const VALID = {
 
 let cache = null;
 
-function storage() {
+/** 舊版 localStorage 的鍵（只用於一次性搬家）。 */
+function legacyStorage() {
   try {
     return globalThis.localStorage || null;
   } catch (e) {
@@ -32,7 +35,7 @@ function storage() {
 }
 
 /** 只保留合法的鍵值；不合法的忽略（回到預設）。 */
-function sanitize(obj) {
+export function sanitize(obj) {
   const out = {};
   if (!obj || typeof obj !== "object") return out;
   for (const k of Object.keys(VALID)) {
@@ -41,23 +44,58 @@ function sanitize(obj) {
   return out;
 }
 
-/** 目前設定（預設值＋已儲存值）。 */
+/** 目前設定（預設值＋已載入的值）。 */
 export function get() {
-  if (cache) return { ...cache };
-  let saved = {};
+  if (!cache) cache = { ...DEFAULTS };
+  return { ...cache };
+}
+
+/** 背景寫入 IndexedDB；失敗（idb.js 已提示）不影響目前運作。 */
+function persist(value) {
+  return idb.put("settings", { key: "settings", value }).catch(() => {});
+}
+
+/**
+ * 啟動時載入設定（畫面掛載前呼叫一次）：讀 IndexedDB；沒有紀錄時嘗試從舊版 localStorage 搬家，
+ * 搬成功（確定寫進 IndexedDB）才移除舊的鍵。回傳載入後的設定。
+ */
+export async function init() {
+  let saved = null;
   try {
-    const raw = storage()?.getItem(KEY);
-    if (raw) saved = sanitize(JSON.parse(raw));
+    const rec = await idb.get("settings", "settings");
+    if (rec && typeof rec.value === "object") saved = sanitize(rec.value);
   } catch (e) {
-    saved = {};
+    saved = null;
   }
-  cache = { ...DEFAULTS, ...saved };
+  if (saved === null) {
+    const ls = legacyStorage();
+    let legacy = null;
+    try {
+      const raw = ls?.getItem(KEY);
+      if (raw) legacy = sanitize(JSON.parse(raw));
+    } catch (e) {
+      legacy = null;
+    }
+    if (legacy !== null) {
+      saved = legacy;
+      cache = { ...DEFAULTS, ...saved };
+      await persist(cache);
+      if (idb.isPersistent()) {
+        try {
+          ls.removeItem(KEY);
+        } catch (e) {
+          /* 無法移除舊鍵：下次啟動會因為 IndexedDB 已有紀錄而忽略它 */
+        }
+      }
+    }
+  }
+  cache = { ...DEFAULTS, ...(saved || {}) };
   return { ...cache };
 }
 
 /**
  * 更新設定；回傳 {settings, errors}。不合法的值不寫入，errors 以鍵為鍵、值為中文訊息。
- * 儲存失敗（storage 不可用）不算錯誤：本次開啟期間仍有效。
+ * 儲存失敗（IndexedDB 不可用）不算錯誤：本次開啟期間仍有效。
  */
 export function set(patch) {
   const errors = {};
@@ -68,11 +106,7 @@ export function set(patch) {
     else errors[k] = `${k} 的值不合法`;
   }
   cache = next;
-  try {
-    storage()?.setItem(KEY, JSON.stringify(next));
-  } catch (e) {
-    /* 私密視窗或已停用網站資料：只在記憶體中生效 */
-  }
+  persist(next);
   return { settings: { ...next }, errors };
 }
 
@@ -101,6 +135,22 @@ export function commit(patch) {
     doc.dispatchEvent(new CustomEvent("bacalc-settings", { detail: r.settings }));
   }
   return r;
+}
+
+/**
+ * 整組取代設定（匯入「取代」、清除全部資料用）：不在 DEFAULTS 內或不合法的鍵回到預設值。
+ * 寫入、套用外觀並通知畫面；回傳新設定。
+ */
+export function replace(obj) {
+  const next = { ...DEFAULTS, ...sanitize(obj) };
+  cache = next;
+  persist(next);
+  applyTheme(next);
+  const doc = globalThis.document;
+  if (doc && typeof CustomEvent === "function") {
+    doc.dispatchEvent(new CustomEvent("bacalc-settings", { detail: { ...next } }));
+  }
+  return { ...next };
 }
 
 /** 測試用：清除記憶體快取。 */

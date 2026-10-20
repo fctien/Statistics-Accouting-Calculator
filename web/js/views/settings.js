@@ -1,10 +1,15 @@
 // View：設定 FORMAT。小數位數、千分位、日期格式、運算順序、外觀、稅率預設值；選了就立即生效並儲存
 // （settingsStore.commit 會通知畫面重新顯示結果），下方「即時預覽」由引擎格式化。
+// 「資料」區：匯出／匯入 JSON 備份（合併或取代，取代前 confirm）、清除全部資料。
 // 「關於」區：APP 版本、SHELL_HASH（讀 sw.js 文字）、MicroPython 套件版本（讀 py/manifest.json）、啟動計時。
 import { SHEETS, TAX_PRESETS } from "../sheets.js";
 import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import { formatDate } from "../datefmt.js";
+import { download } from "../csv.js";
+import * as persist from "../storage/persist.js";
+import { makeExport, importBackup, backupFilename, emptyData } from "../storage/backup.js";
+import { replaceState } from "./calc.js";
 
 const SAMPLE_NUMBER = 1234567.891;
 const SAMPLE_DATE = [2026, 12, 31];
@@ -90,6 +95,109 @@ export function mount(container, ctx = {}) {
   const pvDate = el("p", { id: "s-preview-date" });
   preview.append(pvNumber, pvDate);
 
+  // ---- 資料（備份）
+  const data = el("section", { class: "settings-data", "aria-labelledby": "s-data-title" });
+  data.append(el("h3", { id: "s-data-title" }, "資料 Data"));
+  data.append(el("p", { class: "calc-note" },
+    "所有資料只存在這台裝置的瀏覽器（IndexedDB）。匯出的 JSON 檔可存到任何雲端資料夾，在另一台裝置匯入。"));
+  const exportBtn = el("button", { type: "button", id: "data-export", class: "btn", title: "下載 bacalc-backup-日期.json" }, "匯出 JSON");
+  const fileInput = el("input", { type: "file", id: "data-file", accept: ".json,application/json", "aria-label": "選擇備份檔" });
+  const modeRow = el("div", { class: "data-mode", role: "radiogroup", "aria-label": "匯入方式" });
+  for (const [value, label, checked] of [["merge", "合併", true], ["replace", "取代", false]]) {
+    const lab = el("label");
+    lab.append(el("input", { type: "radio", name: "data-mode", value, id: `data-mode-${value}`, checked }), ` ${label} `);
+    modeRow.append(lab);
+  }
+  const importBtn = el("button", { type: "button", id: "data-import", class: "btn" }, "匯入 JSON");
+  const clearBtn = el("button", { type: "button", id: "data-clear", class: "btn btn-ghost", title: "刪除這台裝置上的情境、紙帶、記憶並還原預設設定" }, "清除所有資料");
+  const dataError = el("div", { id: "data-error", class: "form-message", role: "alert", hidden: true });
+  const dataStatus = el("p", { id: "data-status", class: "result-line", role: "status", "aria-live": "polite" });
+  const row1 = el("div", { class: "scenario-row" });
+  row1.append(exportBtn, clearBtn);
+  const row2 = el("div", { class: "scenario-row" });
+  row2.append(fileInput, modeRow, importBtn);
+  data.append(row1, row2, dataError, dataStatus);
+
+  const showDataError = (text) => {
+    dataError.textContent = text;
+    dataError.hidden = !text;
+    if (text) dataStatus.textContent = "";
+  };
+  const showDataOk = (text) => {
+    showDataError("");
+    dataStatus.textContent = text;
+  };
+
+  /** 目前本機的整份資料（設定用記憶體中的完整設定，含預設值）。 */
+  async function localData() {
+    const d = { ...emptyData(), ...(await persist.readAll()) };
+    d.settings = settingsStore.get();
+    return d;
+  }
+
+  /** 把整份資料寫進 IndexedDB 並更新目前畫面用的記憶體狀態。 */
+  async function applyData(d) {
+    await persist.writeAll(d);
+    settingsStore.replace(d.settings);
+    replaceState(d.tape, d.memory);
+    document.dispatchEvent(new Event("bacalc-data-changed"));
+  }
+
+  exportBtn.addEventListener("click", async () => {
+    try {
+      const d = await localData();
+      const out = makeExport(d, Date.now());
+      download(backupFilename(), JSON.stringify(out, null, 2), "application/json;charset=utf-8");
+      showDataOk(`已匯出：情境 ${d.scenarios.length} 個、紙帶 ${d.tape.length} 筆`);
+    } catch (e) {
+      showDataError("匯出失敗：" + ((e && e.message) || e));
+    }
+  });
+
+  importBtn.addEventListener("click", async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) {
+      showDataError("請先選擇要匯入的 JSON 備份檔");
+      return;
+    }
+    const mode = data.querySelector('input[name="data-mode"]:checked').value;
+    let obj;
+    try {
+      obj = JSON.parse(await file.text());
+    } catch (e) {
+      showDataError("不是有效的 JSON 檔：" + ((e && e.message) || e));
+      return;
+    }
+    try {
+      const r = importBackup(obj, await localData(), mode);
+      if (!r.ok) {
+        showDataError("無法匯入：" + r.error);
+        return;
+      }
+      const c = r.counts;
+      const summary = `情境 ${c.scenarios} 個、紙帶 ${c.tape} 筆、設定 ${c.settings} 項、記憶 ${c.memory} 格`;
+      if (mode === "replace"
+          && !globalThis.confirm(`取代會刪除這台裝置目前的全部資料，改成備份檔的內容（${summary}）。確定要取代嗎？`)) {
+        showDataOk("已取消，資料沒有改變");
+        return;
+      }
+      await applyData(r.data);
+      showDataOk(`已匯入（${mode === "merge" ? "合併" : "取代"}）：${summary}`);
+    } catch (e) {
+      showDataError("匯入失敗：" + ((e && e.message) || e));
+    }
+  });
+
+  clearBtn.addEventListener("click", async () => {
+    if (!globalThis.confirm("要刪除這台裝置上的全部情境、紙帶、記憶，並還原預設設定嗎？刪除後無法復原（建議先匯出備份）。")) return;
+    try {
+      await applyData({ ...emptyData(), settings: {} });
+      showDataOk("已清除全部資料");
+    } catch (e) {
+      showDataError("清除失敗：" + ((e && e.message) || e));
+    }
+  });
+
   // ---- 關於
   const about = el("section", { class: "settings-about", "aria-labelledby": "s-about-title" });
   about.append(el("h3", { id: "s-about-title" }, "關於"));
@@ -109,7 +217,7 @@ export function mount(container, ctx = {}) {
     rows[key] = dd;
   }
 
-  container.replaceChildren(form, preview, about);
+  container.replaceChildren(form, preview, data, about);
 
   // ---- 狀態
   function syncControls() {

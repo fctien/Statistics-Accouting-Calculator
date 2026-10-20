@@ -1,20 +1,22 @@
-// settings.js 測試：預設值、合法性檢查、storage 不可用或丟例外時仍可運作。
+// settings.js 測試：預設值、合法性檢查、IndexedDB 載入與寫回、localStorage 搬家、不可用時仍可運作。
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { DEFAULTS, get, set, toEngine, _resetCache } from "../../web/js/settings.js";
+import { DEFAULTS, get, set, init, replace, toEngine, _resetCache } from "../../web/js/settings.js";
+import * as idb from "../../web/js/storage/idb.js";
+import { makeFakeIndexedDB } from "./helpers/fake-idb.mjs";
 
 function fakeStorage(initial = {}) {
   const m = new Map(Object.entries(initial));
   return {
     getItem: (k) => (m.has(k) ? m.get(k) : null),
+    removeItem: (k) => m.delete(k),
     setItem: (k, v) => m.set(k, String(v)),
     map: m,
   };
 }
 
-test("沒有 localStorage：回傳預設值，set 只在記憶體生效", () => {
-  delete globalThis.localStorage;
+test("預設值：還沒 init 時 get 回預設，set 只在記憶體生效", () => {
   _resetCache();
   assert.deepEqual(get(), {
     decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "",
@@ -27,19 +29,68 @@ test("沒有 localStorage：回傳預設值，set 只在記憶體生效", () => 
   assert.equal(get().decimals, 2);
 });
 
-test("讀寫 localStorage；不合法值忽略並回報", () => {
-  const st = fakeStorage({ "bacalc.settings": JSON.stringify({ decimals: 5, sep: "xx", theme: "dark" }) });
-  globalThis.localStorage = st;
+function cleanup() {
+  delete globalThis.localStorage;
+  delete globalThis.indexedDB;
+  idb._reset();
   _resetCache();
+}
+
+test("init：讀 IndexedDB；不合法值忽略；set 寫回 IndexedDB", async () => {
+  globalThis.indexedDB = makeFakeIndexedDB();
+  idb._reset();
+  await idb.put("settings", { key: "settings", value: { decimals: 5, sep: "xx", theme: "dark" } });
+  _resetCache();
+  await init();
   assert.deepEqual(get(), {
     decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "",
   });
   const r = set({ decimals: null, mode: "CHAIN", sep: "fr", bogus: 1 });
   assert.deepEqual(Object.keys(r.errors), ["sep"]);
-  assert.deepEqual(JSON.parse(st.map.get("bacalc.settings")),
+  await new Promise((res) => setTimeout(res, 50));
+  assert.deepEqual((await idb.get("settings", "settings")).value,
     { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "" });
   assert.deepEqual(toEngine(), { decimals: null, sep: "us", mode: "CHAIN" });
-  delete globalThis.localStorage;
+  cleanup();
+});
+
+test("init 搬家：舊 localStorage 設定寫進 IndexedDB 後移除舊鍵", async () => {
+  globalThis.indexedDB = makeFakeIndexedDB();
+  idb._reset();
+  const st = fakeStorage({ "bacalc.settings": JSON.stringify({ decimals: 3, theme: "light", sep: "bad" }) });
+  globalThis.localStorage = st;
+  _resetCache();
+  const s = await init();
+  assert.equal(s.decimals, 3);
+  assert.equal(s.theme, "light");
+  assert.equal(s.sep, "us");
+  assert.equal(st.map.has("bacalc.settings"), false);
+  assert.equal((await idb.get("settings", "settings")).value.decimals, 3);
+  // 再啟動：IndexedDB 已有紀錄，忽略 localStorage
+  st.map.set("bacalc.settings", JSON.stringify({ decimals: 9 }));
+  _resetCache();
+  assert.equal((await init()).decimals, 3);
+  cleanup();
+});
+
+test("init 搬家：IndexedDB 不可用時保留舊鍵（資料不遺失），設定仍可用", async () => {
+  delete globalThis.indexedDB;
+  idb._reset();
+  const st = fakeStorage({ "bacalc.settings": JSON.stringify({ decimals: 3 }) });
+  globalThis.localStorage = st;
+  _resetCache();
+  assert.equal((await init()).decimals, 3);
+  assert.equal(st.map.has("bacalc.settings"), true);
+  cleanup();
+});
+
+test("replace：整組取代，不合法的鍵回到預設", () => {
+  _resetCache();
+  set({ decimals: 7, theme: "dark" });
+  const r = replace({ mode: "CHAIN", decimals: 99 });
+  assert.deepEqual(r, { ...DEFAULTS, mode: "CHAIN" });
+  assert.deepEqual(get(), r);
+  cleanup();
 });
 
 test("日期格式與稅率預設值：合法才寫入", () => {
@@ -54,18 +105,17 @@ test("日期格式與稅率預設值：合法才寫入", () => {
   _resetCache();
 });
 
-test("localStorage 丟例外或內容壞掉：不影響運作", () => {
+test("init：IndexedDB 內容壞掉或 localStorage 丟例外：不影響運作", async () => {
+  globalThis.indexedDB = makeFakeIndexedDB();
+  idb._reset();
+  await idb.put("settings", { key: "settings", value: "not an object" });
   globalThis.localStorage = {
     getItem() { throw new Error("SecurityError"); },
-    setItem() { throw new Error("QuotaExceeded"); },
+    removeItem() { throw new Error("SecurityError"); },
   };
   _resetCache();
-  assert.equal(get().sep, "us");
+  assert.equal((await init()).mode, "AOS");
   assert.deepEqual(set({ sep: "eu" }).errors, {});
   assert.equal(get().sep, "eu");
-  globalThis.localStorage = fakeStorage({ "bacalc.settings": "{not json" });
-  _resetCache();
-  assert.equal(get().mode, "AOS");
-  delete globalThis.localStorage;
-  _resetCache();
+  cleanup();
 });

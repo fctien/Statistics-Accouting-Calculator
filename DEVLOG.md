@@ -981,3 +981,30 @@
 
 **待辦**
 - Task 25 持久化
+
+## 2026-10-20 Task 25：IndexedDB 本機儲存與 JSON 匯出入
+
+**需求**
+- 設定、具名情境、紙帶、記憶改存 IndexedDB（資料庫 bacalc v1）；JSON 匯出入（合併／取代，驗證 app／schema）；IndexedDB 不可用時不當機並提示一次
+
+**做法**
+- storage/idb.js：get／put／all／del／clear 的 Promise 包裝；開啟失敗、逾時（3 秒）、沒有 indexedDB、單次寫入失敗都退回記憶體備援並呼叫 onUnavailable 一次
+- storage/backup.js（純函式）：makeExport、validateImport、normalizeData（設定經 sanitize、記憶經 memstore.fromJSON、紙帶經 createTape）、mergeData、importBackup；storage/persist.js：紙帶 debounce 300 ms、記憶、情境、整份讀寫
+- settings.js：啟動時 init() 載入記憶體（get() 仍同步）、一次性從 localStorage 搬家（確定寫進 IndexedDB 才移除舊鍵）、新增 replace()
+- views/scenarios.js：儲存／載入／重新命名／刪除情境（getFieldState／setFieldState，載入後 markStale）；設定頁「資料」區（匯出、匯入、合併或取代、清除所有資料）；calc.js 新增 replaceState 並在變動後存檔；app.js 啟動時還原
+
+**產出**
+- web/js/storage/{idb,backup,persist}.js、web/js/views/scenarios.js；tests/js/{backup,idb}.test.mjs、helpers/fake-idb.mjs；改 settings.test.mjs；sw.js APP_SHELL、index.html、app.css
+
+**驗證**
+- node --test 全綠、pytest 全綠、build_web／check_shell 通過
+- 瀏覽器 e2e：存兩個情境、重新命名、刪除（confirm 取消不刪）、匯出、清除所有資料、匯入（壞檔四種錯誤訊息、取代會跳確認且可取消、合併保留較新的本機改名）、重新整理後紙帶／記憶／小數位數仍在
+
+**問題與修正**
+- 先用 Bash heredoc 寫大檔因引號解析失敗，改用 Write 工具
+- 測試與實作同時寫，沒有單獨保留 RED 輸出；合併測試一個時區算術是我算錯（測試錯、實作對），已修測試
+- 合併紙帶時額外去除完全相同（ts、算式、值）的項目，避免同一份備份匯入兩次後紙帶加倍
+
+**待辦**
+- 表格式輸入（CF 現金流表、STAT 資料）不在情境內，目前情境只存表單欄位
+- Task 26 之後：雲端同步（選用）

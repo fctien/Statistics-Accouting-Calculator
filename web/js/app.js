@@ -4,6 +4,9 @@
 import { callEngine, onStatus } from "./py-client.js";
 import { SHEETS } from "./sheets.js";
 import * as settingsStore from "./settings.js";
+import * as idb from "./storage/idb.js";
+import * as persist from "./storage/persist.js";
+import * as scenarios from "./views/scenarios.js";
 import { initNav, go, select } from "./views/nav.js";
 import { renderForm } from "./views/form.js";
 import { runEngineAction } from "./views/run.js";
@@ -161,9 +164,43 @@ function registerServiceWorker() {
   });
 }
 
-function start() {
+/** 本機儲存不可用的提示（idb.js 只會呼叫一次）：頁首下方一條可關閉的訊息。 */
+function showStorageNotice(text) {
+  if (document.getElementById("storage-notice")) return;
+  const bar = document.createElement("div");
+  bar.id = "storage-notice";
+  bar.className = "storage-notice";
+  bar.setAttribute("role", "status");
+  bar.append(text + " ");
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "btn btn-ghost";
+  close.textContent = "知道了";
+  close.addEventListener("click", () => bar.remove());
+  bar.append(close);
+  const header = document.querySelector(".app-header");
+  if (header) header.after(bar);
+  else document.body.prepend(bar);
+}
+
+/** 啟動時從 IndexedDB 還原設定、紙帶、記憶（畫面掛載前）；任何失敗都不擋啟動。 */
+async function hydrate() {
+  idb.onUnavailable(showStorageNotice);
+  try {
+    await settingsStore.init();
+    const st = await persist.loadState();
+    calcView.replaceState(st.tape, st.memory);
+  } catch (e) {
+    console.warn("還原本機資料失敗：", e);
+  }
+}
+
+async function start() {
   onShell();
+  await hydrate();
   onAppShell();
+  const bar = document.getElementById("scenario-bar");
+  if (bar) scenarios.mount(bar);
 }
 
 if (document.readyState === "loading") {
