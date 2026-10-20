@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test:mpy": "node tools/run_mpy_golden.mjs",
-    "test:worker": "node tools/check_worker.mjs"
+    "test:worker": "node tools/check_worker.mjs",
+    "test:js": "node --test \"tests/js/*.test.mjs\""
   }
 }

@@ -14,13 +14,22 @@
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <!-- View：殼（app shell）；內容區 #app 由 Task 21 填入 -->
+  <!-- View：殼（app shell）。導覽由 js/views/nav.js 產生，工作表由 js/views/form.js 產生 -->
+  <a class="skip-link" href="#sheet-title">跳到工作表</a>
   <header class="app-header">
     <h1 class="app-title">BACalc 財務計算機</h1>
     <span id="py-status" class="pill pill-loading" role="status"
           aria-live="polite" title="Python 引擎載入中">載入中</span>
   </header>
-  <main id="app"></main>
+  <div class="layout">
+    <nav id="side-nav" class="side-nav" aria-label="全部工作表"></nav>
+    <main id="app">
+      <h2 id="sheet-title" class="sheet-title" tabindex="-1"></h2>
+      <p id="sheet-intro" class="sheet-intro"></p>
+      <div id="sheet"></div>
+    </main>
+  </div>
+  <nav id="tab-bar" class="tab-bar" aria-label="主要工作表"></nav>
   <noscript><p class="noscript">本程式需要啟用 JavaScript。</p></noscript>
 </body>
 </html>
