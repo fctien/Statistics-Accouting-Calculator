@@ -138,7 +138,7 @@ CASES = [
     _case("stats_exp_a", "stats", "two_var", _stats("EXP"),
           "=EXP(INTERCEPT(LN(%s),%s))" % (_arr(_YS), _arr(_XS)), "a"),
     _case("stats_exp_b", "stats", "two_var", _stats("EXP"),
-          "=SLOPE(LN(%s),%s)" % (_arr(_YS), _arr(_XS)), "b"),
+          "=EXP(SLOPE(LN(%s),%s))" % (_arr(_YS), _arr(_XS)), "b"),
     _case("stats_exp_r", "stats", "two_var", _stats("EXP"),
           "=CORREL(%s,LN(%s))" % (_arr(_XS), _arr(_YS)), "r"),
     _case("stats_pwr_a", "stats", "two_var", _stats("PWR"),
