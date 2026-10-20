@@ -333,3 +333,26 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 10 債券 BOND
+**需求**
+- engine/bond.py：price（YLD→PRI、AI）、yield_（PRI→YLD、AI）；ACT＝Excel basis 1、360＝Excel basis 0
+
+**做法**
+- TDD；付息日自到期日往回 12/freq 個月直接推算（非逐次累推），月底規則（到期日月底→付息日月底），非月底則截斷到該月最後一日
+- ACT：A、E 實際天數；360：A＝days_360(PCD, SDT)、E＝360/freq；DSC＝E−A
+- N=1 用單期貼現公式，N>1 用 Excel PRICE 公式；YLD 用 find_root，區間 (-0.99, 10]（下界 -0.99+1e-9），猜測值＝票面利率
+- 驗證：日期合法、SDT<RDT、freq∈{1,2}、basis∈{ACT,360}、CPN≥0、RV>0、PRI>0；溢位／除零 → err
+
+**產出**
+- engine/bond.py、tests/test_bond.py（10 項）、task-10-report.md
+
+**驗證**
+- 6 筆 bond golden 全過，最大相對誤差 2.8e-12（bond_yld_360），其餘 ≤ 4.6e-16
+- 全套 pytest、tools/check_portable.py 通過
+
+**問題與修正**
+- 無失敗嘗試；第一次實作即 GREEN
+
+**待辦**
+- TI BA II Plus 實機的 30/360 與 Excel basis 0 規則可能有差異，尚未以 TI Guidebook 案例核對
