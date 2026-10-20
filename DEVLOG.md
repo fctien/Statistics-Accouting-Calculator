@@ -830,3 +830,29 @@
 **待辦**
 - controller 在瀏覽器確認 STAT「X'、Y' 都填」的錯誤標在 X' 欄
 - Task 22～24 各表專屬版面
+
+## 2026-10-20 Task 22：TVM／AMORT／ICONV／商業／DATE 專屬畫面
+
+**需求**
+- 在 Task 21 通用表單上做五個專屬畫面；TVM「帶入攤還」、AMORT 完整攤還表＋CSV、ICONV 即時雙向、商業四子分頁＋稅率預設值、DATE 星期；任何情況不得留下看起來像目前結果的舊數字
+
+**做法**
+- 新增 views/run.js（runEngineAction／markStale／watchStale：失敗或編輯時清輸出欄、已求出欄位標過期 stale）；app.js 的 runAction 改委派給它
+- form.js 新增 getFieldState／setFieldState（跨表搬值並保留完整精度）；nav.js 新增 select（子分頁同步網址）
+- csv.js（toCSV RFC 4180、CRLF、BOM、download 分開）、util.js（debounce）；tvm／amort／iconv／business／date 各一檔
+- 稅率預設值：bridge 沒有路由，鏡射到 sheets.js TAX_PRESETS，pytest 比對與 engine/business.py 相同
+- 先寫 csv／util 測試看到失敗（模組不存在）再實作
+
+**產出**
+- web/js/csv.js、util.js、views/{run,tvm,amort,iconv,business,date}.js；修改 app.js、sheets.js、form.js、nav.js、sw.js、app.css；tests/js/csv.test.mjs、util.test.mjs、tests/test_web_sheets.py
+
+**驗證**
+- node --test 與 pytest 全綠、build_web／check_shell 通過
+- 本機靜態伺服器＋瀏覽器冒煙測試：TVM PMT 599.55 → 帶入攤還 → 360 列、末列餘額 0.00、區間 BAL 98,771.99／PRN −1,228.01／INT −5,966.59；改 I/Y 後攤還表與 BAL 立即清除；ICONV 6→6.17、8→7.72；稅額預設值 2.11% → 21.10／1,021.10 並顯示出處；DATE 364 天、星期四、改日期後星期清空且天數標過期；TVM 留多格空白顯示「請只留一格空白」
+
+**問題與修正**
+- 第一次載入殘留舊 Service Worker 快取，看不到新按鈕，清除快取後正常（開發環境現象）
+- amort.js 起初把 append 的回傳值接著 append（回傳 undefined），寫完立刻修正
+
+**待辦**
+- controller 依 brief Step 2～3 做 golden e2e 與截圖；Task 23～24 的 CF／BOND／DEPR／STAT／CALC 專屬畫面

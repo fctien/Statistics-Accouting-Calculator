@@ -4,10 +4,14 @@
 import { callEngine, onStatus } from "./py-client.js";
 import { SHEETS } from "./sheets.js";
 import * as settingsStore from "./settings.js";
-import { initNav } from "./views/nav.js";
-import {
-  renderForm, readInputs, showErrors, showResult, setBusy, setValues, showInfo,
-} from "./views/form.js";
+import { initNav, go, select } from "./views/nav.js";
+import { renderForm, readInputs, showErrors, setValues, showInfo } from "./views/form.js";
+import { runEngineAction } from "./views/run.js";
+import * as tvmView from "./views/tvm.js";
+import * as amortView from "./views/amort.js";
+import * as iconvView from "./views/iconv.js";
+import * as businessView from "./views/business.js";
+import * as dateView from "./views/date.js";
 
 export const APP_VERSION = "0.1.0";
 
@@ -54,42 +58,69 @@ function onShell() {
   });
 }
 
-// ---------------------------------------------------------------- 工作表（Task 21 通用表單）
-// Task 22～24 會為各工作表加專屬版面；目前每張工作表都用通用表單，動作直接送引擎。
+// ---------------------------------------------------------------- 工作表
+// 專屬畫面（views/*.js，各自 export mount(container, ctx)）；沒有專屬畫面的工作表用通用表單。
 
-/** 執行工作表動作：讀輸入 → 格式錯誤就標紅 → 呼叫引擎 → 顯示結果。 */
+const VIEWS = {
+  tvm: tvmView,
+  amort: amortView,
+  iconv: iconvView,
+  "business-profit": businessView,
+  "business-breakeven": businessView,
+  "business-pct": businessView,
+  tax: businessView,
+  date: dateView,
+};
+
+let pendingPrefill = null; // 跨工作表帶值（TVM → AMORT）：下一次掛載的畫面取用一次
+
+/** 執行通用工作表動作：設定頁不經引擎，其餘交給 views/run.js。 */
 async function runAction(sheetId, actionId) {
   const sheet = SHEETS[sheetId];
-  const { inputs, errors } = readInputs(sheetId, actionId);
-  if (showErrors(sheetId, errors)) return;
   if (sheet.engine === null) { // 設定頁：不經引擎
+    const { inputs, errors } = readInputs(sheetId, actionId);
+    if (showErrors(sheetId, errors)) return;
     const { errors: bad } = settingsStore.set(inputs);
     settingsStore.applyTheme();
     if (!showErrors(sheetId, bad)) showInfo(sheetId, "已套用設定（只存在這台裝置）");
     return;
   }
-  setBusy(sheetId, true);
-  try {
-    const response = await callEngine({
-      sheet: sheet.engine, action: actionId, inputs, settings: settingsStore.toEngine(),
-    });
-    showResult(response, sheetId, actionId);
-  } catch (e) {
-    showResult({ ok: false, error: (e && e.message) || String(e), field: null }, sheetId, actionId);
-  } finally {
-    setBusy(sheetId, false);
-  }
+  await runEngineAction(sheetId, actionId);
+}
+
+function setHeading(sheetId) {
+  const sheet = SHEETS[sheetId];
+  document.getElementById("sheet-title").textContent = sheet.title;
+  document.getElementById("sheet-intro").textContent = sheet.intro || "";
+  document.title = `${sheet.title}｜BACalc 財務計算機`;
 }
 
 function mountSheet(sheetId, { initial }) {
   const sheet = SHEETS[sheetId];
   const title = document.getElementById("sheet-title");
-  title.textContent = sheet.title;
-  document.getElementById("sheet-intro").textContent = sheet.intro || "";
-  document.title = `${sheet.title}｜BACalc 財務計算機`;
-  renderForm(sheetId, document.getElementById("sheet"), {
-    onAction: (actionId) => runAction(sheetId, actionId),
-  });
+  const container = document.getElementById("sheet");
+  setHeading(sheetId);
+  const view = VIEWS[sheetId];
+  if (view) {
+    const prefill = pendingPrefill;
+    pendingPrefill = null;
+    view.mount(container, {
+      sheetId,
+      prefill,
+      openSheet: (id, values) => {
+        pendingPrefill = values || null;
+        go(id);
+      },
+      onSelect: (id) => { // 畫面內切換子分頁：同步標題與網址
+        select(id);
+        setHeading(id);
+      },
+    });
+  } else {
+    renderForm(sheetId, container, {
+      onAction: (actionId) => runAction(sheetId, actionId),
+    });
+  }
   if (sheet.engine === null) setValues(sheetId, settingsStore.get());
   if (!initial) title.focus(); // 換頁後把焦點移到標題，螢幕閱讀器會念出新工作表
 }

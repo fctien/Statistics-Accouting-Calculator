@@ -166,6 +166,18 @@ export function go(sheetId, replace = false) {
   }
 }
 
+/**
+ * 畫面內自行切換子分頁（例：商業的四個分頁）時，讓導覽的目前項目與網址跟著變：
+ * 只改 hash（replaceState，不觸發 hashchange、不重新載入畫面）。
+ */
+export function select(sheetId) {
+  if (!(sheetId in SHEETS) || sheetId === current) return;
+  current = sheetId;
+  saveLast(sheetId);
+  markCurrent(sheetId);
+  history.replaceState(null, "", "#" + SHEETS[sheetId].route);
+}
+
 /** 目前的工作表 id。 */
 export function currentSheet() {
   return current;

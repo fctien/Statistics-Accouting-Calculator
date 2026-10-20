@@ -531,3 +531,44 @@ export function showInfo(sheetId, text) {
   clearMessages(form);
   form.querySelector(".form-status").append(el("p", { class: "result-line", text }));
 }
+
+/**
+ * 讀出欄位目前的狀態（給「帶入攤還」這類跨工作表搬值用）：
+ * {text, direction?, exact?, stale}；bool 欄位為 {checked}。exact 只在值仍是引擎求出且未改動時才有。
+ */
+export function getFieldState(sheetId, fieldId) {
+  const form = getForm(sheetId);
+  const f = fieldMap(sheetId)[fieldId];
+  const ctrl = form && f ? control(form, sheetId, fieldId) : null;
+  if (!ctrl) return null;
+  if (f.kind === "bool") return { checked: ctrl.checked };
+  const wrap = fieldWrap(form, fieldId);
+  const state = { text: ctrl.value, stale: wrap.classList.contains("stale") };
+  if (f.kind === "direction") state.direction = wrap.querySelector(".dir").dataset.direction;
+  if (ctrl.dataset.exact !== undefined && ctrl.value === ctrl.dataset.shown) {
+    state.exact = Number(ctrl.dataset.exact);
+  }
+  return state;
+}
+
+/** 把 getFieldState 的結果寫進另一張工作表的同名欄位（成為使用者值，但保留完整精度 exact）。 */
+export function setFieldState(sheetId, fieldId, state) {
+  const form = getForm(sheetId);
+  const f = fieldMap(sheetId)[fieldId];
+  const ctrl = form && f ? control(form, sheetId, fieldId) : null;
+  if (!ctrl || !state) return;
+  const wrap = fieldWrap(form, fieldId);
+  forgetSolved(ctrl);
+  wrap.classList.remove("solved");
+  if (f.kind === "bool") {
+    ctrl.checked = Boolean(state.checked);
+    return;
+  }
+  ctrl.value = state.text;
+  if (f.kind === "direction" && state.direction) setDirection(wrap, state.direction);
+  if (state.exact !== undefined && Number.isFinite(state.exact)) {
+    ctrl.dataset.exact = String(state.exact);
+    ctrl.dataset.shown = ctrl.value;
+  }
+  updateTiSign(wrap);
+}

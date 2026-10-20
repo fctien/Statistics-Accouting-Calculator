@@ -412,6 +412,23 @@ export const SHEETS = {
   },
 };
 
+/**
+ * 稅率預設值：鏡射（mirror）engine/business.py 的 TAX_PRESETS（bridge 沒有對應路由）。
+ * tests/test_web_sheets.py 會比對兩邊完全相同；改稅率請兩邊一起改並更新 checked（查證日期）。
+ */
+export const TAX_PRESETS = {
+  "營業稅": {
+    rate: 5,
+    source_url: "https://www.etax.nat.gov.tw/etwmain/tax-info/innotative-tax-e-reference/filing/business-tax/wMDMRl7",
+    checked: "2026-10-20",
+  },
+  "二代健保補充保費": {
+    rate: 2.11,
+    source_url: "https://www.mohw.gov.tw/cp-4624-57420-1.html",
+    checked: "2026-10-20",
+  },
+};
+
 /** 側邊選單的順序（全部工作表）。 */
 export const SHEET_ORDER = [
   "tvm", "amort", "cashflow", "iconv", "bond", "depr", "stats",

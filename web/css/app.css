@@ -528,3 +528,89 @@ input[type="checkbox"].control {
   color: var(--fg);
   font-size: 0.9rem;
 }
+
+/* ---- Task 22：專屬畫面 ---- */
+.field.stale {
+  border-style: dashed;
+  opacity: 0.65;
+}
+
+.field.stale .control {
+  text-decoration: line-through;
+}
+
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 16px;
+  border-bottom: 2px solid var(--border);
+}
+
+.subtab {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.subtab[aria-selected="true"] {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tax-presets {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.tax-presets select {
+  min-height: 44px;
+  font: inherit;
+}
+
+.tax-source {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.amort-box {
+  margin-top: 16px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.amort-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.amort-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.amort-table th,
+.amort-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+
+.amort-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}

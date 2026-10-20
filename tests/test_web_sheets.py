@@ -150,3 +150,17 @@ def test_predict_error_field_maps_to_prediction_box():
         % (json.dumps(res["field"]), json.dumps(res["field"]))])
     assert proc.returncode == 0, proc.stderr
     assert json.loads(proc.stdout) == ["XP", "X"]
+
+
+def test_tax_presets_mirror_engine():
+    """sheets.js 的 TAX_PRESETS（bridge 沒有路由，故鏡射）必須與 engine/business.py 完全相同。"""
+    from engine.business import TAX_PRESETS
+
+    proc = run_node(["--input-type=module", "-e",
+                     "import('./web/js/sheets.js').then(m =>"
+                     " console.log(JSON.stringify(m.TAX_PRESETS)))"])
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout) == TAX_PRESETS
+    for name, p in TAX_PRESETS.items():
+        assert p["source_url"].startswith("https://"), name
+        assert p["checked"], name
