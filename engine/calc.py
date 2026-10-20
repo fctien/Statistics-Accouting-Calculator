@@ -64,6 +64,8 @@ def _tokenize(s):
                 val = float(text)
             except ValueError:
                 raise _CalcError("無效的數字", i + 1)
+            if not is_finite(val):
+                raise _CalcError("數字超出範圍", i + 1)
             toks.append(("num", val, i + 1))
             i = j
         elif c.isalpha():
@@ -78,6 +80,13 @@ def _tokenize(s):
         else:
             raise _CalcError("無法辨識的字元「%s」" % c, i + 1)
     return toks
+
+
+def _fin(v, pos):
+    """運算結果須為有限數，否則視為溢位。"""
+    if not is_finite(v):
+        raise _CalcError("計算結果超出範圍（溢位）", pos)
+    return v
 
 
 def _is_int(x):
@@ -132,10 +141,14 @@ def _power(a, b, pos):
         r = math.pow(a, b)
     except (OverflowError, ValueError):
         raise _CalcError("計算結果超出範圍（溢位）", pos)
-    return r
+    return _fin(r, pos)
 
 
 def _call(name, args, pos):
+    return _fin(_call_raw(name, args, pos), pos)
+
+
+def _call_raw(name, args, pos):
     if name == "nPr":
         return _perm(args[0], args[1], pos)
     if name == "nCr":
@@ -212,10 +225,10 @@ class _Parser:
             self.leave()
 
     @staticmethod
-    def _addsub(op, left, right, pct):
+    def _addsub(op, left, right, pct, pos):
         if pct:  # a ± b% = a ± a·b/100（right 已除以 100）
-            right = left * right
-        return left + right if op == "+" else left - right
+            right = _fin(left * right, pos)
+        return _fin(left + right if op == "+" else left - right, pos)
 
     def aos_expr(self):
         left, pct = self.term()
@@ -223,7 +236,7 @@ class _Parser:
             op = self.take()
             right, rpct = self.term()
             left = self._addsub("+" if op[1] == "+" else "-",
-                                left, right, rpct)
+                                left, right, rpct, op[2])
             pct = False
         return left, pct
 
@@ -239,10 +252,10 @@ class _Parser:
     @staticmethod
     def _muldiv(op, a, b, pos):
         if op == "*":
-            return a * b
+            return _fin(a * b, pos)
         if b == 0:
             raise _CalcError("除以零", pos)
-        return a / b
+        return _fin(a / b, pos)
 
     def chain_expr(self):
         left, pct = self.unary()
@@ -252,7 +265,7 @@ class _Parser:
             sym = op[1]
             if sym in ("+", "-", "−"):
                 left = self._addsub("+" if sym == "+" else "-",
-                                    left, right, rpct)
+                                    left, right, rpct, op[2])
             elif sym == "^":
                 left = _power(left, right, op[2])
             else:
@@ -292,9 +305,9 @@ class _Parser:
             if op[1] == "!":
                 v, pct = _factorial(v, op[2]), False
             elif op[1] == "%":
-                v, pct = v / 100.0, True
+                v, pct = _fin(v / 100.0, op[2]), True
             else:
-                v, pct = v * v, False
+                v, pct = _fin(v * v, op[2]), False
         return v, pct
 
     def primary(self):
@@ -359,8 +372,13 @@ def evaluate(expr, mode="AOS", ans=0.0, mem=None):
                 or not is_finite(float(ans)):
             return err("ANS 必須是有限數", "expr")
         memory = {}
+        if mem is not None and not isinstance(mem, dict):
+            return err("mem 必須是字典（如 {\"M3\": 1.0}）", "expr")
         if mem:
             for k in mem:
+                if not (isinstance(k, str) and len(k) == 2 and k[0] == "M"
+                        and k[1] in _DIGITS):
+                    continue  # 非 M0～M9 的鍵（如 ACC）忽略
                 v = mem[k]
                 if isinstance(v, bool) or not isinstance(v, (int, float)) \
                         or not is_finite(float(v)):
@@ -374,4 +392,7 @@ def evaluate(expr, mode="AOS", ans=0.0, mem=None):
         return err("計算結果超出範圍或無法計算", "expr")
     except RuntimeError:  # 含 RecursionError
         return err("算式過於複雜", "expr")
-    return ok({"value": value})
+    r = ok({"value": value})
+    if not r["ok"]:
+        return err("計算結果超出範圍（溢位）", "expr")
+    return r

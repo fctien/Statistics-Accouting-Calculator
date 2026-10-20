@@ -50,3 +50,25 @@ def test_no_eval_used():
     src = open("engine/calc.py", encoding="utf-8").read()
     assert "eval(" not in src
     assert "exec(" not in src
+
+
+@pytest.mark.parametrize("bad", [
+    "1/1e999", "inv(1e999)", "exp(-1e999)", "2^-1e999", "1/(1e308*10)",
+    "1e308*10", "1e308+1e308", "(1e200)²", "ANS*10",
+])
+def test_overflow_is_error(bad):
+    r = evaluate(bad, ans=1e308)
+    assert r["ok"] is False
+    assert r["field"] == "expr"
+
+
+@pytest.mark.parametrize("bad_mem", [[1], 5, "M1", (1, 2)])
+def test_bad_mem_type(bad_mem):
+    r = evaluate("1+1", mem=bad_mem)
+    assert r["ok"] is False
+    assert r["field"] == "expr"
+
+
+def test_mem_extra_keys_ignored_bad_value_rejected():
+    assert evaluate("M1", mem={"M1": 2, "ACC": {"sum": 1}})["ok"] is True
+    assert evaluate("1", mem={"M1": "x"})["ok"] is False

@@ -445,3 +445,23 @@
 
 **待辦**
 - bridge 接線時決定 UI 如何傳 mem／ans；MicroPython 實機驗證 calc（含 math.pow、遞迴深度）
+
+## 2026-10-20 Task 14 修正輪 1（calc 溢位與 mem 型別）
+**需求**
+- 超大字面值（1e999）被吞成 inf 使 1/1e999 = 0.0；evaluate 傳入非 dict 的 mem 會 raise
+
+**做法**
+- tokenizer 數字非有限 → 「數字超出範圍」；新增 _fin()，二元運算、%、²、^、函式結果皆檢查有限並帶位置
+- 最終 ok() 失敗改回 err(..., "expr")；mem 非 None 且非 dict → err("expr")，非 M0–M9 的鍵（如 ACC）忽略，M 鍵的值須為有限數
+
+**產出**
+- engine/calc.py、tests/test_calc.py（溢位 9 例、錯誤 mem 型別 4 例、額外鍵）
+
+**驗證**
+- 新測試先 RED（含 IndexError／TypeError 與 1/1e999 回 ok）、修正後 test_calc 與全套 pytest 通過、check_portable 通過
+
+**問題與修正**
+- 失敗的嘗試：修補腳本重複替換同一字串致斷言失敗、尚未寫入，重跑後成功；測試誤列 1e308% 為溢位（實為合法），移除
+
+**待辦**
+- 無
