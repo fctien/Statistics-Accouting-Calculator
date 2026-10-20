@@ -19,7 +19,7 @@ test("自訂上限、clear、setDisplay", () => {
   const t = createTape(3);
   for (let i = 1; i <= 5; i++) add(t, i);
   assert.deepEqual(t.list().map((e) => e.value), [3, 4, 5]);
-  t.setDisplay(0, "3.0000");
+  assert.equal(t.setDisplayById(t.at(0).id, "3.0000"), true);
   assert.equal(t.at(0).display, "3.0000");
   t.clear();
   assert.equal(t.length, 0);
@@ -61,4 +61,25 @@ test("toJSON／init 還原；壞項目略過", () => {
   const j = JSON.parse(JSON.stringify(t.toJSON()));
   const t2 = createTape(500, [...j, { expr: 5, value: 1 }, { expr: "x", value: NaN }, null]);
   assert.deepEqual(t2.toJSON(), t.toJSON());
+});
+
+test("setDisplayById：以編號認人，項目被裁掉或清除後不會寫到別的項目", () => {
+  const t = createTape(2);
+  const a = add(t, 1);
+  add(t, 2);
+  add(t, 3); // 裁掉 a
+  assert.equal(t.setDisplayById(a.id, "WRONG"), false);
+  assert.deepEqual(t.list().map((e) => e.display), ["2", "3"]);
+  const b = t.at(0);
+  t.clear();
+  const c = add(t, 9);
+  assert.equal(t.setDisplayById(b.id, "WRONG"), false);
+  assert.equal(c.display, "9");
+  assert.notEqual(b.id, c.id);
+});
+
+test("toJSON 不含內部編號", () => {
+  const t = createTape();
+  add(t, 1);
+  assert.deepEqual(Object.keys(t.toJSON()[0]).sort(), ["display", "expr", "ts", "value"]);
 });

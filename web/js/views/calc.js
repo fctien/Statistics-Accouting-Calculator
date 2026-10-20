@@ -8,6 +8,7 @@ import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import { createMemStore } from "../memstore.js";
 import { createTape, createWalker } from "../tape.js";
+import { createGuard } from "../generation.js";
 import { KEY_ROWS, insertAt, backspaceAt } from "../keypad.js";
 
 const memory = createMemStore();
@@ -38,13 +39,13 @@ function evaluate(expr) {
   });
 }
 
-/** 把原始數值交給引擎格式化（當成數字常數算式）；失敗時回傳 "?"，不會顯示猜測值。 */
+/** 把原始數值交給引擎格式化（當成數字常數算式）；失敗時回傳 null，由呼叫端保留舊顯示或標 "?"（不顯示猜測值）。 */
 async function formatValue(x) {
   try {
     const r = await evaluate(String(x));
-    return r.ok === true ? r.display.value : "?";
+    return r.ok === true ? r.display.value : null;
   } catch (e) {
-    return "?";
+    return null;
   }
 }
 
@@ -134,6 +135,7 @@ export function mount(container) {
   // ---- 狀態更新
   let busy = false;
   let memGen = 0;
+  const reformatGuard = createGuard(); // 重新格式化的世代：較舊的一輪結果丟棄
 
   const showError = (text) => {
     error.textContent = text;
@@ -182,21 +184,25 @@ export function mount(container) {
       const b = el("button", {
         type: "button", class: "mem-cell", "data-m": i, title: `把 M${i} 插入算式`,
       });
-      b.append(el("span", { class: "mem-name" }, `M${i}`), el("span", { class: "mem-val" }, texts[i]));
+      b.append(el("span", { class: "mem-name" }, `M${i}`), el("span", { class: "mem-val" }, texts[i] ?? "?"));
       frag.append(b);
     });
     cells.replaceChildren(frag);
-    sigma.textContent = `Σ = ${texts[10]}　筆數 n = ${memory.count}`;
+    sigma.textContent = `Σ = ${texts[10] ?? "?"}　筆數 n = ${memory.count}`;
   }
 
   /** 設定（小數位數、千分位、運算順序）改變：紙帶與記憶面板重新由引擎格式化。 */
   async function reformatAll() {
     renderMode();
-    const items = tape.list();
+    const token = reformatGuard.bump("tape");
+    const items = tape.list(); // 項目物件（含唯一編號）；之後以編號回寫，不用位置
+    const ansAtStart = ans;
     const [a, ...rest] = await Promise.all([formatValue(ans), ...items.map((e) => formatValue(e.value))]);
-    if (!root.isConnected) return;
-    rest.forEach((t, i) => tape.setDisplay(i, t));
-    if (ansDisplay) ansDisplay = a;
+    if (!root.isConnected || !reformatGuard.isCurrent("tape", token)) return; // 有更新的一輪，丟棄本輪
+    items.forEach((e, i) => {
+      if (rest[i] !== null) tape.setDisplayById(e.id, rest[i]); // 引擎失敗就保留舊字串；項目已不在則略過
+    });
+    if (ansDisplay && a !== null && ans === ansAtStart) ansDisplay = a;
     renderResult();
     renderTape();
     renderMemory();
@@ -219,7 +225,10 @@ export function mount(container) {
   async function calculate({ record = true } = {}) {
     const expr = input.value.trim();
     showError("");
-    if (busy) return null;
+    if (busy) {
+      say("計算中…請稍候");
+      return null;
+    }
     busy = true;
     eq.disabled = true;
     try {
@@ -256,7 +265,7 @@ export function mount(container) {
       return;
     }
     let value = ans;
-    let shown = ansDisplay || (await formatValue(ans));
+    let shown = ansDisplay || (await formatValue(ans)) || "?";
     if (input.value.trim() !== "") {
       const r = await calculate();
       if (!r) return; // 算式有錯：錯誤已顯示

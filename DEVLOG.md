@@ -959,3 +959,25 @@
 
 **待辦**
 - Task 25：紙帶、記憶、設定的持久化（IndexedDB）
+
+## 2026-10-20 Task 24 修正輪 1：紙帶重新格式化的競態
+
+**需求**
+- 審查：reformatAll 在 await 前取項目、之後依位置回寫，紙帶變動（裁掉舊項目、清除後再計算）會把顯示字串寫到錯的項目；連續兩次設定變更沒有世代保護；另要求引擎失敗時保留舊字串、計算中要有提示
+
+**做法**
+- tape.js：每個項目有唯一 id，setDisplay(index) 改為 setDisplayById(id, …)（項目不在回傳 false，不動其他項目）；toJSON 不含 id
+- calc.js：reformatAll 用 createGuard 世代，較舊一輪結果丟棄；以項目物件的 id 回寫；ANS 顯示只在 ANS 未變時更新；formatValue 失敗回 null，紙帶／ANS 保留舊字串，記憶格才顯示 "?"；calculate 忙碌時顯示「計算中…請稍候」
+
+**產出**
+- 修改 web/js/tape.js、views/calc.js、tests/js/tape.test.mjs（新增編號與 setDisplayById 測試）
+
+**驗證**
+- node --test 85 pass、pytest 全綠、build_web／check_shell 通過
+- 瀏覽器：紙帶三筆後連續改小數 5→3→6→1，紙帶全部是 1 位（3.3／0.7／0.3）；改 4 位的同時清除紙帶再算 7/3，只出現 2.3333 一筆且結果正確
+
+**問題與修正**
+- 世代保護的純邏輯沿用 generation.js（已有測試），沒有另寫新 helper
+
+**待辦**
+- Task 25 持久化

@@ -7,11 +7,12 @@ export const MAX_ENTRIES = 500;
 
 export function createTape(max = MAX_ENTRIES, init = null) {
   let entries = [];
+  let nextId = 1; // 項目的唯一編號：非同步更新顯示字串時用它認人，不用位置（位置會因裁掉舊項目、清除而變）
 
   const tape = {
     /** 新增一筆；回傳新增的項目。 */
     add({ expr, value, display, ts = Date.now() }) {
-      const e = { expr: String(expr), value, display: String(display), ts };
+      const e = { id: nextId++, expr: String(expr), value, display: String(display), ts };
       entries.push(e);
       if (entries.length > max) entries = entries.slice(entries.length - max);
       return e;
@@ -22,8 +23,14 @@ export function createTape(max = MAX_ENTRIES, init = null) {
     at: (i) => entries[i],
     last: () => entries[entries.length - 1] || null,
     clear() { entries = []; },
-    setDisplay(i, display) { if (entries[i]) entries[i].display = String(display); },
-    toJSON: () => entries.map((e) => ({ ...e })),
+    /** 以項目編號更新顯示字串；項目已不在紙帶（被裁掉或清除）回傳 false，不動任何其他項目。 */
+    setDisplayById(id, display) {
+      const e = entries.find((x) => x.id === id);
+      if (!e) return false;
+      e.display = String(display);
+      return true;
+    },
+    toJSON: () => entries.map(({ expr, value, display, ts }) => ({ expr, value, display, ts })),
   };
 
   if (Array.isArray(init)) {
