@@ -98,3 +98,14 @@ def test_predict_errors():
     assert not stats.predict("LN", 1, 1, x=0)["ok"]
     assert not stats.predict("LIN", 1, 0, y=3)["ok"]
     assert not stats.predict("EXP", 1, 10.0, x=1e5)["ok"]
+
+
+def test_two_var_sample_sd():
+    """雙變數的 Sx、Sy 用 n-1、sigma 用 n（突變測試補強）。"""
+    r = stats.two_var([1, 2, 3, 4], [2, 4, 5, 9], "LIN")
+    assert r["ok"]
+    v = r["values"]
+    assert rel_close(v["sx"], (5 / 3) ** 0.5, 1e-12)
+    assert rel_close(v["sy"], (26 / 3) ** 0.5, 1e-12)
+    assert rel_close(v["sigma_x"], (5 / 4) ** 0.5, 1e-12)
+    assert rel_close(v["sigma_y"], (26 / 4) ** 0.5, 1e-12)

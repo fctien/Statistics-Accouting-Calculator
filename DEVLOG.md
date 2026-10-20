@@ -531,3 +531,26 @@
 
 **待辦**
 - 無
+
+## Task 17：突變測試 tools/mutate.py（M1 收尾，tag step3）
+
+**需求**
+- 自寫突變測試工具：對 engine/ 逐一植入 ≥15 個刻意錯誤，跑 pytest -x -q，確認每個都被測試擋下
+
+**做法**
+- tools/mutate.py：MUTATIONS 為 (檔案, old, new, 說明)；old 須恰好出現一次，否則工具錯誤 exit 1；執行前檢查 engine/ git 乾淨、未突變時 pytest 須通過；以 finally 還原原始位元組，結束後比對 engine/ 位元組一致；逾時 300 秒視為 killed 並標示
+- 共 18 個突變；DB 部分年度已被後續裁定移除，故 SL 首年比例 (13-M01)→(12-M01) 改打 depr.SL；另加 DBX max→min、回收期邊界 <=0 改 <0
+- 第一次執行 15/18：存活 3 個，補測試（test_cashflow：負 IRR、回收期剛好為 0；test_stats：雙變數 Sx/Sy/sigma）；補完全部被殺
+
+**產出**
+- tools/mutate.py、tests/test_cashflow.py（+2）、tests/test_stats.py（+1）
+
+**驗證**
+- python tools/mutate.py：18/18 mutants killed；全套 pytest 通過；check_portable 0；補的測試在突變上 RED、在原碼 GREEN
+
+**問題與修正**
+- 失敗的嘗試：IRR 範圍下限單改 0 仍存活，原因是 _irr_root 的格點後備掃描（-0.99 起）會找回負根，結果完全相同（等價突變，非測試漏洞）；改為同時拿掉後備掃描的複合突變（old/new 支援 tuple），再由負 IRR 測試殺死
+- 首次輸出在 cp950 終端亂碼，改以 PYTHONIOENCODING=utf-8 導向檔案檢視
+
+**待辦**
+- 無

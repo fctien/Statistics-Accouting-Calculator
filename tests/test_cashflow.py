@@ -130,3 +130,15 @@ def test_long_horizon_nfv_mirr():
     r = cashflow.mirr(_in(-100, [[1, 9999]], i=0, ri=0))
     assert r["ok"]
     assert abs(r["values"]["MIRR"] - ((9999 / 100) ** (1 / 9999) - 1) * 100) < 1e-9
+
+
+def test_irr_negative_rate():
+    """負報酬率（-50%）：搜尋範圍必須涵蓋負值（突變測試補強）。"""
+    r = cashflow.irr(_in(-100, [[50, 1]]))
+    assert r["ok"] and rel_close(r["values"]["IRR"], -50.0, 1e-8)
+
+
+def test_payback_exact_boundary():
+    """累計現金流剛好為 0 時即算回本（突變測試補強）。"""
+    r = cashflow.payback(_in(-1000, [[500, 2]]))
+    assert r["ok"] and rel_close(r["values"]["PB"], 2.0, 1e-12)
