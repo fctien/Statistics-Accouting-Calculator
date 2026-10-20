@@ -67,20 +67,40 @@ _INF = float("inf")
 _OVERFLOW_MSG = "數值過大，無法計算"
 
 
-def _disc(c, rate, t):
-    """c / (1+rate)^t；溢位或除以零時回傳 inf（讓求根器視為壞值）。"""
+def _pow(rate, t):
+    """(1+rate)^t；溢位（Python 擲例外、MicroPython 回 inf）一律回 inf。"""
     try:
-        return c / (1.0 + rate) ** t
+        return (1.0 + rate) ** t
     except (OverflowError, ZeroDivisionError):
         return _INF
 
 
-def _grow(c, rate, t):
-    """c * (1+rate)^t；溢位時回傳 inf。"""
+def _signed_inf(c):
+    """與 c 同號的無限大；c 為 0 時回 0.0。"""
+    if c == 0:
+        return 0.0
+    return _INF if c > 0 else -_INF
+
+
+def _disc(c, rate, t):
+    """c / (1+rate)^t。分母溢位 → 0；分母下溢為 0 → 與 c 同號的 inf（c=0 則 0）。"""
+    p = _pow(rate, t)
+    if p == _INF:
+        return 0.0
+    if p == 0:
+        return _signed_inf(c)
     try:
-        return c * (1.0 + rate) ** t
-    except OverflowError:
-        return _INF
+        return c / p
+    except (OverflowError, ZeroDivisionError):
+        return _signed_inf(c)
+
+
+def _grow(c, rate, t):
+    """c * (1+rate)^t。溢位 → 與 c 同號的 inf（c=0 則 0）。"""
+    p = _pow(rate, t)
+    if p == _INF:
+        return _signed_inf(c)
+    return c * p
 
 
 def _npv_of(flat, rate):
@@ -119,6 +139,33 @@ def _sign_changes(flat):
     return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
 
 
+def _irr_root(flat):
+    """求 IRR 的根（小數）。
+
+    先在 (-0.9999, 10] 直接求根；若端點的 NPV 因溢位為 inf 使二分法無法進行
+    （長期現金流常見），改掃描有限值的格點，找出異號區間再求根。
+    """
+    def f(r):
+        return _npv_of(flat, r)
+
+    root = find_root(f, -0.9999, 10.0, 0.1)
+    if root is not None:
+        return root
+    grid = [-0.99, -0.95] + [-0.9 + k * 0.02 for k in range(550)]
+    prev_x, prev_v = None, None
+    for x in grid:
+        v = f(x)
+        if not is_finite(v):
+            prev_x = None
+            continue
+        if v == 0:
+            return x
+        if prev_x is not None and (v < 0) != (prev_v < 0):
+            return find_root(f, prev_x, x, (prev_x + x) / 2)
+        prev_x, prev_v = x, v
+    return None
+
+
 def irr(inputs):
     """內部報酬率 IRR（百分數）。"""
     flat, _, e = _prepare(inputs, need_rate=False)
@@ -128,7 +175,7 @@ def irr(inputs):
     if changes == 0:
         return err("IRR 無解：現金流沒有正負號變化", "CF")
     warnings = [_MULTI_SIGN_WARN] if changes >= 2 else []
-    root = find_root(lambda r: _npv_of(flat, r), -0.9999, 10.0, 0.1)
+    root = _irr_root(flat)
     if root is None:
         return err("IRR 無法收斂", "IRR")
     return ok({"IRR": root * 100.0}, warnings)

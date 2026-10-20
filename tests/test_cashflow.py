@@ -82,19 +82,51 @@ def test_payback_positive_cf0_is_error():
         assert r["ok"] is False and r["field"] == "CF"
 
 
-def test_long_horizon_no_exception():
-    """9999 期極端利率：不得擲例外，結果須為錯誤或有限數。"""
-    cases = [
-        (cashflow.irr, _in(-100, [[1, 9999]])),
-        (cashflow.nfv, _in(-100, [[1, 9999]], i=500)),
-        (cashflow.mirr, _in(-100, [[1, 9999]], i=10, ri=500)),
-        (cashflow.npv, _in(-100, [[1, 9999]], i=-99.9)),
-        (cashflow.dpayback, _in(-100, [[1, 9999]], i=-99.9)),
-    ]
-    for f, inp in cases:
-        r = f(inp)
-        if r["ok"]:
-            assert all(v == v and abs(v) != float("inf")
-                       for v in r["values"].values())
+def _bisect(f, lo, hi):
+    """測試用獨立二分法（f(lo) 與 f(hi) 異號）。"""
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if (f(mid) < 0) == (f(lo) < 0):
+            lo = mid
         else:
-            assert r["error"]
+            hi = mid
+    return (lo + hi) / 2
+
+
+def test_long_horizon_irr_value():
+    """CF0=-100、9999 期每期 1：封閉式 (1-(1+r)^-9999)/r = 100 的根約 1%。"""
+    expected = _bisect(
+        lambda r: (1 - (1 + r) ** -9999) / r - 100, 1e-4, 0.5) * 100
+    r = cashflow.irr(_in(-100, [[1, 9999]]))
+    assert r["ok"] and abs(r["values"]["IRR"] - expected) < 1e-6
+    assert abs(expected - 1.0) < 1e-3
+
+
+def test_long_horizon_npv_values():
+    r = cashflow.npv(_in(-100, [[1, 9999]], i=500))
+    assert r["ok"]
+    assert abs(r["values"]["NPV"] - (-100 + (1 / 5) * (1 - 6.0 ** -9999))) < 1e-9
+    r = cashflow.npv(_in(-100, [[0, 9999]], i=500))
+    assert r["ok"] and r["values"]["NPV"] == -100
+    # i=-99.9%：分母 0.001^t 下溢為 0，非零現金流真值為無限大 → 須回錯誤
+    r = cashflow.npv(_in(-100, [[1, 9999]], i=-99.9))
+    assert r["ok"] is False
+    r = cashflow.npv(_in(-100, [[0, 9999]], i=-99.9))
+    assert r["ok"] and r["values"]["NPV"] == -100
+
+
+def test_long_horizon_nfv_mirr():
+    # NFV = NPV·6^9999：真值（約 -1e7781）超出 float 範圍 → 錯誤是正確結果
+    r = cashflow.nfv(_in(-100, [[1, 9999]], i=500))
+    assert r["ok"] is False and r["field"] == "NFV"
+    # i=0 時 NFV = NPV（不放大），應為有限值 -100
+    r = cashflow.nfv(_in(-100, [[0, 9999]], i=0))
+    assert r["ok"] and r["values"]["NFV"] == -100
+    # MIRR：正現金流終值 sum 6^k 超出 float 範圍（真值有限約 500%，但此引擎
+    # 無法表示中間量）→ 回錯誤而非猜測值
+    r = cashflow.mirr(_in(-100, [[1, 9999]], i=10, ri=500))
+    assert r["ok"] is False and r["field"] == "MIRR"
+    # 小利率長期：有限且可手算驗證（ri=0 → fv=9999，fin=0 → pv=-100）
+    r = cashflow.mirr(_in(-100, [[1, 9999]], i=0, ri=0))
+    assert r["ok"]
+    assert abs(r["values"]["MIRR"] - ((9999 / 100) ** (1 / 9999) - 1) * 100) < 1e-9

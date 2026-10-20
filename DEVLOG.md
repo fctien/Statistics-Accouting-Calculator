@@ -293,3 +293,22 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 7 修正輪 2
+**需求**
+- 更正輪 1 的錯誤宣稱：溢位一律回 inf 使合法輸入（長期 IRR、高利率 NPV）得到錯誤結果
+
+**做法**
+- _disc/_grow 依數學語意處理溢位與下溢；IRR 端點為 inf 時改掃描格點找異號區間
+
+**產出**
+- engine/cashflow.py、tests/test_cashflow.py、task-7-report.md 更新
+
+**驗證**
+- test_cashflow 14 項、全套 pytest、check_portable 通過；irr(9999 期)=1.0000%、npv(I=500)=-99.8
+
+**問題與修正**
+- 失敗的嘗試：輪 1 的 inf 對應導致 irr 回「無法收斂」、npv 假溢位；測試只檢查「任何 err」故未抓到 → 改為值斷言。另：僅修 _disc 後 irr 仍失敗，因二分法端點 inf，加 _irr_root 掃描
+
+**待辦**
+- 無
