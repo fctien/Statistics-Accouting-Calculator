@@ -174,3 +174,24 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 5 TVM 貨幣時間價值
+**需求**
+- 實作 engine/tvm.py：N、I/Y、PV、PMT、FV 求解，含 P/Y、C/Y、BGN/END
+
+**做法**
+- TDD：先寫 tests/test_tvm.py（RED：ModuleNotFoundError），再實作（GREEN）
+- period_rate／tvm_residual／solve；|i|<1e-12 走線性式；求 N 用對數式；求 I/Y 用 find_root（-0.9999, 10]，猜測 0.01
+- 捕捉 OverflowError／ZeroDivisionError 回溢位錯誤；缺 P/Y、C/Y 或必要欄位回錯誤
+
+**產出**
+- engine/tvm.py、tests/test_tvm.py
+
+**驗證**
+- 全套 pytest 通過（39 項）；check_portable exit 0；golden tvm 案例皆在容差內
+
+**問題與修正**
+- 失敗的嘗試：測試 N 無解案例（PV、PMT 同號、i>0）原實作回負的 N（約 -8.3），看似正常實則無意義 → 求出 N <= 0 一律回錯誤
+
+**待辦**
+- Task 6（AMORT）使用 tvm_residual／period_rate
