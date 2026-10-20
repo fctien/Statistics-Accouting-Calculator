@@ -254,3 +254,23 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 7 現金流 CF
+**需求**
+- engine/cashflow.py：NPV、IRR、NFV、MIRR、PB、DPB，含群組次數展開與錯誤處理
+
+**做法**
+- 內部 _expand 回傳 (list, err)；公開 expand 回傳 list 或 err 字典；各函式吃單一 inputs 字典
+- IRR 用 solver.find_root，範圍 (-0.9999, 10]；MIRR 依 Excel 公式；PB/DPB 在跨零期間線性內插
+
+**產出**
+- engine/cashflow.py、tests/test_cashflow.py（10 項）
+
+**驗證**
+- golden 6 筆（NPV/IRR/MIRR/NFV/群組）通過；全套 pytest 通過；check_portable exit 0
+
+**問題與修正**
+- 失敗的嘗試：無。注意：先寫實作再補測試，事後以暫時移除模組方式確認測試在無實作時失敗（RED）
+
+**待辦**
+- bridge 串接（後續 Task）
