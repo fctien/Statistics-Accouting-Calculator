@@ -704,3 +704,33 @@
 **待辦**
 - controller 以瀏覽器驗證 selftest.html、shell／py-ready 計時（一般、Slow 4G、離線），寫 logs/verify-*.html 後打 tag step4
 - 部署 workflow 須先執行 python tools/build_web.py（web/py 不進 git）
+
+## 2026-10-20 Task 20 審查修正 round 1
+
+**需求**
+- SW precache 不可經 HTTP 快取（GitHub Pages max-age=600）；SW 必須隨殼內容自動更新（SHELL_HASH）；導覽請求 ignoreSearch 並可退回 index.html；py-client 單筆送出失敗不可中斷佇列、error 後忽略 ready 並 terminate Worker；--bump 先驗證兩檔再寫
+
+**做法**
+- sw.js：逐檔 fetch(new Request(u, {cache: "reload"})) 全部 ok 後 cache.put，失敗則刪快取並讓 install 失敗；快取名 `${CACHE_VERSION}-${SHELL_HASH}`；activate 只刪 bacalc- 開頭的其他快取（github.io 同 origin 可能有其他 App）；導覽請求 cache.match(ignoreSearch) → 網路 → 離線退回 ./index.html
+- check_shell.shell_hash：APP_SHELL 檔案（排除 "./" 與 sw.js）依路徑排序做 SHA-256，取前 16 字元；換行 CRLF→LF 正規化；build_web 寫入 SHELL_HASH，check_shell 與 --check 偵測過期
+- build_web.bump：兩檔正規式都成功才寫，寫完自動 build 以更新 SHELL_HASH
+- py-client：dispatch try/catch、status 為 error 時忽略所有訊息、fail() terminate
+- check_worker.mjs：假 Worker 改做 structuredClone、加 terminate；新增佇列中與 ready 後的不可複製請求案例
+
+**產出**
+- web/sw.js、web/js/py-client.js、tools/build_web.py、tools/check_shell.py、tools/check_worker.mjs、tests/test_shell.py（+6 測試）
+- logs/verify-20261020-1534.html
+
+**驗證**
+- pytest 258 passed；check_portable 0；build_web --check 0；check_shell 通過；check_worker PASS；test:mpy 51/51、24/24；node --check 全過；flake8 0
+- RED：舊版 py-client 在新 check_worker 下拋 DataCloneError 中斷佇列（exit 1），新版 PASS
+- 全新 clone（CRLF 簽出）：build 後 sw.js 不變、git 乾淨、check_shell 通過
+- 瀏覽器端（precache reload、SW 更新、離線）待 controller 重新驗證
+
+**問題與修正**
+- 失敗的嘗試：雜湊初版未正規化換行，CRLF 簽出的 clone 上 build --check 報 sw.js 過期 → 加 CRLF→LF 正規化與測試
+- 失敗的嘗試：bash heredoc 內 python 的 `\0` 被轉成真正的 NUL 寫進檔案，改用 chr 替換修回
+- test_bump_updates_both_versions 在加入 SHELL_HASH 後失敗（app.js 改了雜湊過期）→ bump 後自動 build
+
+**待辦**
+- controller 瀏覽器重新驗證後打 tag step4
