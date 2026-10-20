@@ -23,7 +23,9 @@ def _prepare(inputs):
         return err("C/Y 必須大於 0", "CY")
     if 1 + inputs["IY"] / 100 / inputs["CY"] <= 0:
         return err("I/Y 數值不合理（利率低於 -100%）", "IY")
-    n = int(round(inputs["N"]))
+    if inputs["N"] != int(inputs["N"]):
+        return err("N 必須為整數期數", "N")
+    n = int(inputs["N"])
     if n < 1:
         return err("N 必須為正整數", "N")
     i = period_rate(inputs["IY"], inputs["PY"], inputs["CY"])
@@ -43,8 +45,17 @@ def amort(inputs, p1, p2):
     if isinstance(prep, dict):
         return prep
     n, i, pv, pmt, bgn = prep
-    if p1 < 1 or p2 < p1 or p2 > n:
-        return err("期數範圍不合理：需 1 <= P1 <= P2 <= N", "P2")
+    for name, p in (("P1", p1), ("P2", p2)):
+        if p is None:
+            return err("缺少 %s" % name, name)
+        if p != int(p):
+            return err("%s 必須為整數期數" % name, name)
+    if p1 < 1:
+        return err("P1 必須 >= 1", "P1")
+    if p2 < p1:
+        return err("P2 必須 >= P1", "P2")
+    if p2 > n:
+        return err("P2 必須 <= N", "P2")
     bal = pv
     tot_int = tot_prn = 0.0
     try:
