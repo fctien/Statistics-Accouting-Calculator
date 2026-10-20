@@ -30,7 +30,12 @@ globalThis.Worker = class FakeWorker {
     toMain = (ev) => this.onmessage && this.onmessage(ev);
     import(url.href).catch((e) => this.onerror && this.onerror({ message: String(e) }));
   }
-  postMessage(d) { setTimeout(() => workerSelf.onmessage({ data: d }), 0); }
+  // 與真 Worker 一樣做結構化複製（structured clone）：不可複製的資料同步丟 DataCloneError
+  postMessage(d) {
+    const copy = structuredClone(d);
+    setTimeout(() => workerSelf.onmessage({ data: copy }), 0);
+  }
+  terminate() { toMain = null; }
 };
 
 const isNum = (x) => typeof x === "number" && Number.isFinite(x);
@@ -49,7 +54,9 @@ if (BROKEN) {
   if (!r2.includes("載入失敗")) fails.push("error 後的請求未 reject：" + r2);
   console.log(`statuses ${statuses.join(" -> ")}；排隊請求：${r1}`);
 } else {
-  const early = client.callEngine(probe); // ready 前送出
+  // ready 前送出：一筆不可複製（排在前面）＋一筆正常；清空佇列時壞的一筆不可中斷後面
+  const earlyBad = client.callEngine({ f: () => 1 }).then(() => "resolved", (x) => x.message);
+  const early = client.callEngine(probe);
   const statusAtSend = client.getStatus();
   const golden = JSON.parse(readFileSync(join(WEB, "py", "data", "excel.json"), "utf-8"));
   const errors = JSON.parse(readFileSync(join(WEB, "py", "data", "error_cases.json"), "utf-8"));
@@ -67,6 +74,13 @@ if (BROKEN) {
     const r = "raw" in c ? await client.callEngineRaw(c.raw) : await client.callEngine(c.request);
     if (pick(r) !== pick(c.expected)) fails.push(`error ${c.id}: ${JSON.stringify(r)}`);
   }
+  // 不可複製的請求只 reject 自己，之後的請求照常
+  const bad = await client.callEngine({ f: () => 1 }).then(() => "resolved", (x) => x.message);
+  if (!bad.includes("無法送出請求")) fails.push("不可複製請求未正確 reject：" + bad);
+  const after = await client.callEngine(probe);
+  if (!(after.ok && isNum(after.values.EFF))) fails.push("不可複製請求之後的請求失敗");
+  const eb = await earlyBad;
+  if (!eb.includes("無法送出請求")) fails.push("佇列中不可複製請求未正確 reject：" + eb);
   const e = await early;
   if (statusAtSend !== "loading" || !(e.ok && isNum(e.values.EFF))) {
     fails.push(`佇列測試失敗：送出時 ${statusAtSend}，回應 ${JSON.stringify(e)}`);

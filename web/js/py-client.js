@@ -28,14 +28,24 @@ function fail(message) {
   queue.splice(0).forEach((q) => q.reject(why));
   for (const [, p] of inflight) p.reject(why);
   inflight.clear();
+  if (worker) {
+    try { worker.terminate(); } catch (e) { /* 已結束 */ }
+  }
 }
 
+/** 送出一筆；postMessage 失敗（例如 DataCloneError）只 reject 這一筆，不影響其他請求。 */
 function dispatch(item) {
   inflight.set(item.id, item);
-  worker.postMessage({ id: item.id, ...item.msg });
+  try {
+    worker.postMessage({ id: item.id, ...item.msg });
+  } catch (e) {
+    inflight.delete(item.id);
+    item.reject(new Error("無法送出請求：" + ((e && e.message) || e)));
+  }
 }
 
 function onMessage(ev) {
+  if (status === "error") return; // error 之後的訊息（含遲到的 ready）一律忽略
   const m = ev.data || {};
   if (m.type === "ready") {
     setStatus("ready", { ms: m.ms });

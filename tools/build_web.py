@@ -14,13 +14,20 @@ web/py/ 版面（git-ignored，部署流程須先執行本工具）：
     manifest.json                            {"vendor", "modules", "data"}
 web/vendor/（已 commit，鎖定版本）：micropython.js（＝套件的 micropython.mjs，改副檔名）、
     micropython.wasm、VERSION.txt
-sw.js 的 APP_SHELL 中 "// @py-begin" 與 "// @py-end" 之間由本工具產生。
+sw.js 的 APP_SHELL 中 "// @py-begin" 與 "// @py-end" 之間由本工具產生；
+sw.js 的 SHELL_HASH 也由本工具依 APP_SHELL 檔案內容計算（check_shell.shell_hash），
+殼檔案一改就換快取名稱。--bump 之後會自動重新建置。
 """
 import argparse
 import json
 import re
 import sys
 from pathlib import Path
+
+try:  # 以模組匯入（pytest：tools.build_web）
+    from tools import check_shell
+except ImportError:  # 以腳本執行（python tools/build_web.py）
+    import check_shell
 
 ROOT = Path(__file__).resolve().parent.parent
 # 鎖定的 @micropython/micropython-webassembly-pyscript 版本
@@ -107,8 +114,15 @@ def expected_files(root):
 
     sw = web / "sw.js"
     py_entries = sorted(k[3:] for k in out if k.startswith("py/"))
-    sw_text = sw.read_bytes().decode("utf-8")
-    out["sw.js"] = _sw_with_py_block(sw_text, py_entries).encode("utf-8")
+    sw_text = _sw_with_py_block(sw.read_bytes().decode("utf-8"), py_entries)
+    # SHELL_HASH：殼檔案內容一變，sw.js 位元組就變，瀏覽器才會安裝新 SW
+    digest = check_shell.shell_hash(web, check_shell.parse_app_shell(sw_text),
+                                    overrides=out)
+    sw_text, n = check_shell.SHELL_HASH_RE.subn(
+        lambda m: m.group(1) + digest + m.group(3), sw_text)
+    if n != 1:
+        raise ValueError("sw.js 中 const SHELL_HASH 應恰有 1 處，實有 %d 處" % n)
+    out["sw.js"] = sw_text.encode("utf-8")
     return out
 
 
@@ -151,13 +165,19 @@ def bump(root, version):
     if not _VERSION_RE.match(version or ""):
         raise ValueError("版本號必須是 X.Y.Z：%r" % version)
     web = Path(root) / "web"
+    # 先兩個檔案都驗證成功，才一起寫入（避免只改到一個造成版本不同步）
+    pending = []
     for path, rx, new in ((web / "sw.js", _CACHE_RE, "bacalc-v" + version),
                           (web / "js" / "app.js", _APP_RE, version)):
         text = path.read_bytes().decode("utf-8")
         out, n = rx.subn(lambda m: m.group(1) + new + m.group(2), text)
         if n != 1:
             raise ValueError("%s 中版本宣告應恰有 1 處，實有 %d 處" % (path, n))
+        pending.append((path, out))
+    for path, out in pending:
         path.write_bytes(out.encode("utf-8"))
+    # app.js 改了 → 重新建置以更新 SHELL_HASH
+    build(root)
 
 
 def main(argv=None):

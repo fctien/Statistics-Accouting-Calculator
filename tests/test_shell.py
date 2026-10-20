@@ -200,3 +200,52 @@ def test_worker_client_load_failure_in_node(tmp_path):
                         str(web), "--broken"], capture_output=True,
                        encoding="utf-8")
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_shell_hash_changes_with_engine_file(built):
+    """改 engine 檔並重新 build：SHELL_HASH 改變，且 check_shell 通過。"""
+    before = check_shell.read_shell_hash(built / "web")
+    assert before and len(before) == 16
+    tvm = built / "engine" / "tvm.py"
+    tvm.write_text(tvm.read_text(encoding="utf-8") + "\n# 改\n",
+                   encoding="utf-8")
+    assert build_web.build(built) == []
+    after = check_shell.read_shell_hash(built / "web")
+    assert after != before
+    assert check_shell.check(built / "web") == []
+
+
+def test_stale_shell_hash_detected(built):
+    """殼檔案改了但沒重新 build：check_shell 與 build --check 都要抓到。"""
+    css = built / "web" / "css" / "app.css"
+    css.write_text(css.read_text(encoding="utf-8") + "\n/* 改 */\n",
+                   encoding="utf-8")
+    assert any("SHELL_HASH" in m for m in check_shell.check(built / "web"))
+    assert any("sw.js" in m for m in build_web.build(built, check=True))
+
+
+def test_shell_hash_ignores_sw_itself(built):
+    """sw.js 不納入雜湊（否則寫入雜湊會改變雜湊本身）。"""
+    web = built / "web"
+    shell = check_shell.read_app_shell(web)
+    assert check_shell.shell_hash(web, shell) == \
+        check_shell.read_shell_hash(web)
+
+
+def test_bump_validates_both_before_writing(built):
+    """app.js 版本宣告壞掉時 --bump 失敗，sw.js 也不能被改。"""
+    sw = built / "web" / "sw.js"
+    app_js = built / "web" / "js" / "app.js"
+    sw_before = sw.read_bytes()
+    app_js.write_text(app_js.read_text(encoding="utf-8").replace(
+        "export const APP_VERSION", "export const APP_VER"), encoding="utf-8")
+    with pytest.raises(ValueError):
+        build_web.bump(built, "2.0.0")
+    assert sw.read_bytes() == sw_before
+
+
+def test_sw_precache_bypasses_http_cache():
+    text = (ROOT / "web" / "sw.js").read_text(encoding="utf-8")
+    assert 'cache: "reload"' in text
+    assert "ignoreSearch: true" in text
+    assert "cache.addAll" not in text
