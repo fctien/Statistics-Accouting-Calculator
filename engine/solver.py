@@ -40,7 +40,7 @@ def _bisect(f, lo, hi, tol, max_iter):
         return hi
     if (flo < 0) == (fhi < 0):
         return None
-    for _ in range(max(max_iter, 200)):
+    for _ in range(max_iter):
         mid = (lo + hi) / 2
         fm = f(mid)
         if _bad(fm):

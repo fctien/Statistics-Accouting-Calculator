@@ -13,3 +13,9 @@ def test_newton_fails_bisection_rescues():
 
 def test_no_root_returns_none():
     assert find_root(lambda x: x * x + 1, -5, 5, 0) is None
+
+
+def test_max_iter_respected():
+    f = lambda x: x ** (1 / 3) if x >= 0 else -(-x) ** (1 / 3)
+    assert find_root(f, -1, 2.1, 1, max_iter=3) is None
+    assert abs(find_root(f, -1, 2.1, 1)) < 1e-9

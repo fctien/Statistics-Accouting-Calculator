@@ -155,3 +155,22 @@
 
 **待辦**
 - 可考慮將 Excel 2 月底案例加入 golden（需使用者同意改 golden 資料）
+
+## 2026-10-20 Task 4 修正輪 1
+**需求**
+- 二分法須遵守呼叫端的 max_iter 上限
+
+**做法**
+- `_bisect` 迴圈由 `max(max_iter, 200)` 改為 `max_iter`；新增 test_max_iter_respected
+
+**產出**
+- engine/solver.py、tests/test_solver.py
+
+**驗證**
+- test_solver 4 項通過；全套 pytest 31 項通過；check_portable exit 0
+
+**問題與修正**
+- 失敗的嘗試：測試第一版用線性函數 x-0.3 且 guess=5，牛頓兩步即收斂，未觸發二分，測試無效 → 改用立方根函數（牛頓必發散）
+
+**待辦**
+- 無
