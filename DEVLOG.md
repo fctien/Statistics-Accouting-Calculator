@@ -312,3 +312,24 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 9 統計 STAT
+**需求**
+- engine/stats.py：one_var、two_var（LIN/LN/EXP/PWR）、predict
+
+**做法**
+- TDD；用離差（centered）計算以維持數值穩定；EXP 為 y=a·b^x，反求 x=ln(y/a)/ln(b)，檢查 b>0、b≠1、y/a>0
+- n=1 的 one_var 回 ok、省略 sx 並加警告；常數 X／Y 回 err
+
+**產出**
+- engine/stats.py、tests/test_stats.py、golden/cases.py 與 tests/golden/excel.json 修正、task-9-report.md
+
+**驗證**
+- test_stats、test_golden_file、全套 pytest、check_portable 通過
+
+**問題與修正**
+- 失敗的嘗試：golden stats_exp_b 原公式為 SLOPE(LN(Y),X)（即 ln b），與規格 y=a·b^x 不符，引擎對照失敗（1.4042 vs 0.3395）
+- 控制者裁示選項 B：golden 公式改為 EXP(SLOPE(LN(Y),X))，用 make_golden_excel.py 重產；git diff 確認僅 stats_exp_b 的 expected／source 變動
+
+**待辦**
+- 無
