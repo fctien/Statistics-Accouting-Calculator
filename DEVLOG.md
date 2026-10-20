@@ -671,3 +671,36 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 20 PWA 殼＋Web Worker（MicroPython 橋接）
+
+**需求**
+- 建立 PWA 殼（index.html、css、manifest、sw.js precache＋cache-first、icons）、module Web Worker 載入 MicroPython 1.29 並服務 engine.bridge.call、Promise client（ready 前佇列）、selftest.html、build_web.py／check_shell.py、.claude/launch.json
+
+**做法**
+- TDD：先寫 tests/test_shell.py（RED：ImportError，tools.build_web／check_shell 不存在），再實作至 GREEN
+- build_web.py：engine/*.py、golden/{__init__,runner}.py → web/py/；tests/golden/{excel,error_cases}.json → web/py/data/；產生 web/py/manifest.json；sw.js APP_SHELL 的 @py-begin／@py-end 區段自動產生；node_modules 的執行環境複製到 web/vendor/（無 node_modules 時沿用已 commit 版本）；--check 只比對不寫檔；--bump 同步 CACHE_VERSION／APP_VERSION
+- check_shell.py：web/ 每個檔案都在 APP_SHELL、每項都存在且為相對網址、版本同步；web/py 未建置時回報「請先執行 build_web.py」並略過 py/ 項目（須在 build 之後執行）
+- py-worker.js 用 import.meta.url 組相對網址、明確傳 wasm url；單一請求失敗只回 {id, error}
+- tools/check_worker.mjs：Node 中以假 Worker 載入真正的 py-worker.js＋py-client.js 驗證佇列、golden、錯誤路徑與載入失敗
+
+**產出**
+- web/（index.html、css/app.css、manifest.webmanifest、sw.js、selftest.html、js/app.js、js/py-client.js、js/py-worker.js、icons/、vendor/）
+- tools/build_web.py、tools/check_shell.py、tools/check_worker.mjs、tools/make_icons.py、tests/test_shell.py、.claude/launch.json、.gitattributes、package.json（test:worker）
+- logs/verify-20261020-1525.html
+
+**驗證**
+- pytest 252 passed（test_shell 19 項）；check_portable 0；build_web --check 0；check_shell 通過
+- node --check 四個 js 皆過；check_worker.mjs PASS（佇列：送出時 loading，ready 後回應正確；golden 51、錯誤路徑 24 全過）；--broken 模式狀態轉 error、請求 reject
+- test:mpy 51/51、24/24；http.server 8765：index、sw.js、selftest、vendor js／wasm、py/manifest 等皆 200 且位元組與本機相同
+- 未在真實瀏覽器驗證（selftest PASS、計時、離線重新整理交給 controller）
+
+**問題與修正**
+- 失敗的嘗試：Windows 的 python http.server 把 .mjs 回成 text/plain（mimetypes 讀登錄檔），瀏覽器會拒絕 module script → 改以 web/vendor/micropython.js（與套件 micropython.mjs 位元組相同）提供，VERSION.txt 註明
+- core.autocrlf=true 會改動鎖定檔案位元組 → 加 .gitattributes `web/vendor/* -text`
+- 失敗的嘗試：用 python heredoc 批次字串取代，含 \n 的多行樣式比對不到而中途停止，改用 Edit 工具逐一修改
+- flake8 E501 多處（中文註解過長）已折行
+
+**待辦**
+- controller 以瀏覽器驗證 selftest.html、shell／py-ready 計時（一般、Slow 4G、離線），寫 logs/verify-*.html 後打 tag step4
+- 部署 workflow 須先執行 python tools/build_web.py（web/py 不進 git）
