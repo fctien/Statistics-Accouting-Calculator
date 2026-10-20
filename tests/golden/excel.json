@@ -1,0 +1,1404 @@
+[
+ {
+  "id": "tvm_pmt_mortgage",
+  "sheet": "tvm",
+  "call": {
+   "sheet": "tvm",
+   "action": "solve",
+   "inputs": {
+    "N": 360,
+    "IY": 6,
+    "PV": 300000,
+    "PMT": null,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false
+   },
+   "settings": {}
+  },
+  "expect_key": "PMT",
+  "expected": -1798.651575458257,
+  "source": "Excel 16: =PMT(0.06/12,360,300000,0,0)",
+  "tol": 1e-09
+ },
+ {
+  "id": "tvm_fv_annuity_due",
+  "sheet": "tvm",
+  "call": {
+   "sheet": "tvm",
+   "action": "solve",
+   "inputs": {
+    "N": 60,
+    "IY": 3,
+    "PV": 0,
+    "PMT": -500,
+    "FV": null,
+    "PY": 12,
+    "CY": 12,
+    "BGN": true
+   },
+   "settings": {}
+  },
+  "expect_key": "FV",
+  "expected": 32404.164701831818,
+  "source": "Excel 16: =FV(0.03/12,60,-500,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "tvm_iy_loan",
+  "sheet": "tvm",
+  "call": {
+   "sheet": "tvm",
+   "action": "solve",
+   "inputs": {
+    "N": 48,
+    "IY": null,
+    "PV": 20000,
+    "PMT": -480,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false
+   },
+   "settings": {}
+  },
+  "expect_key": "IY",
+  "expected": 7.115785649431003,
+  "source": "Excel 16: =RATE(48,-480,20000,0,0)*12*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "tvm_n_lump",
+  "sheet": "tvm",
+  "call": {
+   "sheet": "tvm",
+   "action": "solve",
+   "inputs": {
+    "N": null,
+    "IY": 5,
+    "PV": -1000,
+    "PMT": 0,
+    "FV": 2000,
+    "PY": 1,
+    "CY": 1,
+    "BGN": false
+   },
+   "settings": {}
+  },
+  "expect_key": "N",
+  "expected": 14.206699082890461,
+  "source": "Excel 16: =NPER(0.05,0,-1000,2000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "tvm_pv_py12_cy4",
+  "sheet": "tvm",
+  "call": {
+   "sheet": "tvm",
+   "action": "solve",
+   "inputs": {
+    "N": 120,
+    "IY": 8,
+    "PV": null,
+    "PMT": -200,
+    "FV": 0,
+    "PY": 12,
+    "CY": 4,
+    "BGN": false
+   },
+   "settings": {}
+  },
+  "expect_key": "PV",
+  "expected": 16522.22794458268,
+  "source": "Excel 16: =PV((1+0.08/4)^(4/12)-1,120,-200,0,0)",
+  "tol": 1e-09
+ },
+ {
+  "id": "amort_int_y1",
+  "sheet": "amort",
+  "call": {
+   "sheet": "amort",
+   "action": "range",
+   "inputs": {
+    "N": 360,
+    "IY": 6,
+    "PV": 300000,
+    "PMT": -1798.651575458257,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false,
+    "P1": 1,
+    "P2": 12
+   },
+   "settings": {}
+  },
+  "expect_key": "INT",
+  "expected": -17899.783768668927,
+  "source": "Excel 16: =CUMIPMT(0.005,360,300000,1,12,0)",
+  "tol": 1e-09
+ },
+ {
+  "id": "amort_prn_y1",
+  "sheet": "amort",
+  "call": {
+   "sheet": "amort",
+   "action": "range",
+   "inputs": {
+    "N": 360,
+    "IY": 6,
+    "PV": 300000,
+    "PMT": -1798.651575458257,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false,
+    "P1": 1,
+    "P2": 12
+   },
+   "settings": {}
+  },
+  "expect_key": "PRN",
+  "expected": -3684.035136830156,
+  "source": "Excel 16: =CUMPRINC(0.005,360,300000,1,12,0)",
+  "tol": 1e-09
+ },
+ {
+  "id": "amort_bal_y1",
+  "sheet": "amort",
+  "call": {
+   "sheet": "amort",
+   "action": "range",
+   "inputs": {
+    "N": 360,
+    "IY": 6,
+    "PV": 300000,
+    "PMT": -1798.651575458257,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false,
+    "P1": 1,
+    "P2": 12
+   },
+   "settings": {}
+  },
+  "expect_key": "BAL",
+  "expected": -296315.96486317005,
+  "source": "Excel 16: =FV(0.005,12,-1798.651575458257,300000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "amort_int_y2",
+  "sheet": "amort",
+  "call": {
+   "sheet": "amort",
+   "action": "range",
+   "inputs": {
+    "N": 360,
+    "IY": 6,
+    "PV": 300000,
+    "PMT": -1798.651575458257,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false,
+    "P1": 13,
+    "P2": 24
+   },
+   "settings": {}
+  },
+  "expect_key": "INT",
+  "expected": -17672.56054259731,
+  "source": "Excel 16: =CUMIPMT(0.005,360,300000,13,24,0)",
+  "tol": 1e-09
+ },
+ {
+  "id": "amort_bal_y2",
+  "sheet": "amort",
+  "call": {
+   "sheet": "amort",
+   "action": "range",
+   "inputs": {
+    "N": 360,
+    "IY": 6,
+    "PV": 300000,
+    "PMT": -1798.651575458257,
+    "FV": 0,
+    "PY": 12,
+    "CY": 12,
+    "BGN": false,
+    "P1": 13,
+    "P2": 24
+   },
+   "settings": {}
+  },
+  "expect_key": "BAL",
+  "expected": -292404.7065002685,
+  "source": "Excel 16: =FV(0.005,24,-1798.651575458257,300000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "cf_npv",
+  "sheet": "cashflow",
+  "call": {
+   "sheet": "cashflow",
+   "action": "npv",
+   "inputs": {
+    "CF0": -10000,
+    "flows": [
+     [
+      3000,
+      1
+     ],
+     [
+      4200,
+      1
+     ],
+     [
+      6800,
+      1
+     ],
+     [
+      -1500,
+      1
+     ]
+    ],
+    "I": 10,
+    "RI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "NPV",
+  "expected": 282.7675705211368,
+  "source": "Excel 16: =-10000+NPV(0.1,3000,4200,6800,-1500)",
+  "tol": 1e-09
+ },
+ {
+  "id": "cf_irr",
+  "sheet": "cashflow",
+  "call": {
+   "sheet": "cashflow",
+   "action": "irr",
+   "inputs": {
+    "CF0": -10000,
+    "flows": [
+     [
+      3000,
+      1
+     ],
+     [
+      4200,
+      1
+     ],
+     [
+      6800,
+      1
+     ],
+     [
+      -1500,
+      1
+     ]
+    ],
+    "I": 10,
+    "RI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "IRR",
+  "expected": 11.521520890359916,
+  "source": "Excel 16: =IRR({-10000,3000,4200,6800,-1500})*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "cf_mirr",
+  "sheet": "cashflow",
+  "call": {
+   "sheet": "cashflow",
+   "action": "mirr",
+   "inputs": {
+    "CF0": -10000,
+    "flows": [
+     [
+      3000,
+      1
+     ],
+     [
+      4200,
+      1
+     ],
+     [
+      6800,
+      1
+     ],
+     [
+      -1500,
+      1
+     ]
+    ],
+    "I": 10,
+    "RI": 12
+   },
+   "settings": {}
+  },
+  "expect_key": "MIRR",
+  "expected": 11.5974908762007,
+  "source": "Excel 16: =MIRR({-10000,3000,4200,6800,-1500},0.1,0.12)*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "cf_nfv",
+  "sheet": "cashflow",
+  "call": {
+   "sheet": "cashflow",
+   "action": "nfv",
+   "inputs": {
+    "CF0": -10000,
+    "flows": [
+     [
+      3000,
+      1
+     ],
+     [
+      4200,
+      1
+     ],
+     [
+      6800,
+      1
+     ],
+     [
+      -1500,
+      1
+     ]
+    ],
+    "I": 10,
+    "RI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "NFV",
+  "expected": 413.99999999999653,
+  "source": "Excel 16: =(-10000+NPV(0.1,3000,4200,6800,-1500))*(1+0.1)^4",
+  "tol": 1e-09
+ },
+ {
+  "id": "cf_irr_group",
+  "sheet": "cashflow",
+  "call": {
+   "sheet": "cashflow",
+   "action": "irr",
+   "inputs": {
+    "CF0": -7000,
+    "flows": [
+     [
+      3000,
+      3
+     ]
+    ],
+    "I": 10,
+    "RI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "IRR",
+  "expected": 13.7009149595269,
+  "source": "Excel 16: =IRR({-7000,3000,3000,3000})*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "cf_npv_group",
+  "sheet": "cashflow",
+  "call": {
+   "sheet": "cashflow",
+   "action": "npv",
+   "inputs": {
+    "CF0": -5000,
+    "flows": [
+     [
+      1000,
+      2
+     ],
+     [
+      2500,
+      3
+     ]
+    ],
+    "I": 8,
+    "RI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "NPV",
+  "expected": 2306.8779733536494,
+  "source": "Excel 16: =-5000+NPV(0.08,1000,1000,2500,2500,2500)",
+  "tol": 1e-09
+ },
+ {
+  "id": "iconv_eff_12_12",
+  "sheet": "iconv",
+  "call": {
+   "sheet": "iconv",
+   "action": "to_eff",
+   "inputs": {
+    "NOM": 12,
+    "EFF": null,
+    "CY": 12
+   },
+   "settings": {}
+  },
+  "expect_key": "EFF",
+  "expected": 12.682503013196978,
+  "source": "Excel 16: =EFFECT(0.12,12)*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "iconv_nom_10_4",
+  "sheet": "iconv",
+  "call": {
+   "sheet": "iconv",
+   "action": "to_nom",
+   "inputs": {
+    "NOM": null,
+    "EFF": 10,
+    "CY": 4
+   },
+   "settings": {}
+  },
+  "expect_key": "NOM",
+  "expected": 9.645475633778045,
+  "source": "Excel 16: =NOMINAL(0.1,4)*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "iconv_eff_18_365",
+  "sheet": "iconv",
+  "call": {
+   "sheet": "iconv",
+   "action": "to_eff",
+   "inputs": {
+    "NOM": 18,
+    "EFF": null,
+    "CY": 365
+   },
+   "settings": {}
+  },
+  "expect_key": "EFF",
+  "expected": 19.716424499274087,
+  "source": "Excel 16: =EFFECT(0.18,365)*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_mean_x",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "one_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": null,
+    "model": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean_x",
+  "expected": 3.5,
+  "source": "Excel 16: =AVERAGE({1,2,3,4,5,6})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_sx",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "one_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": null,
+    "model": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sx",
+  "expected": 1.8708286933869707,
+  "source": "Excel 16: =STDEV.S({1,2,3,4,5,6})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_sigma_x",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "one_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": null,
+    "model": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sigma_x",
+  "expected": 1.707825127659933,
+  "source": "Excel 16: =STDEV.P({1,2,3,4,5,6})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_lin_a",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "LIN"
+   },
+   "settings": {}
+  },
+  "expect_key": "a",
+  "expected": -0.019999999999998685,
+  "source": "Excel 16: =INTERCEPT({2.1,3.9,6.2,7.8,10.1,12.2},{1,2,3,4,5,6})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_lin_b",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "LIN"
+   },
+   "settings": {}
+  },
+  "expect_key": "b",
+  "expected": 2.0199999999999996,
+  "source": "Excel 16: =SLOPE({2.1,3.9,6.2,7.8,10.1,12.2},{1,2,3,4,5,6})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_lin_r",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "LIN"
+   },
+   "settings": {}
+  },
+  "expect_key": "r",
+  "expected": 0.9991049324808179,
+  "source": "Excel 16: =CORREL({1,2,3,4,5,6},{2.1,3.9,6.2,7.8,10.1,12.2})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_ln_a",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "LN"
+   },
+   "settings": {}
+  },
+  "expect_key": "a",
+  "expected": 1.0271695110938621,
+  "source": "Excel 16: =INTERCEPT({2.1,3.9,6.2,7.8,10.1,12.2},LN({1,2,3,4,5,6}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_ln_b",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "LN"
+   },
+   "settings": {}
+  },
+  "expect_key": "b",
+  "expected": 5.492567735895315,
+  "source": "Excel 16: =SLOPE({2.1,3.9,6.2,7.8,10.1,12.2},LN({1,2,3,4,5,6}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_ln_r",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "LN"
+   },
+   "settings": {}
+  },
+  "expect_key": "r",
+  "expected": 0.962234826191296,
+  "source": "Excel 16: =CORREL(LN({1,2,3,4,5,6}),{2.1,3.9,6.2,7.8,10.1,12.2})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_exp_a",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "EXP"
+   },
+   "settings": {}
+  },
+  "expect_key": "a",
+  "expected": 1.8424299173658927,
+  "source": "Excel 16: =EXP(INTERCEPT(LN({2.1,3.9,6.2,7.8,10.1,12.2}),{1,2,3,4,5,6}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_exp_b",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "EXP"
+   },
+   "settings": {}
+  },
+  "expect_key": "b",
+  "expected": 0.33947840253795736,
+  "source": "Excel 16: =SLOPE(LN({2.1,3.9,6.2,7.8,10.1,12.2}),{1,2,3,4,5,6})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_exp_r",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "EXP"
+   },
+   "settings": {}
+  },
+  "expect_key": "r",
+  "expected": 0.972579725694603,
+  "source": "Excel 16: =CORREL({1,2,3,4,5,6},LN({2.1,3.9,6.2,7.8,10.1,12.2}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_pwr_a",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "PWR"
+   },
+   "settings": {}
+  },
+  "expect_key": "a",
+  "expected": 2.053774921036298,
+  "source": "Excel 16: =EXP(INTERCEPT(LN({2.1,3.9,6.2,7.8,10.1,12.2}),LN({1,2,3,4,5,6})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_pwr_b",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "PWR"
+   },
+   "settings": {}
+  },
+  "expect_key": "b",
+  "expected": 0.9845316651176694,
+  "source": "Excel 16: =SLOPE(LN({2.1,3.9,6.2,7.8,10.1,12.2}),LN({1,2,3,4,5,6}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_pwr_r",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "two_var",
+   "inputs": {
+    "X": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "Y": [
+     2.1,
+     3.9,
+     6.2,
+     7.8,
+     10.1,
+     12.2
+    ],
+    "model": "PWR"
+   },
+   "settings": {}
+  },
+  "expect_key": "r",
+  "expected": 0.9990533194994073,
+  "source": "Excel 16: =CORREL(LN({1,2,3,4,5,6}),LN({2.1,3.9,6.2,7.8,10.1,12.2}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "bond_pri_act",
+  "sheet": "bond",
+  "call": {
+   "sheet": "bond",
+   "action": "price",
+   "inputs": {
+    "SDT": [
+     2026,
+     6,
+     12
+    ],
+    "RDT": [
+     2036,
+     1,
+     1
+    ],
+    "CPN": 7.0,
+    "RV": 100.0,
+    "basis": "ACT",
+    "freq": 2,
+    "YLD": 8.0,
+    "PRI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "PRI",
+  "expected": 93.40217186919146,
+  "source": "Excel 16: =PRICE(DATE(2026,6,12),DATE(2036,1,1),0.07,0.08,100,2,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "bond_ai_act",
+  "sheet": "bond",
+  "call": {
+   "sheet": "bond",
+   "action": "price",
+   "inputs": {
+    "SDT": [
+     2026,
+     6,
+     12
+    ],
+    "RDT": [
+     2036,
+     1,
+     1
+    ],
+    "CPN": 7.0,
+    "RV": 100.0,
+    "basis": "ACT",
+    "freq": 2,
+    "YLD": 8.0,
+    "PRI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "AI",
+  "expected": 3.132596685082873,
+  "source": "Excel 16: =COUPDAYBS(DATE(2026,6,12),DATE(2036,1,1),2,1)/COUPDAYS(DATE(2026,6,12),DATE(2036,1,1),2,1)*0.07/2*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "bond_yld_360",
+  "sheet": "bond",
+  "call": {
+   "sheet": "bond",
+   "action": "yield",
+   "inputs": {
+    "SDT": [
+     2026,
+     6,
+     12
+    ],
+    "RDT": [
+     2036,
+     1,
+     1
+    ],
+    "CPN": 7.0,
+    "RV": 100.0,
+    "basis": "360",
+    "freq": 2,
+    "YLD": null,
+    "PRI": 95.0
+   },
+   "settings": {}
+  },
+  "expect_key": "YLD",
+  "expected": 7.749523511152534,
+  "source": "Excel 16: =YIELD(DATE(2026,6,12),DATE(2036,1,1),0.07,95,100,2,0)*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "bond_pri_360",
+  "sheet": "bond",
+  "call": {
+   "sheet": "bond",
+   "action": "price",
+   "inputs": {
+    "SDT": [
+     2026,
+     6,
+     12
+    ],
+    "RDT": [
+     2036,
+     1,
+     1
+    ],
+    "CPN": 7.0,
+    "RV": 100.0,
+    "basis": "360",
+    "freq": 2,
+    "YLD": 8.0,
+    "PRI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "PRI",
+  "expected": 93.40200501025419,
+  "source": "Excel 16: =PRICE(DATE(2026,6,12),DATE(2036,1,1),0.07,0.08,100,2,0)",
+  "tol": 1e-09
+ },
+ {
+  "id": "bond_ai_360",
+  "sheet": "bond",
+  "call": {
+   "sheet": "bond",
+   "action": "price",
+   "inputs": {
+    "SDT": [
+     2026,
+     6,
+     12
+    ],
+    "RDT": [
+     2036,
+     1,
+     1
+    ],
+    "CPN": 7.0,
+    "RV": 100.0,
+    "basis": "360",
+    "freq": 2,
+    "YLD": 8.0,
+    "PRI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "AI",
+  "expected": 3.130555555555556,
+  "source": "Excel 16: =COUPDAYBS(DATE(2026,6,12),DATE(2036,1,1),2,0)/COUPDAYS(DATE(2026,6,12),DATE(2036,1,1),2,0)*0.07/2*100",
+  "tol": 1e-09
+ },
+ {
+  "id": "bond_pri_annual",
+  "sheet": "bond",
+  "call": {
+   "sheet": "bond",
+   "action": "price",
+   "inputs": {
+    "SDT": [
+     2026,
+     6,
+     12
+    ],
+    "RDT": [
+     2036,
+     1,
+     1
+    ],
+    "CPN": 7.0,
+    "RV": 100.0,
+    "basis": "ACT",
+    "freq": 1,
+    "YLD": 6.5,
+    "PRI": null
+   },
+   "settings": {}
+  },
+  "expect_key": "PRI",
+  "expected": 103.42392232326613,
+  "source": "Excel 16: =PRICE(DATE(2026,6,12),DATE(2036,1,1),0.07,0.065,100,1,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "depr_sl",
+  "sheet": "depr",
+  "call": {
+   "sheet": "depr",
+   "action": "year",
+   "inputs": {
+    "method": "SL",
+    "CST": 10000,
+    "SAL": 1000,
+    "LIF": 5,
+    "M01": 1,
+    "DB": 200,
+    "YR": 1
+   },
+   "settings": {}
+  },
+  "expect_key": "DEP",
+  "expected": 1800.0,
+  "source": "Excel 16: =SLN(10000,1000,5)",
+  "tol": 1e-09
+ },
+ {
+  "id": "depr_syd_y3",
+  "sheet": "depr",
+  "call": {
+   "sheet": "depr",
+   "action": "year",
+   "inputs": {
+    "method": "SYD",
+    "CST": 10000,
+    "SAL": 1000,
+    "LIF": 5,
+    "M01": 1,
+    "DB": 200,
+    "YR": 3
+   },
+   "settings": {}
+  },
+  "expect_key": "DEP",
+  "expected": 1800.0,
+  "source": "Excel 16: =SYD(10000,1000,5,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "depr_db200_y2",
+  "sheet": "depr",
+  "call": {
+   "sheet": "depr",
+   "action": "year",
+   "inputs": {
+    "method": "DB",
+    "CST": 10000,
+    "SAL": 1000,
+    "LIF": 5,
+    "M01": 1,
+    "DB": 200,
+    "YR": 2
+   },
+   "settings": {}
+  },
+  "expect_key": "DEP",
+  "expected": 2400.0,
+  "source": "Excel 16: =DDB(10000,1000,5,2,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "depr_db150_y3",
+  "sheet": "depr",
+  "call": {
+   "sheet": "depr",
+   "action": "year",
+   "inputs": {
+    "method": "DB",
+    "CST": 10000,
+    "SAL": 1000,
+    "LIF": 5,
+    "M01": 1,
+    "DB": 150,
+    "YR": 3
+   },
+   "settings": {}
+  },
+  "expect_key": "DEP",
+  "expected": 1469.9999999999998,
+  "source": "Excel 16: =DDB(10000,1000,5,3,1.5)",
+  "tol": 1e-09
+ },
+ {
+  "id": "depr_dbx200_y4",
+  "sheet": "depr",
+  "call": {
+   "sheet": "depr",
+   "action": "year",
+   "inputs": {
+    "method": "DBX",
+    "CST": 10000,
+    "SAL": 1000,
+    "LIF": 5,
+    "M01": 1,
+    "DB": 200,
+    "YR": 4
+   },
+   "settings": {}
+  },
+  "expect_key": "DEP",
+  "expected": 864.0,
+  "source": "Excel 16: =VDB(10000,1000,5,3,4,2,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "depr_dbx200_y5",
+  "sheet": "depr",
+  "call": {
+   "sheet": "depr",
+   "action": "year",
+   "inputs": {
+    "method": "DBX",
+    "CST": 10000,
+    "SAL": 1000,
+    "LIF": 5,
+    "M01": 1,
+    "DB": 200,
+    "YR": 5
+   },
+   "settings": {}
+  },
+  "expect_key": "DEP",
+  "expected": 296.0,
+  "source": "Excel 16: =VDB(10000,1000,5,4,5,2,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "date_act_jan31_mar1",
+  "sheet": "date",
+  "call": {
+   "sheet": "date",
+   "action": "solve",
+   "inputs": {
+    "DT1": [
+     2026,
+     1,
+     31
+    ],
+    "DT2": [
+     2026,
+     3,
+     1
+    ],
+    "DBD": null,
+    "basis": "ACT"
+   },
+   "settings": {}
+  },
+  "expect_key": "DBD",
+  "expected": 29.0,
+  "source": "Excel 16: =DAYS(DATE(2026,3,1),DATE(2026,1,31))",
+  "tol": 1e-09
+ },
+ {
+  "id": "date_360_jan31_feb28",
+  "sheet": "date",
+  "call": {
+   "sheet": "date",
+   "action": "solve",
+   "inputs": {
+    "DT1": [
+     2026,
+     1,
+     31
+    ],
+    "DT2": [
+     2026,
+     2,
+     28
+    ],
+    "DBD": null,
+    "basis": "360"
+   },
+   "settings": {}
+  },
+  "expect_key": "DBD",
+  "expected": 28.0,
+  "source": "Excel 16: =DAYS360(DATE(2026,1,31),DATE(2026,2,28),FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "date_act_leap_2028",
+  "sheet": "date",
+  "call": {
+   "sheet": "date",
+   "action": "solve",
+   "inputs": {
+    "DT1": [
+     2028,
+     2,
+     1
+    ],
+    "DT2": [
+     2028,
+     3,
+     1
+    ],
+    "DBD": null,
+    "basis": "ACT"
+   },
+   "settings": {}
+  },
+  "expect_key": "DBD",
+  "expected": 29.0,
+  "source": "Excel 16: =DAYS(DATE(2028,3,1),DATE(2028,2,1))",
+  "tol": 1e-09
+ },
+ {
+  "id": "date_act_across_leap_day",
+  "sheet": "date",
+  "call": {
+   "sheet": "date",
+   "action": "solve",
+   "inputs": {
+    "DT1": [
+     2027,
+     12,
+     31
+    ],
+    "DT2": [
+     2028,
+     3,
+     1
+    ],
+    "DBD": null,
+    "basis": "ACT"
+   },
+   "settings": {}
+  },
+  "expect_key": "DBD",
+  "expected": 61.0,
+  "source": "Excel 16: =DAYS(DATE(2028,3,1),DATE(2027,12,31))",
+  "tol": 1e-09
+ },
+ {
+  "id": "date_360_across_leap",
+  "sheet": "date",
+  "call": {
+   "sheet": "date",
+   "action": "solve",
+   "inputs": {
+    "DT1": [
+     2027,
+     12,
+     31
+    ],
+    "DT2": [
+     2028,
+     3,
+     1
+    ],
+    "DBD": null,
+    "basis": "360"
+   },
+   "settings": {}
+  },
+  "expect_key": "DBD",
+  "expected": 61.0,
+  "source": "Excel 16: =DAYS360(DATE(2027,12,31),DATE(2028,3,1),FALSE)",
+  "tol": 1e-09
+ }
+]
