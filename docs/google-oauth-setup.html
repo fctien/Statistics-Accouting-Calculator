@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google Drive 同步：申請 OAuth Client ID 說明</title>
+<style>
+body { font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+       max-width: 960px; margin: 0 auto; padding: 16px; line-height: 1.7;
+       color: #1f2d3d; background: #fff; }
+h1, h2 { color: #1565c0; border-bottom: 2px solid #bbdefb; padding-bottom: 4px; }
+h3 { color: #1976d2; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 15px; }
+th, td { border: 1px solid #bbdefb; padding: 6px 8px; vertical-align: top; }
+th { background: #e3f2fd; }
+code { background: #f1f8ff; padding: 1px 4px; border-radius: 3px; }
+pre { background: #f1f8ff; padding: 12px; overflow-x: auto; }
+blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
+             background: #f5faff; }
+</style></head><body>
+<h1>Google Drive 同步：申請 OAuth Client ID 說明</h1>
+<p>BACalc 的 Google Drive 同步是<strong>選用功能，預設關閉</strong>。要用它，你必須自己在 Google Cloud Console 建立一組 OAuth 用戶端 ID（Client ID）。
+這份說明帶你一步一步做；每一步都附官方文件連結。查證日：2026-10-20。Google 的畫面名稱偶爾會改，若你看到的與下文不同，以官方文件為準。</p>
+<h2>先了解三件事</h2>
+<ol>
+<li><strong>BACalc 只要求一種權限</strong>：<code>https://www.googleapis.com/auth/drive.appdata</code>，官方說明為「View and manage the app's own configuration data in your Google Drive」，只能讀寫 App 專屬的隱藏資料夾（appDataFolder），看不到你 Drive 裡其他檔案。</li>
+<li>官方權限範圍清單把它歸類為<strong>非敏感（non-sensitive）</strong>：<a href="https://developers.google.com/workspace/drive/api/guides/api-specific-auth">Choose Google Drive API scopes</a></li>
+<li>因此不需要 Google 的敏感權限審查。（這是依上面官方頁面的分類；若 Google 日後調整分類，以官方頁面為準。）</li>
+<li><strong>不需要 Client Secret</strong>：Web 應用程式使用 Google Identity Services（GIS）的 token 模式，Client ID 不是機密，可以放在設定頁。</li>
+<li><strong>存取權杖只放在記憶體</strong>：BACalc 不會把權杖存到任何地方，關閉頁面就失效。</li>
+</ol>
+<h2>步驟 1：建立 Google Cloud 專案</h2>
+<ol>
+<li>用你自己的 Google 帳號登入 <a href="https://console.cloud.google.com/">Google Cloud Console</a>。</li>
+<li>依官方說明：開啟選單，進入 <strong>IAM &amp; Admin &gt; Create a Project</strong>，輸入專案名稱（例如 <code>BACalc Sync</code>），按 <strong>Create</strong>。</li>
+<li>官方文件：<a href="https://developers.google.com/workspace/guides/create-project">Create a Google Cloud project</a></li>
+</ol>
+<h2>步驟 2：啟用 Google Drive API</h2>
+<ol>
+<li>依官方說明：<strong>Menu &gt; APIs &amp; Services &gt; Library &gt; Google Workspace &gt; Drive API &gt; Enable</strong>。</li>
+<li>也可以直接用官方的啟用連結（記得先確認右上角選的是剛建立的專案）：<a href="https://console.cloud.google.com/apis/enableflow;apiid=drive.googleapis.com">啟用 Drive API</a></li>
+<li>官方文件：<a href="https://developers.google.com/workspace/guides/enable-apis">Enable Google Workspace APIs</a></li>
+<li>沒做這一步會出現 403「尚未啟用 Drive API」，BACalc 會在畫面上用中文提示。</li>
+</ol>
+<h2>步驟 3：設定 OAuth 同意畫面（Google Auth platform）</h2>
+<p>依官方文件，在 Google Cloud Console 進入 <strong>Menu &gt; Google Auth platform &gt; Branding</strong>，然後：</p>
+<ol>
+<li><strong>App Information</strong>：填 App name（例如 <code>BACalc</code>）與 User support email，按 Next。</li>
+<li><strong>Audience</strong>：選 <strong>External</strong>（個人 Gmail 帳號沒有 Workspace 組織時只能選這個），按 Next。</li>
+<li><strong>Contact Information</strong>：填你的 email，按 Next。</li>
+<li><strong>Finish</strong>：勾選同意 Google API Services User Data Policy，按 Continue，再按 Create。</li>
+<li>進入 <strong>Audience &gt; Test users &gt; Add users</strong>，<strong>把你自己的 Google 帳號 email 加進測試使用者</strong>，按 Save。</li>
+<li>進入 <strong>Data Access &gt; Add or Remove Scopes</strong>，勾選 <code>.../auth/drive.appdata</code>（Drive API 底下，描述為 View and manage the app's own configuration data in your Google Drive），按 Save。</li>
+<li>若清單中找不到，可以在 <strong>Manually add scopes</strong> 貼上 <code>https://www.googleapis.com/auth/drive.appdata</code>。這個「Manually add scopes」欄位名稱我<strong>不確定</strong>目前是否一字不差，請以你畫面為準。</li>
+<li>官方文件：<a href="https://developers.google.com/workspace/guides/configure-oauth-consent">Configure the OAuth consent screen and choose scopes</a></li>
+</ol>
+<h3>測試模式（Testing）與測試使用者</h3>
+<ul>
+<li>剛建立的 External 應用程式處於<strong>測試（Testing）</strong>狀態，只有列在 Test users 的帳號能授權，其他人會看到被拒絕的畫面。自己用的話，<strong>留在測試模式即可，不需要送出 Google 審查或發布</strong>。</li>
+<li>登入時 Google 可能顯示「Google 尚未驗證這個應用程式」的警告，這是測試模式的正常現象；因為這是你自己建立的 App，確認後按「進階」繼續即可。（警告文字的確切字樣我<strong>不確定</strong>，請以畫面為準。）</li>
+<li>測試模式下授權的有效期限與測試使用者上限，官方的同意畫面文件沒有在上述頁面說明，我<strong>不確定</strong>確切數字。BACalc 使用的是短效的存取權杖，過期時只需要再按一次「連結 Google Drive」。</li>
+</ul>
+<h2>步驟 4：建立 Web 應用程式的 OAuth 用戶端 ID</h2>
+<p>依官方文件：</p>
+<ol>
+<li>進入 <strong>Menu &gt; Google Auth platform &gt; Clients</strong>，按 <strong>Create Client</strong>。</li>
+<li><strong>Application type</strong> 選 <strong>Web application</strong>。</li>
+<li><strong>Name</strong> 隨意填（只在 Console 內顯示），例如 <code>BACalc Web</code>。</li>
+<li>在 <strong>Authorized JavaScript origins</strong> 按 <strong>Add URI</strong>，加入下面兩個（<strong>只要來源 origin，不含路徑，結尾不要加斜線</strong>）：</li>
+<li><code>http://localhost:8765</code>（本機測試用）</li>
+<li><code>https://fctien.github.io</code>（GitHub Pages 部署用；實際網址是 <code>https://fctien.github.io/Statistics-Accouting-Calculator/</code>，路徑區分大小寫，但授權來源只填到 <code>.io</code>）</li>
+<li><strong>不需要</strong>填 Authorized redirect URIs（token 模式用彈出視窗，不用導向）。</li>
+<li>按 <strong>Create</strong>。畫面會顯示 <strong>Client ID</strong>，格式像 <code>123456789-abcdefg.apps.googleusercontent.com</code>。Web 應用程式用戶端沒有 client secret，<strong>不要</strong>複製或保存 secret。</li>
+<li>官方文件：<a href="https://developers.google.com/workspace/guides/create-credentials">Create access credentials（Web application 用戶端）</a></li>
+<li>設定改了之後可能要等幾分鐘才生效；官方說法我沒有查到確切時間，<strong>不確定</strong>。</li>
+</ol>
+<h2>步驟 5：把 Client ID 填進 BACalc</h2>
+<ol>
+<li>開啟 BACalc，進入「設定」，找到「Google Drive 同步（選用）」區。</li>
+<li>貼上 Client ID，按 <strong>儲存</strong>。Client ID 只存在這台裝置的 IndexedDB，不會寫死在程式裡，也不會上傳到雲端。</li>
+<li>按 <strong>連結 Google Drive</strong>。此時 BACalc 才第一次載入 Google 的登入程式庫（<a href="https://developers.google.com/identity/oauth2/web/guides/use-token-model">Google Identity Services</a>，token 模式），跳出授權視窗；選你的帳號並同意「管理 App 自己的設定資料」權限。離線時按鈕會停用。</li>
+<li>之後可以：</li>
+<li><strong>上傳到雲端</strong>：把目前的情境、紙帶、記憶、設定存成 <code>bacalc-backup.json</code></li>
+<li><strong>從雲端下載</strong>：先驗證檔案格式，再選<strong>合併</strong>或<strong>取代</strong>（取代會先確認）</li>
+<li>如果雲端比上次同步新、而你本機也改過，BACalc <strong>不會自動覆蓋</strong>，會顯示雙方時間讓你選擇</li>
+<li>備份檔存放在 Google Drive 的 App 專屬隱藏資料夾（appDataFolder），在 Drive 網頁上<strong>看不到</strong>，這是正常的。官方說明：<a href="https://developers.google.com/workspace/drive/api/guides/appdata">Store application-specific data</a>。官方文件指出：使用者也可以手動刪除這個資料夾，App 從使用者的 My Drive 解除安裝時資料夾會被刪除；刪除的具體操作畫面我不確定。</li>
+</ol>
+<h2>如何撤銷（revoke）存取</h2>
+<ol>
+<li><strong>在 BACalc 內</strong>：按 <strong>中斷連結</strong>。BACalc 會呼叫 Google 官方的 <code>google.accounts.oauth2.revoke</code> 撤銷這次授權的權杖（<a href="https://developers.google.com/identity/oauth2/web/guides/use-token-model">官方說明</a>），並清掉記憶體中的權杖。</li>
+<li><strong>在 Google 帳戶</strong>：依官方說明前往 <a href="https://myaccount.google.com/linkedapps">myaccount.google.com/linkedapps</a>，選擇 BACalc（你建立的 App 名稱），在「Access to your Google Account」下選 <strong>See details &gt; Remove access &gt; Confirm</strong>。官方文件：<a href="https://support.google.com/accounts/answer/13533235">Remove a third-party app's access</a>。</li>
+<li><strong>徹底清除</strong>：撤銷後，雲端的 <code>bacalc-backup.json</code> 是否一併刪除我<strong>不確定</strong>；若要確保刪除，請在撤銷前先於 BACalc 內確認不再需要雲端備份；Drive 端刪除隱藏資料的操作位置我不確定，請查 Drive 說明。</li>
+<li>在 BACalc 設定頁清空 Client ID 並按「儲存」，即可關閉同步功能。</li>
+</ol>
+<h2>常見問題</h2>
+<table>
+<thead>
+<tr>
+<th>畫面訊息</th>
+<th>原因</th>
+<th>處理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Error 400: origin_mismatch 或「redirect_uri」相關錯誤</td>
+<td>網址的 origin 沒有列在 Authorized JavaScript origins</td>
+<td>回步驟 4 補上目前使用的 origin（協定、主機、埠號都要完全一致）</td>
+</tr>
+<tr>
+<td>access_denied／「應用程式尚未完成驗證」</td>
+<td>你的帳號不在 Test users</td>
+<td>回步驟 3 第 5 點加入</td>
+</tr>
+<tr>
+<td>403 尚未啟用 Drive API</td>
+<td>步驟 2 沒做，或選錯專案</td>
+<td>在同一個專案啟用 Drive API</td>
+</tr>
+<tr>
+<td>按鈕灰色</td>
+<td>沒有 Client ID，或目前離線</td>
+<td>填入 Client ID；連上網路</td>
+</tr>
+<tr>
+<td>授權視窗被擋</td>
+<td>瀏覽器擋彈出視窗</td>
+<td>允許此網站的彈出視窗後再按一次</td>
+</tr>
+</tbody>
+</table>
+<h2>隱私說明</h2>
+<ul>
+<li>沒有填 Client ID 並按下按鈕之前，BACalc 不會連到 Google；Google 的登入程式庫<strong>不在離線快取（precache）內</strong>，只在你按「連結 Google Drive」時才載入。</li>
+<li>Service Worker 只處理同源（same-origin）請求，不快取任何 Google 的回應。</li>
+<li>上傳的內容就是匯出 JSON 的內容（情境、紙帶、記憶、設定），但<strong>不含</strong>你的 Client ID。</li>
+<li>本說明的 Google 官方連結清單：</li>
+<li><a href="https://console.cloud.google.com/">Google Cloud Console</a></li>
+<li><a href="https://developers.google.com/workspace/guides/create-project">Create a Google Cloud project</a></li>
+<li><a href="https://developers.google.com/workspace/guides/enable-apis">Enable Google Workspace APIs</a></li>
+<li><a href="https://developers.google.com/workspace/guides/configure-oauth-consent">Configure OAuth consent</a></li>
+<li><a href="https://developers.google.com/workspace/guides/create-credentials">Create access credentials</a></li>
+<li><a href="https://developers.google.com/identity/oauth2/web/guides/use-token-model">Google Identity Services：token 模式</a></li>
+<li><a href="https://developers.google.com/workspace/drive/api/guides/api-specific-auth">Drive API 權限範圍</a></li>
+<li><a href="https://developers.google.com/workspace/drive/api/guides/appdata">Drive appDataFolder</a></li>
+</ul>
+</body></html>

@@ -1033,3 +1033,31 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 26：Google Drive 同步（選用）與 OAuth 申請說明
+
+**需求**
+- 選用的 Google Drive 同步（appDataFolder、drive.appdata）：上傳、下載（合併／取代）、衝突詢問、中斷連結；Client ID 由使用者自行申請，另附申請說明
+
+**做法**
+- 新增 web/js/storage/gdrive.js：純函式（isValidClientId、buildMultipartBody、parseFileList、decideConflict、localUpdatedAt、stripLocalOnly、describeHttpError）與 createDrive(fetch, getToken)（找／建立 multipart／更新 PATCH media／下載 alt=media）；GIS 只在按「連結」時動態載入，權杖只放記憶體
+- settings.js 新增 gdriveClientId、gdriveLastSync（含驗證）；設定頁「資料」下方新增同步區；下載流程為 取得 → JSON.parse → importBackup 驗證 → 通過才 applyData
+- 上傳／下載內容不含 gdrive 設定鍵；取代下載後保留本機 Client ID
+- docs/google-oauth-setup.md 以 WebFetch 查官方頁面撰寫，轉成 HTML
+
+**產出**
+- gdrive.js、tests/js/gdrive.test.mjs（19 項）、views/settings.js 同步區、sw.js 加入 gdrive.js、docs/google-oauth-setup.md／.html
+
+**驗證**
+- node --test 132 pass；pytest 全綠；build_web、check_shell、check_portable 通過
+- 瀏覽器（localhost:8765）：同步區顯示；無 Client ID 時連結鈕停用；壞格式被拒；存好格式後按鈕啟用；頁面無任何跨源請求、未載入 GIS
+- 未做真正的 OAuth（需使用者自己的 Client ID）
+
+**問題與修正**
+- 第一次用 bash heredoc 寫檔因引號失敗（無任何檔案寫入），改用 Write 工具
+- settings 預設值多了兩個鍵，兩個既有測試的期望值需更新
+- 預覽伺服器根目錄就是 web/（網址 /index.html），舊 SW 快取需先註銷才會載入新檔
+
+**待辦**
+- Step 3：使用者申請 Client ID 後手動測：上傳 → 改本機 → 下載出現衝突提示 → 選雲端版本
+- 本機「是否改過」只由情境 updated_at 與紙帶 ts 判斷，單改設定／記憶不會被視為變動

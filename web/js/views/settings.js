@@ -1,6 +1,7 @@
 // View：設定 FORMAT。小數位數、千分位、日期格式、運算順序、外觀、稅率預設值；選了就立即生效並儲存
 // （settingsStore.commit 會通知畫面重新顯示結果），下方「即時預覽」由引擎格式化。
 // 「資料」區：匯出／匯入 JSON 備份（合併或取代，取代前 confirm）、清除全部資料。
+// 「Google Drive 同步」區（選用，預設關閉）：Client ID、連結、上傳、下載（合併／取代）、衝突詢問、中斷連結。
 // 「關於」區：APP 版本、SHELL_HASH（讀 sw.js 文字）、MicroPython 套件版本（讀 py/manifest.json）、啟動計時。
 import { SHEETS, TAX_PRESETS } from "../sheets.js";
 import { callEngine } from "../py-client.js";
@@ -8,8 +9,9 @@ import * as settingsStore from "../settings.js";
 import { formatDate } from "../datefmt.js";
 import { download } from "../csv.js";
 import * as persist from "../storage/persist.js";
-import { makeExport, importBackup, backupFilename, emptyData } from "../storage/backup.js";
+import { makeExport, importBackup, backupFilename, emptyData, localStamp } from "../storage/backup.js";
 import { replaceState } from "./calc.js";
+import * as gdrive from "../storage/gdrive.js";
 
 const SAMPLE_NUMBER = 1234567.891;
 const SAMPLE_DATE = [2026, 12, 31];
@@ -218,6 +220,200 @@ export function mount(container, ctx = {}) {
   }
 
   container.replaceChildren(form, preview, data, about);
+
+  // ---- Google Drive 同步（選用）
+  const gd = el("section", { class: "settings-gdrive", "aria-labelledby": "s-gd-title" });
+  gd.append(el("h3", { id: "s-gd-title" }, "Google Drive 同步（選用）"));
+  gd.append(el("p", { class: "calc-note" },
+    "預設關閉：沒有設定 Client ID 並按下按鈕之前，不會連到 Google。只使用 App 專屬的隱藏資料夾（drive.appdata），看不到你其他的檔案。"));
+  const gdHelp = el("a", { href: "https://github.com/fctien/Statistics-Accouting-Calculator/blob/main/docs/google-oauth-setup.md", target: "_blank", rel: "noopener noreferrer" }, "如何申請 Client ID");
+  const gdHelpP = el("p", { class: "calc-note" });
+  gdHelpP.append(gdHelp);
+  const gdInput = el("input", {
+    type: "text", id: "gd-client-id", class: "control", autocomplete: "off", spellcheck: "false",
+    placeholder: "xxxx.apps.googleusercontent.com", "aria-label": "Google OAuth Client ID",
+  });
+  const gdSave = el("button", { type: "button", id: "gd-save", class: "btn" }, "儲存");
+  const gdConnect = el("button", { type: "button", id: "gd-connect", class: "btn" }, "連結 Google Drive");
+  const gdUp = el("button", { type: "button", id: "gd-upload", class: "btn" }, "上傳到雲端");
+  const gdDown = el("button", { type: "button", id: "gd-download", class: "btn" }, "從雲端下載");
+  const gdOff = el("button", { type: "button", id: "gd-disconnect", class: "btn btn-ghost" }, "中斷連結");
+  const gdModeRow = el("div", { class: "data-mode", role: "radiogroup", "aria-label": "下載方式" });
+  for (const [value, label, checked] of [["merge", "合併", true], ["replace", "取代", false]]) {
+    const lab = el("label");
+    lab.append(el("input", { type: "radio", name: "gd-mode", value, id: `gd-mode-${value}`, checked }), ` ${label} `);
+    gdModeRow.append(lab);
+  }
+  const gdConflict = el("div", { id: "gd-conflict", class: "form-message", role: "alertdialog", "aria-label": "雲端與本機版本不同", hidden: true });
+  const gdError = el("div", { id: "gd-error", class: "form-message", role: "alert", hidden: true });
+  const gdStatus = el("p", { id: "gd-status", class: "result-line", role: "status", "aria-live": "polite" });
+  const gdRow0 = el("div", { class: "scenario-row" });
+  gdRow0.append(gdInput, gdSave);
+  const gdRow1 = el("div", { class: "scenario-row" });
+  gdRow1.append(gdConnect, gdOff);
+  const gdRow2 = el("div", { class: "scenario-row" });
+  gdRow2.append(gdUp, gdDown, gdModeRow);
+  gd.append(gdHelpP, gdRow0, gdRow1, gdRow2, gdConflict, gdError, gdStatus);
+  data.after(gd);
+
+  const showGdError = (text) => {
+    gdError.textContent = text;
+    gdError.hidden = !text;
+    if (text) gdStatus.textContent = "";
+  };
+  const showGdOk = (text) => {
+    showGdError("");
+    gdStatus.textContent = text;
+  };
+  const stamp = (iso) => (iso && Number.isFinite(Date.parse(iso)) ? localStamp(Date.parse(iso)) : "（無）");
+  const gdModeValue = () => gd.querySelector('input[name="gd-mode"]:checked').value;
+
+  function syncGd() {
+    const s = settingsStore.get();
+    const hasId = gdrive.isValidClientId(s.gdriveClientId);
+    const offline = globalThis.navigator && globalThis.navigator.onLine === false;
+    if (document.activeElement !== gdInput) gdInput.value = s.gdriveClientId;
+    gdConnect.disabled = !hasId || offline;
+    gdConnect.title = offline ? "目前離線，無法連結 Google Drive" : hasId ? "載入 Google 登入程式庫並授權" : "請先輸入並儲存 Client ID";
+    gdUp.disabled = !hasId || offline;
+    gdDown.disabled = !hasId || offline;
+    gdOff.disabled = !gdrive.isConnected();
+    if (offline && !gdStatus.textContent && gdError.hidden) gdStatus.textContent = "目前離線：Google Drive 同步暫時無法使用（其他功能照常）";
+  }
+
+  async function doUpload() {
+    gdConflict.hidden = true;
+    const d = gdrive.stripLocalOnly(await localData());
+    const r = await gdrive.upload(JSON.stringify(makeExport(d, Date.now()), null, 2));
+    settingsStore.commit({ gdriveLastSync: r.modifiedTime || "" });
+    showGdOk(`已上傳到雲端（情境 ${d.scenarios.length} 個、紙帶 ${d.tape.length} 筆），雲端時間 ${stamp(r.modifiedTime)}`);
+  }
+
+  async function doDownload() {
+    gdConflict.hidden = true;
+    const got = await gdrive.download();
+    if (!got) {
+      showGdOk("雲端還沒有備份檔");
+      return;
+    }
+    let obj;
+    try {
+      obj = JSON.parse(got.text);
+    } catch (e) {
+      showGdError("雲端的備份檔不是有效的 JSON，本機資料沒有改變");
+      return;
+    }
+    const mode = gdModeValue();
+    const local = await localData();
+    // 先驗證、清理、合併，全部通過才寫入本機（不留下寫一半的狀態）
+    const r = importBackup(obj, gdrive.stripLocalOnly(local), mode);
+    if (!r.ok) {
+      showGdError("雲端備份無法匯入，本機資料沒有改變：" + r.error);
+      return;
+    }
+    const c = r.counts;
+    const summary = `情境 ${c.scenarios} 個、紙帶 ${c.tape} 筆、設定 ${c.settings} 項、記憶 ${c.memory} 格`;
+    if (mode === "replace"
+        && !globalThis.confirm(`取代會刪除這台裝置目前的全部資料，改成雲端備份的內容（${summary}）。確定要取代嗎？`)) {
+      showGdOk("已取消，資料沒有改變");
+      return;
+    }
+    const keep = { gdriveClientId: local.settings.gdriveClientId || "" };
+    await applyData({ ...r.data, settings: { ...r.data.settings, ...keep } });
+    settingsStore.commit({ gdriveLastSync: got.modifiedTime || "" });
+    showGdOk(`已從雲端下載（${mode === "merge" ? "合併" : "取代"}）：${summary}`);
+  }
+
+  /** 顯示雙方時間，讓使用者選擇；不自動覆蓋。 */
+  function askConflict(localIso, remoteIso, lastSync) {
+    gdConflict.replaceChildren(
+      el("p", {}, `雲端與本機版本不同。本機最後更新：${stamp(localIso)}；雲端最後修改：${stamp(remoteIso)}；上次同步：${stamp(lastSync)}。請選擇要保留哪一份：`),
+    );
+    const useCloud = el("button", { type: "button", class: "btn", id: "gd-use-cloud" }, "用雲端版本（下載）");
+    const useLocal = el("button", { type: "button", class: "btn", id: "gd-use-local" }, "用本機版本（上傳覆蓋雲端）");
+    const cancel = el("button", { type: "button", class: "btn btn-ghost", id: "gd-cancel" }, "取消");
+    useCloud.addEventListener("click", () => guarded(doDownload));
+    useLocal.addEventListener("click", () => guarded(doUpload));
+    cancel.addEventListener("click", () => {
+      gdConflict.hidden = true;
+      showGdOk("已取消，資料沒有改變");
+    });
+    const r = el("div", { class: "scenario-row" });
+    r.append(useCloud, useLocal, cancel);
+    gdConflict.append(r);
+    gdConflict.hidden = false;
+    showGdError("");
+    gdStatus.textContent = "";
+  }
+
+  /** 執行同步動作：先確保已連結（須在使用者點擊中，授權視窗才不會被擋），統一處理錯誤與按鈕狀態。 */
+  async function guarded(fn) {
+    for (const b of [gdConnect, gdUp, gdDown]) b.disabled = true;
+    try {
+      if (!gdrive.isConnected()) await gdrive.connect(settingsStore.get().gdriveClientId);
+      await fn();
+    } catch (e) {
+      showGdError((e && e.message) || String(e));
+    } finally {
+      syncGd();
+    }
+  }
+
+  async function decideAndRun(kind) {
+    const local = await localData();
+    const info = await gdrive.find();
+    const lastSync = settingsStore.get().gdriveLastSync || null;
+    const localIso = gdrive.localUpdatedAt(local);
+    const remoteIso = info ? info.modifiedTime : null;
+    if (kind === "download" && !info) {
+      showGdOk("雲端還沒有備份檔");
+      return;
+    }
+    const decision = gdrive.decideConflict(localIso, remoteIso, lastSync);
+    if (decision === "ask" || (kind === "upload" && decision === "download")) {
+      askConflict(localIso, remoteIso, lastSync);
+      return;
+    }
+    await (kind === "upload" ? doUpload() : doDownload());
+  }
+
+  gdSave.addEventListener("click", () => {
+    const v = gdInput.value.trim();
+    if (v !== "" && !gdrive.isValidClientId(v)) {
+      showGdError("Client ID 格式不正確：應以 .apps.googleusercontent.com 結尾");
+      return;
+    }
+    const cur = settingsStore.get();
+    settingsStore.commit({ gdriveClientId: v, gdriveLastSync: v === cur.gdriveClientId ? cur.gdriveLastSync : "" });
+    showGdOk(v ? "已儲存 Client ID（只存在這台裝置）" : "已清除 Client ID，Google Drive 同步已關閉");
+    syncGd();
+  });
+  gdConnect.addEventListener("click", () => guarded(async () => {
+    showGdOk("已連結 Google Drive（權杖只放在記憶體，關閉頁面即失效）");
+  }));
+  gdUp.addEventListener("click", () => guarded(() => decideAndRun("upload")));
+  gdDown.addEventListener("click", () => guarded(() => decideAndRun("download")));
+  gdOff.addEventListener("click", async () => {
+    gdOff.disabled = true;
+    await gdrive.disconnect();
+    gdConflict.hidden = true;
+    showGdOk("已中斷連結，並向 Google 撤銷這次的授權");
+    syncGd();
+  });
+  const onGdEvent = () => {
+    if (!container.isConnected) {
+      document.removeEventListener("bacalc-settings", onGdEvent);
+      globalThis.removeEventListener?.("online", onGdEvent);
+      globalThis.removeEventListener?.("offline", onGdEvent);
+      return;
+    }
+    syncGd();
+  };
+  document.addEventListener("bacalc-settings", onGdEvent);
+  globalThis.addEventListener?.("online", onGdEvent);
+  globalThis.addEventListener?.("offline", onGdEvent);
+  syncGd();
+
 
   // ---- 狀態
   function syncControls() {

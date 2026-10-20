@@ -19,7 +19,7 @@ function fakeStorage(initial = {}) {
 test("預設值：還沒 init 時 get 回預設，set 只在記憶體生效", () => {
   _resetCache();
   assert.deepEqual(get(), {
-    decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "",
+    decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "",
   });
   assert.deepEqual(DEFAULTS, get());
   const r = set({ decimals: 4 });
@@ -43,13 +43,13 @@ test("init：讀 IndexedDB；不合法值忽略；set 寫回 IndexedDB", async (
   _resetCache();
   await init();
   assert.deepEqual(get(), {
-    decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "",
+    decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "",
   });
   const r = set({ decimals: null, mode: "CHAIN", sep: "fr", bogus: 1 });
   assert.deepEqual(Object.keys(r.errors), ["sep"]);
   await new Promise((res) => setTimeout(res, 50));
   assert.deepEqual((await idb.get("settings", "settings")).value,
-    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "" });
+    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "" });
   assert.deepEqual(toEngine(), { decimals: null, sep: "us", mode: "CHAIN" });
   cleanup();
 });
@@ -129,4 +129,14 @@ test("init 搬家：IndexedDB 寫入失敗（退回記憶體）時不移除舊�
   assert.equal((await init()).decimals, 3);
   assert.equal(st.map.has("bacalc.settings"), true);
   cleanup();
+});
+
+test("Google Drive 設定：Client ID 形狀驗證、lastSync 為字串", () => {
+  _resetCache();
+  const ok = set({ gdriveClientId: "123-abc.apps.googleusercontent.com", gdriveLastSync: "2026-10-20T01:00:00.000Z" });
+  assert.deepEqual(ok.errors, {});
+  const bad = set({ gdriveClientId: "not-a-client-id", gdriveLastSync: 5 });
+  assert.deepEqual(Object.keys(bad.errors).sort(), ["gdriveClientId", "gdriveLastSync"]);
+  assert.equal(get().gdriveClientId, "123-abc.apps.googleusercontent.com");
+  _resetCache();
 });
