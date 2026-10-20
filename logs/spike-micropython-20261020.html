@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MicroPython 雙精度 Spike</title>
+<style>
+:root{--bg:#fff;--fg:#1d2330;--mut:#5b6575;--line:#d9dee7;--ok:#0a7a3d;--ng:#b3261e;--code:#f3f5f9}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--mut:#9aa4b2;--line:#2c323c;--ok:#5fd18f;--ng:#ff8a80;--code:#1d2129}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;margin:0;padding:16px;max-width:1200px}
+h1{font-size:1.5em}h2{font-size:1.15em;margin-top:1.6em;border-bottom:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
+td:nth-child(2){white-space:nowrap}td:nth-child(3){word-break:break-all;max-width:480px}
+code,pre{background:var(--code);font-family:Consolas,monospace}pre{padding:8px;overflow:auto;max-height:420px;font-size:12px}
+.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}
+.decision{font-size:1.2em;font-weight:700;padding:10px;border:2px solid var(--ok)}
+.wrap{overflow-x:auto}
+</style></head><body>
+<h1>Task 18 spike：MicroPython 1.29 WebAssembly 雙精度驗證</h1>
+<p>日期：2026-10-20　分支：impl　HEAD（開始時）：<code>a55fc388f783ab9c5a5606a2b0ff188737e4b584</code></p>
+<p>git 乾淨檢查（開始時 <code>git status --short</code>）：<b>乾淨</b>（無輸出）</p>
+<h2>環境（environment）</h2>
+<ul>
+<li>Node：v22.15.0</li><li>套件：@micropython/micropython-webassembly-pyscript@1.29.0-6（npm install --save-exact，使用者已同意）</li>
+<li>MicroPython heapsize：16777216 bytes、pystack：2048（另以套件預設 1 MB heap 重跑，結果相同）</li>
+<li>CPython 參考：Python 3.11.7（子行程執行，非手抄）</li>
+<li>重現指令：<code>node tools/spike_float.mjs --out result.json</code>（可用環境變數 MP_HEAPSIZE 覆寫 heap）</li>
+</ul>
+<h2>計時（timing，Node 內量測）</h2>
+<ul>
+<li>載入 MicroPython：18.3 ms</li><li>import engine.bridge：35.1 ms</li>
+<li>載入＋寫入 VFS＋import 合計：67.5 ms</li>
+<li>golden 51 案例 run + dump + 收集完整回應（共 3 輪）：91 ms</li>
+</ul>
+<h2>檢查清單（checklist）</h2>
+<div class="wrap"><table><tr><th>項目</th><th>結果</th><th>觀察值（observed）</th><th>說明</th></tr>
+<tr><td><code>a1_1e300x10_same_as_cpython</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1e+301&quot;, &quot;cpython&quot;: &quot;1e+301&quot;, &quot;note&quot;: &quot;brief 原文期望 inf，但雙精度下 1e301 為有限值，CPython 亦同&quot;}</code></td><td>brief 原文期望 1e300*10 == inf，但 1e301 在雙精度內為有限值，CPython 同樣為 False；改為與 CPython 比對，並以 a1b 驗證真正溢位</td></tr>
+<tr><td><code>a1b_overflow_1e308x10_inf</code></td><td class='ok'>通過</td><td><code>&quot;inf&quot;</code></td><td>真正的溢位檢查</td></tr>
+<tr><td><code>a2_point1_plus_point2</code></td><td class='ok'>通過</td><td><code>&quot;0.30000000000000004&quot;</code></td><td></td></tr>
+<tr><td><code>a3_subnormal</code></td><td class='ok'>通過</td><td><code>&quot;4.940656458412465e-324&quot;</code></td><td></td></tr>
+<tr><td><code>a4_2pow53</code></td><td class='ok'>通過</td><td><code>&quot;9007199254740992.0&quot;</code></td><td></td></tr>
+<tr><td><code>a5_repr_roundtrip</code></td><td class='ok'>通過</td><td><code>{&quot;repr_1_3&quot;: &quot;0.3333333333333333&quot;, &quot;repr_0.1+0.2&quot;: &quot;0.30000000000000004&quot;, &quot;not_roundtrip&quot;: []}</code></td><td>repr 可往返（round-trip），json 傳輸不失精度</td></tr>
+<tr><td><code>b_fmt17_01</code></td><td class='ng'>不通過</td><td><code>{&quot;micropython&quot;: &quot;0.1&quot;, &quot;cpython&quot;: &quot;0.10000000000000001&quot;}</code></td><td>MicroPython 的 %g/%f 最多約 16～17 位有效數字，之後補 0；引擎只用 %.15g、%.6f、%.2f，不受影響</td></tr>
+<tr><td><code>b_fmt_15e12</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1500000000000&quot;, &quot;cpython&quot;: &quot;1500000000000&quot;}</code></td><td></td></tr>
+<tr><td><code>b_fmt_1_3</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.333333333333333&quot;, &quot;cpython&quot;: &quot;0.333333333333333&quot;}</code></td><td></td></tr>
+<tr><td><code>b_fmt_1e5</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;1e-05&quot;, &quot;cpython&quot;: &quot;1e-05&quot;}</code></td><td></td></tr>
+<tr><td><code>b_fmt_2675</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;2.675&quot;, &quot;cpython&quot;: &quot;2.675&quot;}</code></td><td></td></tr>
+<tr><td><code>b_info_fmt16_01</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.1&quot;, &quot;cpython&quot;: &quot;0.1&quot;, &quot;same&quot;: true}</code></td><td></td></tr>
+<tr><td><code>b_info_fmt17_1_3</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.3333333333333333&quot;, &quot;cpython&quot;: &quot;0.33333333333333331&quot;, &quot;same&quot;: false}</code></td><td></td></tr>
+<tr><td><code>b_info_fmt20f_01</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: &quot;0.10000000000000000000&quot;, &quot;cpython&quot;: &quot;0.10000000000000000555&quot;, &quot;same&quot;: false}</code></td><td></td></tr>
+<tr><td><code>b_info_ties</code></td><td class='ok'>通過</td><td><code>{&quot;differing&quot;: [{&quot;x&quot;: &quot;100000000000000.5&quot;, &quot;micropython&quot;: [&quot;100000000000001&quot;, &quot;100000000000000.500000&quot;, &quot;100000000000000.50&quot;, &quot;100,000,000,000,001.00&quot;, &quot;1E14&quot;], &quot;cpython&quot;: [&quot;100000000000000&quot;, &quot;100000000000000.500000&quot;, &quot;100000000000000.50&quot;, &quot;100,000,000,000,000.00&quot;, &quot;1E14&quot;], &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;}, {&quot;x&quot;: &quot;0.125&quot;, &quot;micropython&quot;: [&quot;0.125&quot;, &quot;0.125000&quot;, &quot;0.13&quot;, &quot;0.13&quot;, &quot;0.125&quot;], &quot;cpython&quot;: [&quot;0.125&quot;, &quot;0.125000&quot;, &quot;0.12&quot;, &quot;0.13&quot;, &quot;0.125&quot;], &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;}, {&quot;x&quot;: &quot;0.0078125&quot;, &quot;micropython&quot;: [&quot;0.0078125&quot;, &quot;0.007813&quot;, &quot;0.01&quot;, &quot;0.01&quot;, &quot;0.0078125&quot;], &quot;cpython&quot;: [&quot;0.0078125&quot;, &quot;0.007812&quot;, &quot;0.01&quot;, &quot;0.01&quot;, &quot;0.0078125&quot;], &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;}]}</code></td><td>只記錄</td></tr>
+<tr><td><code>b_random_15g_4000</code></td><td class='ng'>不通過</td><td><code>{&quot;mismatches&quot;: 10, &quot;list&quot;: [[335, &quot;-1.50534485812639e+16&quot;, &quot;-1.50534485812638e+16&quot;], [1259, &quot;-281434728848399&quot;, &quot;-281434728848398&quot;], [1505, &quot;-5.15661727492313e+15&quot;, &quot;-5.15661727492312e+15&quot;], [1820, &quot;550832606486979&quot;, &quot;550832606486978&quot;], [1968, &quot;722102905966843&quot;, &quot;722102905966842&quot;], [2850, &quot;484445212889485&quot;, &quot;484445212889484&quot;], [2864, &quot;76587679049164.3&quot;, &quot;76587679049164.2&quot;], [3488, &quot;599597461686.563&quot;, &quot;599597461686.562&quot;], [3668, &quot;84698132973202.3&quot;, &quot;84698132973202.2&quot;], [3885, &quot;-186112338884229&quot;, &quot;-186112338884228&quot;]]}</code></td><td>10 個差異全部是「第 15 位剛好落在二進位精確中點（exact tie）」：CPython half-even、MicroPython half-up；非精度問題</td></tr>
+<tr><td><code>b_random_format_number_4000</code></td><td class='ng'>不通過</td><td><code>{&quot;mismatches&quot;: 5, &quot;list&quot;: [[1259, &quot;-281.434.728.848.399,000000000&quot;, &quot;-281.434.728.848.398,000000000&quot;], [1968, &quot;722,102,905,966,843.0000&quot;, &quot;722,102,905,966,842.0000&quot;], [2864, &quot;76,587,679,049,164.300000000&quot;, &quot;76,587,679,049,164.200000000&quot;], [3488, &quot;599,597,461,686.5630&quot;, &quot;599,597,461,686.5620&quot;], [3668, &quot;84,698,132,973,202.3000&quot;, &quot;84,698,132,973,202.2000&quot;]]}</code></td><td>同上 tie 造成 fmt.format_number 末位差 1（皆為 ≥1e11 且顯示到第 15 位有效數字）</td></tr>
+<tr><td><code>b_sweep_engine_formats</code></td><td class='ng'>不通過</td><td><code>{&quot;values&quot;: 29, &quot;mismatches&quot;: [{&quot;i&quot;: 5, &quot;fmt&quot;: &quot;%.2f&quot;, &quot;micropython&quot;: &quot;0.13&quot;, &quot;cpython&quot;: &quot;0.12&quot;}, {&quot;i&quot;: 21, &quot;fmt&quot;: &quot;%.6f&quot;, &quot;micropython&quot;: &quot;1e+300&quot;, &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.000000&quot;}, {&quot;i&quot;: 21, &quot;fmt&quot;: &quot;%.2f&quot;, &quot;micropython&quot;: &quot;1e+300&quot;, &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.00&quot;}]}</code></td><td>0.125 的 %.2f：MicroPython 進位 0.13（half-up），CPython 0.12（half-even）；1e300 的 %f：MicroPython 改用指數表示</td></tr>
+<tr><td><code>c1_math_funcs</code></td><td class='ok'>通過</td><td><code>[&quot;log&quot;, &quot;exp&quot;, &quot;sqrt&quot;, &quot;pow&quot;, &quot;floor&quot;]</code></td><td></td></tr>
+<tr><td><code>c2_json_roundtrip</code></td><td class='ok'>通過</td><td><code>&quot;{\&quot;a\&quot;: 1.5, \&quot;b\&quot;: [1, 2]}&quot;</code></td><td></td></tr>
+<tr><td><code>c3_json_dumps_inf</code></td><td class='ok'>通過</td><td><code>&quot;produces &#x27;inf&#x27;&quot;</code></td><td>只記錄：MicroPython 產出非法 JSON &#x27;inf&#x27;；bridge 已用 _all_finite 擋下</td></tr>
+<tr><td><code>d1_RuntimeError_exists</code></td><td class='ok'>通過</td><td><code>&quot;RuntimeError&quot;</code></td><td></td></tr>
+<tr><td><code>d2_RecursionError_exists</code></td><td class='ok'>通過</td><td><code>false</code></td><td>只記錄：MicroPython 無 RecursionError</td></tr>
+<tr><td><code>d3_deep_recursion_RuntimeError</code></td><td class='ok'>通過</td><td><code>&quot;RuntimeError: maximum recursion depth exceeded&quot;</code></td><td></td></tr>
+<tr><td><code>e1_bigint_le_float</code></td><td class='ok'>通過</td><td><code>&quot;False&quot;</code></td><td></td></tr>
+<tr><td><code>e2_bigint_eq_inf</code></td><td class='ok'>通過</td><td><code>&quot;True&quot;</code></td><td></td></tr>
+<tr><td><code>f1_isdigit_sup2</code></td><td class='ok'>通過</td><td><code>{&quot;micropython&quot;: false, &quot;cpython&quot;: true}</code></td><td>只記錄；引擎未使用 isdigit</td></tr>
+<tr><td><code>g1_golden_fails_empty</code></td><td class='ok'>通過</td><td><code>{&quot;cases&quot;: 51, &quot;fails&quot;: []}</code></td><td></td></tr>
+<tr><td><code>g2_dump_vs_cpython</code></td><td class='ok'>通過</td><td><code>{&quot;max_rel_diff&quot;: 1.2503656402067165e-16, &quot;at&quot;: &quot;tvm_n_lump&quot;, &quot;null_mismatch&quot;: [], &quot;compared&quot;: 51}</code></td><td></td></tr>
+<tr><td><code>g3_display_strings_same</code></td><td class='ok'>通過</td><td><code>{&quot;compared&quot;: 51, &quot;diffs&quot;: []}</code></td><td></td></tr>
+<tr><td><code>g4_tax_large_amounts</code></td><td class='ng'>不通過</td><td><code>{&quot;compared&quot;: 13, &quot;diffs&quot;: [{&quot;amount&quot;: &quot;1e+23&quot;, &quot;micropython&quot;: {&quot;warnings&quot;: [], &quot;ok&quot;: true, &quot;values&quot;: {&quot;tax&quot;: 5e+21, &quot;net&quot;: 1.0000000000000001e+23, &quot;gross&quot;: 1.0499999999999999e+23}, &quot;display&quot;: {&quot;tax&quot;: &quot;5,000,000,000,000,000,000,000.00&quot;, &quot;net&quot;: &quot;100,000,000,000,000,000,000,000.00&quot;, &quot;gross&quot;: &quot;105,000,000,000,000,000,000,000.00&quot;}}, &quot;cpython&quot;: {&quot;ok&quot;: true, &quot;values&quot;: {&quot;net&quot;: 1e+23, &quot;tax&quot;: 5e+21, &quot;gross&quot;: 1.0499999999999999e+23}, &quot;warnings&quot;: [], &quot;display&quot;: {&quot;net&quot;: &quot;100,000,000,000,000,000,000,000.00&quot;, &quot;tax&quot;: &quot;5,000,000,000,000,000,000,000.00&quot;, &quot;gross&quot;: &quot;105,000,000,000,000,000,000,000.00&quot;}}}, {&quot;amount&quot;: &quot;1e+24&quot;, &quot;micropython&quot;: {&quot;warnings&quot;: [], &quot;ok&quot;: true, &quot;values&quot;: {&quot;tax&quot;: 5.0000000000000004e+22, &quot;net&quot;: 9.999999999999998e+23, &quot;gross&quot;: 1.05e+24}, &quot;display&quot;: {&quot;tax&quot;: &quot;50,000,000,000,000,000,000,000.00&quot;, &quot;net&quot;: &quot;1,000,000,000,000,000,000,000,000.00&quot;, &quot;gross&quot;: &quot;1,050,000,000,000,000,000,000,000.00&quot;} …（完整內容見下方原始 JSON）</code></td><td>引擎可攜性 bug：engine/money.py:18-21 to_cents 用 &#x27;%.6f&#x27; % x 再 split(&#x27;.&#x27;)；MicroPython 在 |x| ≥ 1e26 輸出 &#x27;1e+26&#x27; → ValueError；1e23～1e25 小數位與尾數不精確，結果差約 1 ulp</td></tr>
+<tr><td><code>g5_calc_unicode</code></td><td class='ng'>不通過</td><td><code>{&quot;compared&quot;: 7, &quot;diffs&quot;: [{&quot;expr&quot;: &quot;1e400&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;數字超出範圍（第 1 個字元）&quot;, &quot;field&quot;: &quot;expr&quot;}}, {&quot;expr&quot;: &quot;π&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;未知的符號「π」（第 1 個字元）&quot;, &quot;field&quot;: &quot;expr&quot;}}, {&quot;expr&quot;: &quot;é+1&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;未知的符號「é」（第 1 個字元）&quot;, &quot;field&quot;: &quot;expr&quot;}}, {&quot;expr&quot;: &quot;abc&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;未知的符號「abc」（第 1 個字元）&quot;, &quot;field&quot;: &quot;expr&quot;}}]}</code></td><td>引擎可攜性 bug：engine/calc.py:28 Exception.__init__(self, msg) 在 MicroPython 拋 AttributeError（Exception 無 __init__ 屬性），所有 _CalcError 變成「內部錯誤：AttributeError」</td></tr>
+<tr><td><code>g6_bridge_input_errors</code></td><td class='ng'>不通過</td><td><code>{&quot;compared&quot;: 5, &quot;diffs&quot;: [{&quot;req&quot;: &quot;tvm_N_string&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;N 必須是有限數字&quot;, &quot;field&quot;: &quot;N&quot;}}, {&quot;req&quot;: &quot;bad_decimals&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;decimals 必須是 0～9 的整數或 null&quot;, &quot;field&quot;: &quot;decimals&quot;}}, {&quot;req&quot;: &quot;amort_N_too_big&quot;, &quot;micropython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;, &quot;field&quot;: null}, &quot;cpython&quot;: {&quot;ok&quot;: false, &quot;error&quot;: &quot;N 不可超過 10000&quot;, &quot;field&quot;: &quot;N&quot;}}]}</code></td><td>引擎可攜性 bug：engine/bridge.py:61 同樣的 Exception.__init__ 寫法，所有輸入驗證錯誤失去中文訊息與欄位</td></tr>
+</table></div>
+<h2>結論</h2>
+<ul>
+<li>float 為 IEEE-754 雙精度：a 類全部成立（次正規數 2**-1074 &gt; 0、0.1+0.2、2**53+1、1e308*10 溢位為 inf），repr 可往返</li>
+<li>golden 51 案例失敗清單為空；與 CPython 的數值最大相對差 1.25e-16（&lt; 1e-9）；51 案例的 display 字串與 CPython 逐字相同</li>
+<li>不通過項目皆非浮點精度問題：(1) %.17g 等超過 16 位的格式化；(2) %.15g 在「二進位精確中點」的 tie-breaking（half-up vs half-even）；(3) 三個引擎可攜性 bug（calc.py:28、bridge.py:61、money.py:18-21），依裁定不在本任務修正，交由 controller 另派修正</li>
+</ul>
+<p class="decision">決策：採用 MicroPython</p>
+<p>理由：雙精度成立、golden 全數通過且與 CPython 差異僅 1e-16 等級；發現的問題都是可在引擎端修正的可攜性 bug 或格式化 tie 邊界，不是退回 Pyodide 的理由。</p>
+<h2>原始 JSON</h2>
+<details><summary>展開</summary><pre>{
+ &quot;env&quot;: {
+  &quot;node&quot;: &quot;v22.15.0&quot;,
+  &quot;package&quot;: &quot;@micropython/micropython-webassembly-pyscript@1.29.0-6&quot;,
+  &quot;heapsize&quot;: 16777216,
+  &quot;pystack&quot;: 2048,
+  &quot;cpython&quot;: &quot;Python 3.11.7&quot;
+ },
+ &quot;import_error&quot;: null,
+ &quot;timing_ms&quot;: {
+  &quot;load_micropython&quot;: 18.3,
+  &quot;import_engine_bridge&quot;: 35.1,
+  &quot;load_plus_import_total&quot;: 67.5,
+  &quot;golden_run_and_dump&quot;: 91
+ },
+ &quot;checks&quot;: {
+  &quot;c3_json_dumps_inf&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;produces &#x27;inf&#x27;&quot;
+  },
+  &quot;c1_math_funcs&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: [
+    &quot;log&quot;,
+    &quot;exp&quot;,
+    &quot;sqrt&quot;,
+    &quot;pow&quot;,
+    &quot;floor&quot;
+   ]
+  },
+  &quot;a5_repr_roundtrip&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;repr_1_3&quot;: &quot;0.3333333333333333&quot;,
+    &quot;repr_0.1+0.2&quot;: &quot;0.30000000000000004&quot;,
+    &quot;not_roundtrip&quot;: []
+   }
+  },
+  &quot;d2_RecursionError_exists&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: false
+  },
+  &quot;d3_deep_recursion_RuntimeError&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;RuntimeError: maximum recursion depth exceeded&quot;
+  },
+  &quot;e1_bigint_le_float&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;False&quot;
+  },
+  &quot;e2_bigint_eq_inf&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;True&quot;
+  },
+  &quot;f1_isdigit_sup2&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: false,
+    &quot;cpython&quot;: true
+   }
+  },
+  &quot;a2_point1_plus_point2&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;0.30000000000000004&quot;
+  },
+  &quot;a1b_overflow_1e308x10_inf&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;inf&quot;
+  },
+  &quot;a4_2pow53&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;9007199254740992.0&quot;
+  },
+  &quot;d1_RuntimeError_exists&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;RuntimeError&quot;
+  },
+  &quot;a3_subnormal&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;4.940656458412465e-324&quot;
+  },
+  &quot;c2_json_roundtrip&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: &quot;{\&quot;a\&quot;: 1.5, \&quot;b\&quot;: [1, 2]}&quot;
+  },
+  &quot;a1_1e300x10_same_as_cpython&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;1e+301&quot;,
+    &quot;cpython&quot;: &quot;1e+301&quot;,
+    &quot;note&quot;: &quot;brief 原文期望 inf，但雙精度下 1e301 為有限值，CPython 亦同&quot;
+   }
+  },
+  &quot;b_sweep_engine_formats&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;values&quot;: 29,
+    &quot;mismatches&quot;: [
+     {
+      &quot;i&quot;: 5,
+      &quot;fmt&quot;: &quot;%.2f&quot;,
+      &quot;micropython&quot;: &quot;0.13&quot;,
+      &quot;cpython&quot;: &quot;0.12&quot;
+     },
+     {
+      &quot;i&quot;: 21,
+      &quot;fmt&quot;: &quot;%.6f&quot;,
+      &quot;micropython&quot;: &quot;1e+300&quot;,
+      &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.000000&quot;
+     },
+     {
+      &quot;i&quot;: 21,
+      &quot;fmt&quot;: &quot;%.2f&quot;,
+      &quot;micropython&quot;: &quot;1e+300&quot;,
+      &quot;cpython&quot;: &quot;1000000000000000052504760255204420248704468581108159154915854115511802457988908195786371375080447864043704443832883878176942523235360430575644792184786706982848387200926575803737830233794788090059368953234970799945081119038967640880074652742780142494579258788820056842838115669472196386865459400540160.00&quot;
+     }
+    ]
+   }
+  },
+  &quot;b_info_fmt16_01&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.1&quot;,
+    &quot;cpython&quot;: &quot;0.1&quot;,
+    &quot;same&quot;: true
+   }
+  },
+  &quot;b_info_fmt17_1_3&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.3333333333333333&quot;,
+    &quot;cpython&quot;: &quot;0.33333333333333331&quot;,
+    &quot;same&quot;: false
+   }
+  },
+  &quot;b_info_fmt20f_01&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.10000000000000000000&quot;,
+    &quot;cpython&quot;: &quot;0.10000000000000000555&quot;,
+    &quot;same&quot;: false
+   }
+  },
+  &quot;b_fmt_1_3&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.333333333333333&quot;,
+    &quot;cpython&quot;: &quot;0.333333333333333&quot;
+   }
+  },
+  &quot;b_fmt_2675&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;2.675&quot;,
+    &quot;cpython&quot;: &quot;2.675&quot;
+   }
+  },
+  &quot;b_fmt_1e5&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;1e-05&quot;,
+    &quot;cpython&quot;: &quot;1e-05&quot;
+   }
+  },
+  &quot;b_fmt_15e12&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;1500000000000&quot;,
+    &quot;cpython&quot;: &quot;1500000000000&quot;
+   }
+  },
+  &quot;b_fmt17_01&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;micropython&quot;: &quot;0.1&quot;,
+    &quot;cpython&quot;: &quot;0.10000000000000001&quot;
+   }
+  },
+  &quot;g1_golden_fails_empty&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;cases&quot;: 51,
+    &quot;fails&quot;: []
+   }
+  },
+  &quot;g2_dump_vs_cpython&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;max_rel_diff&quot;: 1.2503656402067165e-16,
+    &quot;at&quot;: &quot;tvm_n_lump&quot;,
+    &quot;null_mismatch&quot;: [],
+    &quot;compared&quot;: 51
+   }
+  },
+  &quot;b_random_15g_4000&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;mismatches&quot;: 10,
+    &quot;list&quot;: [
+     [
+      335,
+      &quot;-1.50534485812639e+16&quot;,
+      &quot;-1.50534485812638e+16&quot;
+     ],
+     [
+      1259,
+      &quot;-281434728848399&quot;,
+      &quot;-281434728848398&quot;
+     ],
+     [
+      1505,
+      &quot;-5.15661727492313e+15&quot;,
+      &quot;-5.15661727492312e+15&quot;
+     ],
+     [
+      1820,
+      &quot;550832606486979&quot;,
+      &quot;550832606486978&quot;
+     ],
+     [
+      1968,
+      &quot;722102905966843&quot;,
+      &quot;722102905966842&quot;
+     ],
+     [
+      2850,
+      &quot;484445212889485&quot;,
+      &quot;484445212889484&quot;
+     ],
+     [
+      2864,
+      &quot;76587679049164.3&quot;,
+      &quot;76587679049164.2&quot;
+     ],
+     [
+      3488,
+      &quot;599597461686.563&quot;,
+      &quot;599597461686.562&quot;
+     ],
+     [
+      3668,
+      &quot;84698132973202.3&quot;,
+      &quot;84698132973202.2&quot;
+     ],
+     [
+      3885,
+      &quot;-186112338884229&quot;,
+      &quot;-186112338884228&quot;
+     ]
+    ]
+   }
+  },
+  &quot;b_random_format_number_4000&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;mismatches&quot;: 5,
+    &quot;list&quot;: [
+     [
+      1259,
+      &quot;-281.434.728.848.399,000000000&quot;,
+      &quot;-281.434.728.848.398,000000000&quot;
+     ],
+     [
+      1968,
+      &quot;722,102,905,966,843.0000&quot;,
+      &quot;722,102,905,966,842.0000&quot;
+     ],
+     [
+      2864,
+      &quot;76,587,679,049,164.300000000&quot;,
+      &quot;76,587,679,049,164.200000000&quot;
+     ],
+     [
+      3488,
+      &quot;599,597,461,686.5630&quot;,
+      &quot;599,597,461,686.5620&quot;
+     ],
+     [
+      3668,
+      &quot;84,698,132,973,202.3000&quot;,
+      &quot;84,698,132,973,202.2000&quot;
+     ]
+    ]
+   }
+  },
+  &quot;b_info_ties&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;differing&quot;: [
+     {
+      &quot;x&quot;: &quot;100000000000000.5&quot;,
+      &quot;micropython&quot;: [
+       &quot;100000000000001&quot;,
+       &quot;100000000000000.500000&quot;,
+       &quot;100000000000000.50&quot;,
+       &quot;100,000,000,000,001.00&quot;,
+       &quot;1E14&quot;
+      ],
+      &quot;cpython&quot;: [
+       &quot;100000000000000&quot;,
+       &quot;100000000000000.500000&quot;,
+       &quot;100000000000000.50&quot;,
+       &quot;100,000,000,000,000.00&quot;,
+       &quot;1E14&quot;
+      ],
+      &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;
+     },
+     {
+      &quot;x&quot;: &quot;0.125&quot;,
+      &quot;micropython&quot;: [
+       &quot;0.125&quot;,
+       &quot;0.125000&quot;,
+       &quot;0.13&quot;,
+       &quot;0.13&quot;,
+       &quot;0.125&quot;
+      ],
+      &quot;cpython&quot;: [
+       &quot;0.125&quot;,
+       &quot;0.125000&quot;,
+       &quot;0.12&quot;,
+       &quot;0.13&quot;,
+       &quot;0.125&quot;
+      ],
+      &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;
+     },
+     {
+      &quot;x&quot;: &quot;0.0078125&quot;,
+      &quot;micropython&quot;: [
+       &quot;0.0078125&quot;,
+       &quot;0.007813&quot;,
+       &quot;0.01&quot;,
+       &quot;0.01&quot;,
+       &quot;0.0078125&quot;
+      ],
+      &quot;cpython&quot;: [
+       &quot;0.0078125&quot;,
+       &quot;0.007812&quot;,
+       &quot;0.01&quot;,
+       &quot;0.01&quot;,
+       &quot;0.0078125&quot;
+      ],
+      &quot;cols&quot;: &quot;%.15g,%.6f,%.2f,fmt(2),fmt(None)&quot;
+     }
+    ]
+   }
+  },
+  &quot;g5_calc_unicode&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 7,
+    &quot;diffs&quot;: [
+     {
+      &quot;expr&quot;: &quot;1e400&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;數字超出範圍（第 1 個字元）&quot;,
+       &quot;field&quot;: &quot;expr&quot;
+      }
+     },
+     {
+      &quot;expr&quot;: &quot;π&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;未知的符號「π」（第 1 個字元）&quot;,
+       &quot;field&quot;: &quot;expr&quot;
+      }
+     },
+     {
+      &quot;expr&quot;: &quot;é+1&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;未知的符號「é」（第 1 個字元）&quot;,
+       &quot;field&quot;: &quot;expr&quot;
+      }
+     },
+     {
+      &quot;expr&quot;: &quot;abc&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;未知的符號「abc」（第 1 個字元）&quot;,
+       &quot;field&quot;: &quot;expr&quot;
+      }
+     }
+    ]
+   }
+  },
+  &quot;g6_bridge_input_errors&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 5,
+    &quot;diffs&quot;: [
+     {
+      &quot;req&quot;: &quot;tvm_N_string&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;N 必須是有限數字&quot;,
+       &quot;field&quot;: &quot;N&quot;
+      }
+     },
+     {
+      &quot;req&quot;: &quot;bad_decimals&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;decimals 必須是 0～9 的整數或 null&quot;,
+       &quot;field&quot;: &quot;decimals&quot;
+      }
+     },
+     {
+      &quot;req&quot;: &quot;amort_N_too_big&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：AttributeError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;N 不可超過 10000&quot;,
+       &quot;field&quot;: &quot;N&quot;
+      }
+     }
+    ]
+   }
+  },
+  &quot;g4_tax_large_amounts&quot;: {
+   &quot;pass&quot;: false,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 13,
+    &quot;diffs&quot;: [
+     {
+      &quot;amount&quot;: &quot;1e+23&quot;,
+      &quot;micropython&quot;: {
+       &quot;warnings&quot;: [],
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;tax&quot;: 5e+21,
+        &quot;net&quot;: 1.0000000000000001e+23,
+        &quot;gross&quot;: 1.0499999999999999e+23
+       },
+       &quot;display&quot;: {
+        &quot;tax&quot;: &quot;5,000,000,000,000,000,000,000.00&quot;,
+        &quot;net&quot;: &quot;100,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;105,000,000,000,000,000,000,000.00&quot;
+       }
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;net&quot;: 1e+23,
+        &quot;tax&quot;: 5e+21,
+        &quot;gross&quot;: 1.0499999999999999e+23
+       },
+       &quot;warnings&quot;: [],
+       &quot;display&quot;: {
+        &quot;net&quot;: &quot;100,000,000,000,000,000,000,000.00&quot;,
+        &quot;tax&quot;: &quot;5,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;105,000,000,000,000,000,000,000.00&quot;
+       }
+      }
+     },
+     {
+      &quot;amount&quot;: &quot;1e+24&quot;,
+      &quot;micropython&quot;: {
+       &quot;warnings&quot;: [],
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;tax&quot;: 5.0000000000000004e+22,
+        &quot;net&quot;: 9.999999999999998e+23,
+        &quot;gross&quot;: 1.05e+24
+       },
+       &quot;display&quot;: {
+        &quot;tax&quot;: &quot;50,000,000,000,000,000,000,000.00&quot;,
+        &quot;net&quot;: &quot;1,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;1,050,000,000,000,000,000,000,000.00&quot;
+       }
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;net&quot;: 1e+24,
+        &quot;tax&quot;: 5e+22,
+        &quot;gross&quot;: 1.05e+24
+       },
+       &quot;warnings&quot;: [],
+       &quot;display&quot;: {
+        &quot;net&quot;: &quot;1,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;tax&quot;: &quot;50,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;1,050,000,000,000,000,000,000,000.00&quot;
+       }
+      }
+     },
+     {
+      &quot;amount&quot;: &quot;1e+25&quot;,
+      &quot;micropython&quot;: {
+       &quot;warnings&quot;: [],
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;tax&quot;: 4.999999999999999e+23,
+        &quot;net&quot;: 1e+25,
+        &quot;gross&quot;: 1.05e+25
+       },
+       &quot;display&quot;: {
+        &quot;tax&quot;: &quot;500,000,000,000,000,000,000,000.00&quot;,
+        &quot;net&quot;: &quot;10,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;10,500,000,000,000,000,000,000,000.00&quot;
+       }
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;net&quot;: 1e+25,
+        &quot;tax&quot;: 5e+23,
+        &quot;gross&quot;: 1.0500000000000002e+25
+       },
+       &quot;warnings&quot;: [],
+       &quot;display&quot;: {
+        &quot;net&quot;: &quot;10,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;tax&quot;: &quot;500,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;10,500,000,000,000,000,000,000,000.00&quot;
+       }
+      }
+     },
+     {
+      &quot;amount&quot;: &quot;1e+30&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：ValueError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;net&quot;: 1e+30,
+        &quot;tax&quot;: 5e+28,
+        &quot;gross&quot;: 1.05e+30
+       },
+       &quot;warnings&quot;: [],
+       &quot;display&quot;: {
+        &quot;net&quot;: &quot;1,000,000,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;tax&quot;: &quot;50,000,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;1,050,000,000,000,000,000,000,000,000,000.00&quot;
+       }
+      }
+     },
+     {
+      &quot;amount&quot;: &quot;1e+100&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：ValueError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;net&quot;: 1e+100,
+        &quot;tax&quot;: 5e+98,
+        &quot;gross&quot;: 1.05e+100
+       },
+       &quot;warnings&quot;: [],
+       &quot;display&quot;: {
+        &quot;net&quot;: &quot;10,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;tax&quot;: &quot;500,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;10,500,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000.00&quot;
+       }
+      }
+     },
+     {
+      &quot;amount&quot;: &quot;1e+299&quot;,
+      &quot;micropython&quot;: {
+       &quot;ok&quot;: false,
+       &quot;error&quot;: &quot;內部錯誤：ValueError&quot;,
+       &quot;field&quot;: null
+      },
+      &quot;cpython&quot;: {
+       &quot;ok&quot;: true,
+       &quot;values&quot;: {
+        &quot;net&quot;: 1e+299,
+        &quot;tax&quot;: 5.0000000000000004e+297,
+        &quot;gross&quot;: 1.0500000000000002e+299
+       },
+       &quot;warnings&quot;: [],
+       &quot;display&quot;: {
+        &quot;net&quot;: &quot;100,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;tax&quot;: &quot;5,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000.00&quot;,
+        &quot;gross&quot;: &quot;105,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000.00&quot;
+       }
+      }
+     }
+    ]
+   }
+  },
+  &quot;g3_display_strings_same&quot;: {
+   &quot;pass&quot;: true,
+   &quot;value&quot;: {
+    &quot;compared&quot;: 51,
+    &quot;diffs&quot;: []
+   }
+  }
+ },
+ &quot;all_pass&quot;: false,
+ &quot;stderr&quot;: []
+}</pre></details>
+</body></html>

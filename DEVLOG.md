@@ -554,3 +554,39 @@
 
 **待辦**
 - 無
+
+## Task 18：spike——MicroPython 雙精度驗證（決策點）
+
+**需求**
+- 驗證 engine/ 能否在 MicroPython 1.29 WebAssembly（IEEE-754 double）上執行；不行就退回 Pyodide
+- 檢查清單 a～h：雙精度、%g 格式化與 CPython 一致、math/json、RuntimeError／遞迴、大整數比較、isdigit、golden 全集、計時
+
+**做法**
+- 使用者同意後 `npm install --save-exact @micropython/micropython-webassembly-pyscript@1.29.0-6`
+- tools/spike_float.mjs：loadMicroPython() → 用 FS.mkdir/writeFile 把 engine/*.py、golden/*.py、excel.json 寫入 VFS → sys.path 加 /bacalc → 跑檢查 → 以子行程跑 CPython（含 tools/golden_dump.py）取得參考值比對 → 印 JSON
+- 額外加的探測：4000 個可重現亂數的 %.15g 與 fmt.format_number 對照、tie 值、business/tax 大金額、calc 錯誤路徑、bridge 輸入驗證錯誤路徑、51 個 golden 的 display 字串逐字比對
+- brief 的「1e300*10 == inf」在雙精度下本來就不成立（1e301 有限，CPython 也是 False），改為與 CPython 比對並另加 1e308*10 == inf
+
+**產出**
+- tools/spike_float.mjs、package.json、package-lock.json、logs/spike-micropython-20261020.html
+
+**驗證**
+- 雙精度全部成立（次正規數、0.1+0.2、2**53+1、溢位 inf、repr 往返）
+- golden 51 案例失敗清單為空；與 CPython 最大相對差 1.25e-16；display 字串 51/51 相同
+- 計時：載入 MicroPython 約 17 ms、import engine.bridge 約 33 ms、合計約 65 ms；golden 3 輪約 90 ms；1 MB 預設 heap 結果相同
+- pytest 全部通過、check_portable 0（engine 未修改）
+- 決策：採用 MicroPython
+
+**問題與修正**
+- 發現引擎可攜性 bug（依裁定本任務不修，交 controller 另派）：
+  - engine/calc.py:28、engine/bridge.py:61 `Exception.__init__(self, msg)` 在 MicroPython 拋 AttributeError（Exception 無 __init__），所有 calc 錯誤與 bridge 輸入驗證錯誤都變成「內部錯誤：AttributeError」、field 為 null（仍是 ok:false，不會產生錯誤數字）
+  - engine/money.py:18-21 to_cents：MicroPython 的 '%.6f' 在 |x| ≥ 1e26 輸出指數形式 → split('.') ValueError；1e23～1e25 小數位不足、尾數不精確（差約 1 ulp）
+- MicroPython %g/%f 的差異：超過約 16 位有效數字補 0（'%.17g' % 0.1 → '0.1'）；第 15 位剛好是二進位精確中點時採 half-up（CPython half-even），4000 個亂數中 10 個 %.15g、5 個 format_number 末位差 1（皆 ≥1e11 的值）
+- 失敗的嘗試：npm install 第一次在 BACalc 沒有 package.json 時，npm 往上找到「Tien Research」根目錄的 package.json 並裝在那裡（該檔多一行相依、lock 與 node_modules/@micropython 被更動）；未刪除，待使用者決定是否還原；之後先建 BACalc/package.json 再重裝
+- 腳本開發時以 Python heredoc 寫入 JS 造成跳脫字元錯誤，已手動修正
+
+**待辦**
+- controller 派工修正 calc.py:28、bridge.py:61（改 super().__init__ 或不呼叫基底 __init__）與 money.to_cents 大數值
+- 決定 %.15g tie-breaking 差異是否接受（或引擎端改用 repr 自行進位）
+- 使用者決定是否還原「Tien Research」根目錄 package.json／package-lock.json／node_modules/@micropython
+- 繼續 Task 19

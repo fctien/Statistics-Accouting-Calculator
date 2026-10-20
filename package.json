@@ -1,0 +1,9 @@
+{
+  "name": "bacalc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@micropython/micropython-webassembly-pyscript": "1.29.0-6"
+  }
+}
