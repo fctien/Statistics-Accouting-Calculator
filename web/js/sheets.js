@@ -99,16 +99,16 @@ export const SHEETS = {
         help: "攤還區間的最後一期，例：第一年 → P2 = 12",
       },
       {
-        id: "BAL", label: "期末餘額", abbr: "BAL", unit: "元", kind: "number", example: "98772.00",
-        output: true, help: "P2 期結束後尚未償還的本金，例：第 12 期後餘額 98,772.00",
+        id: "BAL", label: "期末餘額", abbr: "BAL", unit: "元", kind: "number", example: "98771.99",
+        output: true, help: "P2 期結束後尚未償還的本金，例：第 12 期後餘額 98,771.99",
       },
       {
-        id: "PRN", label: "已還本金", abbr: "PRN", unit: "元", kind: "number", example: "-1228.00",
-        output: true, help: "P1～P2 期合計償還的本金（付出為負），例：-1,228.00",
+        id: "PRN", label: "已還本金", abbr: "PRN", unit: "元", kind: "number", example: "-1228.01",
+        output: true, help: "P1～P2 期合計償還的本金（付出為負），例：-1,228.01",
       },
       {
-        id: "INT", label: "已付利息", abbr: "INT", unit: "元", kind: "number", example: "-5966.60",
-        output: true, help: "P1～P2 期合計支付的利息（付出為負），例：-5,966.60",
+        id: "INT", label: "已付利息", abbr: "INT", unit: "元", kind: "number", example: "-5966.59",
+        output: true, help: "P1～P2 期合計支付的利息（付出為負），例：-5,966.59",
       },
     ],
     actions: [
@@ -239,7 +239,7 @@ export const SHEETS = {
     actions: [
       { id: "one_var", label: "單變數 1-V", primary: true, send: ["X", "F"] },
       { id: "two_var", label: "迴歸", send: ["X", "Y", "model"] },
-      { id: "predict", label: "預測", send: ["model", "A", "B", "XP", "YP"] },
+      { id: "predict", label: "預測", send: ["model", "A", "B", "XP", "YP"], solve: ["X", "Y"] },
     ],
   },
 
@@ -374,7 +374,7 @@ export const SHEETS = {
     intro: "輸入算式計算；支援 + − × ÷ ^ ( ) % √ 與 ANS",
     fields: [
       { id: "EXPR", label: "算式", abbr: "EXPR", unit: "", kind: "text", example: "2+3×4", alias: ["expr"], help: "要計算的算式，例：2+3×4（AOS 結果 14）" },
-      { id: "ANS", label: "上次答案", abbr: "ANS", unit: "", kind: "number", example: "0", help: "算式中 ANS 代表的數值，例：上一題答案 14" },
+      { id: "ANS", label: "上次答案", abbr: "ANS", unit: "", kind: "number", example: "14", help: "算式中 ANS 代表的數值，例：上一題答案 14" },
       { id: "value", label: "結果", abbr: "=", unit: "", kind: "number", example: "14", output: true, help: "算式的計算結果，例：14" },
     ],
     actions: [{ id: "eval", label: "＝ 計算", primary: true }],

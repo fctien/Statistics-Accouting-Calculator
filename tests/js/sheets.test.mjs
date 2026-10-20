@@ -81,4 +81,6 @@ test("留一格空白的動作都標了 solve", () => {
   for (const id of ["business-profit", "business-breakeven", "business-pct", "date"]) {
     assert.ok(Array.isArray(SHEETS[id].actions[0].solve), id);
   }
+  // STAT 預測：X'／Y' 恰給其一，求出的那格下次要重算（引擎鍵 X、Y）
+  assert.deepEqual(SHEETS.stats.actions.find((x) => x.id === "predict").solve, ["X", "Y"]);
 });

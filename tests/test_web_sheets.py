@@ -30,9 +30,17 @@ def requests():
     return json.loads(proc.stdout)
 
 
-def _close(got, want):
-    """example 是四捨五入過的數字：允許 0.05 或 0.5% 的差距。"""
-    return abs(got - want) <= max(0.051, 0.005 * abs(want))
+def _num(text):
+    """把 US 格式數字字串轉成 float（去掉千分位）。"""
+    return float(text.replace(",", ""))
+
+
+def _with_commas(example):
+    """"98771.99" -> "98,771.99"（說明文字可用千分位寫法）。"""
+    sign = "-" if example.startswith("-") else ""
+    body = example.lstrip("-")
+    ip, _, fp = body.partition(".")
+    return sign + "{:,}".format(int(ip)) + ("." + fp if fp else "")
 
 
 def test_every_engine_sheet_and_action_present(requests):
@@ -71,11 +79,14 @@ def test_examples_solve_in_engine_and_match_outputs(requests):
             elif f["kind"] == "date":
                 ok = val == [int(x) for x in ex.split("-")]
             else:
-                want = float(ex.replace(",", ""))
-                got = abs(val) if f["kind"] == "direction" else val
-                ok = _close(got, want)
+                # 範例必須等於引擎的 2 位小數顯示（display），不允許誤差
+                shown = res["display"][key]
+                if f["kind"] == "direction":
+                    shown = shown.lstrip("-")
+                ok = _num(ex) == _num(shown)
+                val = shown
             if not ok:
-                problems.append("%s：%s 範例 %r，引擎算出 %r" % (name, key, ex, val))
+                problems.append("%s：%s 範例 %r，引擎顯示 %r" % (name, key, ex, val))
     assert not problems, "\n".join(problems)
 
 
@@ -84,3 +95,43 @@ def test_sheet_actions_cover_bridge_routes(requests):
     from engine.bridge import ROUTES
     have = {(r["engine"], r["action"]) for r in requests if r["engine"]}
     assert set(ROUTES) <= have, sorted(set(ROUTES) - have)
+
+
+def test_help_text_quotes_the_example(requests):
+    """說明文字中的數字範例必須就是 example（已由上一個測試對過引擎）。"""
+    proc = run_node(["-e", (
+        "import('./web/js/sheets.js').then(m => process.stdout.write("
+        "JSON.stringify(m.SHEET_ORDER.flatMap(id => m.SHEETS[id].fields"
+        ".map(f => [id, f.id, f.kind, f.example, f.help])))))")])
+    assert proc.returncode == 0, proc.stderr
+    bad = []
+    for sheet, fid, kind, ex, helptext in json.loads(proc.stdout):
+        numeric = ex.lstrip("-").replace(".", "").isdigit()
+        if kind in ("number", "percent", "direction") and numeric:
+            if ex not in helptext and _with_commas(ex) not in helptext:
+                bad.append("%s.%s：說明 %r 未包含範例 %r"
+                           % (sheet, fid, helptext, ex))
+    assert not bad, "\n".join(bad)
+
+
+@pytest.mark.parametrize("given, solved", [("X", "Y"), ("Y", "X")])
+def test_stats_predict_can_be_reused(given, solved):
+    """預測後改已知那格再預測：上次求出的那格要重新當未知數（迴歸測試）。"""
+    proc = run_node(["tests/js/helpers/predict_resolve.mjs", given])
+    assert proc.returncode == 0, proc.stderr
+    steps = json.loads(proc.stdout)
+    first = json.loads(call(json.dumps(
+        {"sheet": "stats", "action": "predict", "inputs": steps["first"]})))
+    assert first["ok"], first
+    # 把引擎結果（鍵為小寫 x／y）當成「上次求出」填回去，再改已知那格
+    proc2 = run_node(["tests/js/helpers/predict_resolve.mjs", given,
+                      json.dumps(first["values"][solved.lower()])])
+    assert proc2.returncode == 0, proc2.stderr
+    second_inputs = json.loads(proc2.stdout)["second"]
+    assert second_inputs[solved] is None, second_inputs
+    second = json.loads(call(json.dumps(
+        {"sheet": "stats", "action": "predict", "inputs": second_inputs})))
+    assert second["ok"], second
+    model = {"X": lambda x: 2.2 + 0.6 * x, "Y": lambda y: (y - 2.2) / 0.6}
+    assert abs(second["values"][solved.lower()]
+               - model[given](second_inputs[given])) < 1e-9

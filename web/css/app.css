@@ -518,3 +518,13 @@ input[type="checkbox"].control {
   padding-left: 20px;
   color: var(--warn);
 }
+
+/* 重新求解提示：求出的輸入欄位（綠色）會在下次計算時重算 */
+.resolve-hint {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border-left: 4px solid var(--solved-border);
+  background: var(--solved-bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+}

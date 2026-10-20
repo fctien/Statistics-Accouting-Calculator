@@ -8,6 +8,7 @@ import { collect, parseNumber, resolveBlanks, toSigned } from "../input.js";
 import * as settings from "../settings.js";
 
 const DIR_TEXT = { in: "收到 ↓", out: "付出 ↑" };
+const RESOLVE_HINT = "綠色欄位是上次求出的結果；修改其他欄位後按 計算 會重新求出它";
 const forms = new Map(); // sheetId -> {form, opts}
 
 const domId = (prefix, sheetId, fieldId) => `${prefix}-${sheetId}-${fieldId}`;
@@ -96,6 +97,7 @@ function isEngineValue(ctrl) {
 function onEdited(wrap) {
   wrap.classList.remove("solved");
   forgetSolved(wrap.querySelector(".control"));
+  updateResolveHint(wrap.closest("form"));
   clearFieldError(wrap);
   updateTiSign(wrap);
 }
@@ -193,6 +195,7 @@ function buildField(sheetId, f) {
       setDirection(wrap, dirBtn.dataset.direction === "in" ? "out" : "in");
       wrap.classList.remove("solved");
       forgetSolved(wrap.querySelector(".control")); // 改方向＝使用者自己的值
+      updateResolveHint(wrap.closest("form"));
       clearFieldError(wrap);
     });
   }
@@ -292,6 +295,7 @@ function resetValues(form, sheetId) {
 }
 
 function clearMessages(form) {
+  form.querySelector(".resolve-hint")?.remove();
   const msg = form.querySelector(".form-message");
   msg.hidden = true;
   msg.textContent = "";
@@ -335,9 +339,9 @@ export function readInputs(sheetId, actionId) {
   const solvedKeys = [];
   for (const f of fields) {
     const ctrl = control(form, sheetId, f.id);
-    if (!isEngineValue(ctrl) || f.id in errors) continue;
+    if (f.id in errors || ctrl.value !== ctrl.dataset.shown) continue;
     const key = f.key || f.id;
-    solvedKeys.push(key);
+    if (isEngineValue(ctrl)) solvedKeys.push(key);
     const exact = Number(ctrl.dataset.exact);
     if (ctrl.dataset.exact === undefined || !Number.isFinite(exact)) continue;
     inputs[key] = f.kind === "direction"
@@ -382,6 +386,21 @@ function findField(sheetId, key) {
     || fields.find((f) => (f.alias || []).includes(key))
     || fields.find((f) => f.id.toLowerCase() === String(key).toLowerCase())
     || null;
+}
+
+/**
+ * 重新求解提示：有「求出的輸入欄位」（綠色、非輸出欄）時，在表單下方說明再按計算會重算它；
+ * 沒有時移除提示（例：使用者改了那一格）。
+ */
+function updateResolveHint(form) {
+  if (!form) return;
+  const has = form.querySelector(".field.solved:not(.output)") !== null;
+  const old = form.querySelector(".resolve-hint");
+  if (has && !old) {
+    form.querySelector(".form-status").after(el("p", { class: "resolve-hint", text: RESOLVE_HINT }));
+  } else if (!has && old) {
+    old.remove();
+  }
 }
 
 /** 欄位是使用者自己填的值（非空白、也不是上次引擎求出且未改動的值）。 */
@@ -440,7 +459,8 @@ export function showResult(response, sheetId) {
   if (!form) return result;
   clearMessages(form);
   for (const wrap of form.querySelectorAll(".field")) {
-    wrap.classList.remove("solved");
+    // 綠色＝目前仍是引擎求出且未改動的值（計算失敗時也保留，提示仍然成立）
+    wrap.classList.toggle("solved", isEngineValue(wrap.querySelector(".control")));
     clearFieldError(wrap);
   }
   if (!response || response.ok !== true) {
@@ -453,6 +473,7 @@ export function showResult(response, sheetId) {
     } else {
       showMessage(form, message);
     }
+    updateResolveHint(form);
     return result;
   }
   const values = response.values || {};
@@ -469,8 +490,18 @@ export function showResult(response, sheetId) {
     result.filled.push(f.id);
     lines.push(`${f.label} ${f.abbr} = ${shown}`);
   }
+  // 只有「這次」求出的格子會在下次重算；較早求出的格子降為一般值（仍保留完整精度 exact）
+  const solveKeys = new Set(SHEETS[sheetId].actions.flatMap((a) => a.solve || []));
+  for (const f of SHEETS[sheetId].fields) {
+    if (f.output || result.filled.includes(f.id) || !solveKeys.has(f.key || f.id)) continue;
+    const wrap = fieldWrap(form, f.id);
+    if (!wrap) continue;
+    delete wrap.querySelector(".control").dataset.solved;
+    wrap.classList.remove("solved");
+  }
   const status = form.querySelector(".form-status");
   if (lines.length) status.append(el("p", { class: "result-line", text: "已求出：" + lines.join("；") }));
+  updateResolveHint(form);
   const warnings = response.warnings || [];
   if (warnings.length) {
     const ul = el("ul", { class: "warnings" });
