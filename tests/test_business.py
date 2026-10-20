@@ -105,6 +105,15 @@ def test_tax_errors():
     assert tax(True, 5, "exclusive")["field"] == "amount"
 
 
+def test_tax_amount_bound():
+    # |金額| 必須 < 1e13 元，否則回 err（不讓 to_cents 拋例外變成內部錯誤）
+    for bad in (1e13, -1e13, 1e30):
+        r = tax(bad, 5, "exclusive")
+        assert r["ok"] is False and r["field"] == "amount" and "1e13" in r["error"]
+    r = tax(9999999999999.99, 0, "exclusive")
+    assert r["ok"] is True and r["values"]["net"] == 9999999999999.99
+
+
 def test_presets_have_source():
     assert TAX_PRESETS["營業稅"]["rate"] == 5
     assert TAX_PRESETS

@@ -15,6 +15,10 @@ BANNED = ("decimal", "datetime", "ast", "fractions", "dataclasses",
 # 允許的標準模組；其餘第三方套件由是否為本專案模組判斷
 ALLOWED = ("math", "json", "engine")
 _CALL_RE = re.compile(r"(?<![\w.])(eval|exec)\s*\(")
+# 內建基底類別的 __init__（MicroPython 內建型別無 __init__ 屬性，須改用 super()）
+_BASE_INIT_RE = re.compile(
+    r"(?<![\w.])(object|Exception|BaseException|\w+Error|\w+Exception|dict|list)"
+    r"\.__init__\s*\(")
 
 
 def _check_module(name, path, lineno, out):
@@ -46,6 +50,10 @@ def _scan_file(path, out):
         m = _CALL_RE.search(code)
         if m:
             out.append("%s:%d 禁用 %s()" % (path, i, m.group(1)))
+        m = _BASE_INIT_RE.search(code)
+        if m:
+            out.append("%s:%d 禁用 %s.__init__（MicroPython 不支援，改用 super()）"
+                       % (path, i, m.group(1)))
 
 
 def scan(root):

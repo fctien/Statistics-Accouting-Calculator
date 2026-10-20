@@ -72,3 +72,11 @@ def test_bad_mem_type(bad_mem):
 def test_mem_extra_keys_ignored_bad_value_rejected():
     assert evaluate("M1", mem={"M1": 2, "ACC": {"sum": 1}})["ok"] is True
     assert evaluate("1", mem={"M1": "x"})["ok"] is False
+
+
+def test_identifier_ascii_only():
+    # 識別字只接受 ASCII 字母：MicroPython 的 str.isalpha() 只認 ASCII，兩端錯誤訊息須一致
+    for expr, ch in (("π", "π"), ("é+1", "é")):
+        r = evaluate(expr)
+        assert r["ok"] is False and "無法辨識的字元「%s」" % ch in r["error"]
+    assert "未知的符號「abc」" in evaluate("abc")["error"]

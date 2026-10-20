@@ -13,16 +13,37 @@ def round_div(num, den):
     return -((-2 * num + den) // (2 * den))
 
 
+# 金額絕對值上限（元，不含）：to_cents 用 '%.15g' 取 15 位有效數字，
+# 13 位整數 + 2 位小數才保得住「分」；1e13 元（10 兆）遠超任何會計用途
+MAX_AMOUNT = 1e13
+
+
 def to_cents(x):
-    """浮點金額轉分；先格式化成 6 位小數字串再解析，避開 2.675*100 的誤差。"""
-    s = "%.6f" % x
-    neg = s.startswith("-")
-    if neg:
-        s = s[1:]
-    whole, frac = s.split(".")
-    micro = int(whole) * 1000000 + int(frac)
-    cents = round_div(micro, 10000)
-    return -cents if neg else cents
+    """浮點金額轉分（half away from zero），避開 2.675*100 的二進位誤差。
+
+    先以 '%.15g' 取 15 位有效數字，還原使用者輸入的十進位值（2.675 → "2.675"），
+    再以整數運算進位到分。不用 '%.6f'：其在 ~1e9 元以上會露出二進位誤差，
+    且 MicroPython 的 %f 超過約 16 位有效數字即不精確。
+    |x| 須 < MAX_AMOUNT 且為有限數，否則拋 ValueError（呼叫端應先驗證並回 err）。
+    """
+    if not (-MAX_AMOUNT < x < MAX_AMOUNT):  # NaN 比較皆為 False，一併擋下
+        raise ValueError("金額超出範圍")
+    s = "%.15g" % abs(x)
+    exp = 0
+    if "e" in s:                 # |x| < 1e13，只會出現負指數（如 1e-05）
+        s, e = s.split("e")
+        exp = int(e)
+    if "." in s:
+        ip, fp = s.split(".")
+    else:
+        ip, fp = s, ""
+    digits = int(ip + fp)        # 值 = digits * 10**(exp - len(fp))
+    k = 2 + exp - len(fp)        # 換成分需乘 10**k
+    if k >= 0:
+        cents = digits * 10 ** k
+    else:
+        cents = round_div(digits, 10 ** (-k))
+    return -cents if x < 0 else cents
 
 
 def _rate_bp(rate_pct):

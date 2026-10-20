@@ -1,5 +1,8 @@
 """金額（分整數）測試。"""
-from engine.money import round_div, to_cents, tax_exclusive, tax_inclusive
+import pytest
+
+from engine.money import (MAX_AMOUNT, round_div, to_cents, tax_exclusive,
+                          tax_inclusive)
 
 
 def test_round_half_away():
@@ -8,6 +11,26 @@ def test_round_half_away():
 
 def test_to_cents_no_float_drift():
     assert to_cents(2.675) == 268 and to_cents(-0.005) == -1
+
+
+def test_to_cents_large_typed_amount():
+    # 大金額仍以使用者輸入的十進位值進位（half away from zero）；
+    # 舊作法 '%.6f' 在 ~1e9 元以上會看到二進位誤差（.18499755… → 少 1 分），MicroPython 也會不同
+    assert to_cents(116455781560.185) == 11645578156019
+    assert to_cents(-116455781560.185) == -11645578156019
+    assert to_cents(1e-05) == 0 and to_cents(0.0049999999) == 0
+    assert to_cents(0.0) == 0 and to_cents(-0.0) == 0 and to_cents(12) == 1200
+
+
+def test_to_cents_bound():
+    # 上限 1e13 元：'%.15g' 的 15 位有效數字 = 13 位整數 + 2 位小數，分位才不會被截掉
+    assert MAX_AMOUNT == 1e13
+    assert to_cents(9999999999999.99) == 999999999999999
+    assert to_cents(-1234567890123.45) == -123456789012345
+    assert to_cents(1157981314486.25) == 115798131448625
+    for bad in (1e13, -1e13, 1e15, 1e26, float("inf"), float("-inf"), float("nan")):
+        with pytest.raises(ValueError):
+            to_cents(bad)
 
 
 def test_tax_exclusive_5pct():

@@ -58,7 +58,7 @@ class _InputError(Exception):
     """輸入驗證失敗（內部使用），帶中文訊息與欄位名。"""
 
     def __init__(self, message, field=None):
-        Exception.__init__(self, message)
+        super().__init__(message)  # MicroPython 相容：不可寫 Exception.__init__
         self.message = message
         self.field = field
 

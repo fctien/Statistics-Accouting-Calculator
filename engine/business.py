@@ -168,6 +168,8 @@ def tax(amount, rate_pct, mode):
     """
     if not _is_num(amount):
         return err("金額必須是有限數值", "amount")
+    if abs(amount) >= money.MAX_AMOUNT:
+        return err("金額絕對值必須小於 1e13 元", "amount")
     if not _is_num(rate_pct) or rate_pct <= -100:
         return err("稅率必須是大於 -100 的有限數值", "rate")
     if mode not in ("exclusive", "inclusive"):

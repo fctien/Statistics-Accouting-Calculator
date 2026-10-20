@@ -17,6 +17,8 @@ from engine.result import err, ok, is_finite
 
 _MAX_DEPTH = 40  # 巢狀深度上限（遞迴保護，MicroPython 堆疊較小）
 _DIGITS = "0123456789"
+# 識別字字母只認 ASCII：MicroPython 的 str.isalpha() 只認 ASCII，CPython 認 Unicode，統一以此表判斷
+_LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _FUNCS = {"sqrt": 1, "ln": 1, "exp": 1, "inv": 1, "nPr": 2, "nCr": 2}
 _MUL = {"*": "*", "×": "*", "/": "/", "÷": "/"}
 
@@ -25,7 +27,7 @@ class _CalcError(Exception):
     """內部錯誤：訊息與位置（1 起算）。"""
 
     def __init__(self, msg, pos):
-        Exception.__init__(self, msg)
+        super().__init__(msg)  # MicroPython 的 Exception 沒有 __init__ 屬性，須用 super()
         self.msg = msg
         self.pos = pos
 
@@ -68,9 +70,9 @@ def _tokenize(s):
                 raise _CalcError("數字超出範圍", i + 1)
             toks.append(("num", val, i + 1))
             i = j
-        elif c.isalpha():
+        elif c in _LETTERS:
             j = i
-            while j < n and (s[j].isalpha() or s[j] in _DIGITS):
+            while j < n and (s[j] in _LETTERS or s[j] in _DIGITS):
                 j += 1
             toks.append(("id", s[i:j], i + 1))
             i = j
