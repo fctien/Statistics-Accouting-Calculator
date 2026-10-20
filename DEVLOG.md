@@ -803,3 +803,30 @@
 **待辦**
 - controller 在瀏覽器確認重新求解提示與 STAT 重複預測
 - Task 22～24 各表專屬版面
+
+## 2026-10-20 Task 21 審查修正 round 2
+
+**需求**
+- controller 瀏覽器檢查（HEAD 5638a51）發現：STAT 同時填 X' 與 Y' 按「預測」時，bridge 回 field "X"，畫面卻把錯誤標在頁面上方的資料清單 X（f-stats-X），讓使用者以為資料錯了，應標在 X'（f-stats-XP）
+- 規則套用到所有工作表：錯誤欄位先在剛執行的動作欄位中找，找不到再全域對應
+
+**做法**
+- sheets.js 新增純函式 fieldForKey(sheetId, key, actionId)：先在 sendFields(該動作) 中依 引擎鍵 key ?? id → out → id → alias → 不分大小寫 對應；找不到再用原本的全域順序（out ?? id → id／key → alias → 不分大小寫）；不存在的 actionId 直接走全域
+- form.js 移除私有的 findField；showResult(response, sheetId, actionId) 改用 fieldForKey，省略 actionId 時用最近一次 readInputs 記錄的動作（lastAction）；app.js 呼叫時傳入 actionId
+- 回傳值的對應也用同一規則（predict 的 y → YP；two_var 的 a、b 不在送出欄位，走全域對到 A、B）
+
+**產出**
+- commit fd12839；web/js/sheets.js、web/js/views/form.js、web/js/app.js、web/sw.js（SHELL_HASH）、tests/js/sheets.test.mjs、tests/test_web_sheets.py
+- logs/verify-20261020-2212.html
+
+**驗證**
+- RED：sheets.test.mjs 的 fieldForKey 測試，因為缺少 export 而失敗（16 pass、1 fail）
+- GREEN：node --test 23 pass；pytest 268 passed（新增 bridge 實際回 field "X" → 預測對到 XP、迴歸對到 X）；build_web --check、check_shell、flake8 都通過
+- 瀏覽器上的錯誤標示位置：待 controller 確認
+
+**問題與修正**
+- 驗證腳本超過 2 分鐘的工具逾時，改在背景執行後再讀結果
+
+**待辦**
+- controller 在瀏覽器確認 STAT「X'、Y' 都填」的錯誤標在 X' 欄
+- Task 22～24 各表專屬版面
