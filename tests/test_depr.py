@@ -32,9 +32,20 @@ def test_db_never_below_salvage():
             assert all(r[2] >= 1000 and r[1] >= 0 for r in rows)
 
 
-def test_db_partial_first_year():
-    r = schedule("DB", 10000, 1000, 5, 7, 200)["values"]["rows"]
-    assert len(r) == 6 and abs(r[0][1] - 4000 * 0.5) < 1e-9
+def test_db_partial_year_rejected():
+    for call in (lambda: schedule("DB", 12000, 0, 5, 7, 200),
+                 lambda: year("DB", 12000, 0, 5, 7, 200, 6)):
+        r = call()
+        assert not r["ok"] and r["field"] == "M01"
+        assert r["error"] == "DB 部分年度需 TI 手冊範例驗證，目前僅支援 M01=1"
+
+
+def test_dbx_switches_to_sl_before_last_year():
+    rows = schedule("DBX", 10000, 0, 5)["values"]["rows"]
+    deps = [r[1] for r in rows]
+    for got, want in zip(deps, (4000, 2400, 1440, 1080, 1080)):
+        assert abs(got - want) < 1e-9
+    assert abs(sum(deps) - 10000) < 1e-9
 
 
 def test_dbx_matches_vdb_values():

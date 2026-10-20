@@ -7,6 +7,7 @@ from engine.result import err, ok, is_finite
 
 METHODS = ("SL", "SYD", "DB", "DBX")
 MAX_LIF = 10000
+_M01_DB_MSG = "DB 部分年度需 TI 手冊範例驗證，目前僅支援 M01=1"
 _M01_MSG = "SYD 部分年度需 TI 手冊範例驗證，目前僅支援 M01=1"
 
 
@@ -38,6 +39,8 @@ def _validate(method, cst, sal, lif, m01, db_pct):
         return err("DB 必須大於 0", "DB"), 0
     if method in ("SYD", "DBX") and m01 != 1:
         return err(_M01_MSG, "M01"), 0
+    if method == "DB" and m01 != 1:
+        return err(_M01_DB_MSG, "M01"), 0
     return None, int(lif)
 
 
@@ -57,12 +60,9 @@ def _deps(method, cst, sal, lif, m01, db_pct):
     else:
         rate = db_pct / 100.0 / lif
         rbv = cst
-        n = lif if m01 == 1 else lif + 1
-        for k in range(n):
+        for k in range(lif):
             avail = rbv - sal
             dep = rbv * rate
-            if k == 0 and m01 != 1:
-                dep *= frac
             if method == "DBX":
                 # 改用直線法：剩餘可折舊額 ÷ 剩餘年數，取較大者（VDB）
                 dep = max(dep, avail / (lif - k))
