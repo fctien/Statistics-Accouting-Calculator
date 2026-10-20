@@ -4,14 +4,21 @@
 
 const KEY = "bacalc.settings";
 
-/** 預設值：小數 2 位、美式千分位、AOS 運算順序、外觀跟隨系統。 */
-export const DEFAULTS = Object.freeze({ decimals: 2, sep: "us", mode: "AOS", theme: "auto" });
+/**
+ * 預設值：小數 2 位、美式千分位、AOS 運算順序、外觀跟隨系統、日期顯示美式 mm/dd/yyyy、
+ * 稅率預設值不指定（taxPreset 為 TAX_PRESETS 的名稱，空字串＝自訂）。
+ */
+export const DEFAULTS = Object.freeze({
+  decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "",
+});
 
 const VALID = {
   decimals: (v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 9),
   sep: (v) => v === "us" || v === "eu",
   mode: (v) => v === "AOS" || v === "CHAIN",
   theme: (v) => v === "auto" || v === "light" || v === "dark",
+  dateFmt: (v) => v === "us" || v === "eu",
+  taxPreset: (v) => typeof v === "string" && v.length <= 40,
 };
 
 let cache = null;
@@ -69,7 +76,7 @@ export function set(patch) {
   return { settings: { ...next }, errors };
 }
 
-/** 送給引擎的 settings（bridge 只認 decimals、sep、mode）。 */
+/** 送給引擎的 settings（bridge 只認 decimals、sep、mode；dateFmt、taxPreset 只供畫面使用）。 */
 export function toEngine(s = get()) {
   return { decimals: s.decimals, sep: s.sep, mode: s.mode };
 }
@@ -80,6 +87,20 @@ export function applyTheme(s = get()) {
   if (!root) return;
   if (s.theme === "light" || s.theme === "dark") root.dataset.theme = s.theme;
   else delete root.dataset.theme;
+}
+
+/**
+ * 更新設定並立即生效：寫入、套用外觀、並通知畫面（document 事件 "bacalc-settings"），
+ * 讓目前顯示的結果、紙帶、日期讀數用新格式重新顯示。回傳 {settings, errors}。
+ */
+export function commit(patch) {
+  const r = set(patch);
+  applyTheme(r.settings);
+  const doc = globalThis.document;
+  if (doc && typeof CustomEvent === "function") {
+    doc.dispatchEvent(new CustomEvent("bacalc-settings", { detail: r.settings }));
+  }
+  return r;
 }
 
 /** 測試用：清除記憶體快取。 */

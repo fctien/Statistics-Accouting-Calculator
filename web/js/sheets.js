@@ -398,6 +398,11 @@ export const SHEETS = {
         help: "千分位與小數點符號，例：美式 1,234.56、歐式 1.234,56",
       },
       {
+        id: "dateFmt", label: "日期顯示格式", abbr: "DATE", unit: "", kind: "select", example: "us", initial: "us",
+        options: [{ value: "us", label: "mm/dd/yyyy（美式）" }, { value: "eu", label: "dd.mm.yyyy（歐式）" }],
+        help: "日期的顯示方式，例：美式 12/31/2026、歐式 31.12.2026；日期輸入欄位不受影響",
+      },
+      {
         id: "mode", label: "運算順序", abbr: "AOS/Chn", unit: "", kind: "select", example: "AOS", initial: "AOS",
         options: [{ value: "AOS", label: "代數順序 AOS" }, { value: "CHAIN", label: "依序 Chain" }],
         help: "計算機的運算順序，例：2+3×4 在 AOS 為 14、Chain 為 20",

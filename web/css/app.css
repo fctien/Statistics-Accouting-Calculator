@@ -722,3 +722,275 @@ input[type="checkbox"].control {
     width: 6.2rem;
   }
 }
+
+/* ---- Task 24：頁首小數位數、計算機、設定 ---- */
+.quick-dec {
+  margin-left: auto;
+  font-size: 0.875rem;
+}
+
+.quick-dec select {
+  min-height: 32px;
+  margin-left: 4px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.calc {
+  display: grid;
+  gap: 16px;
+  max-width: 920px;
+}
+
+@media (min-width: 900px) {
+  .calc {
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    align-items: start;
+  }
+
+  .calc-tape {
+    grid-column: 1 / -1;
+  }
+}
+
+.calc-mode {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.calc-hint {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-left: 4px solid var(--warn);
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.calc-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.calc-expr {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 1.25rem;
+}
+
+.calc-eq {
+  min-width: 56px;
+  font-size: 1.25rem;
+}
+
+.calc-status {
+  min-height: 1.4em;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.calc-result {
+  display: block;
+  min-height: 2.2rem;
+  margin: 4px 0 8px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.key {
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.key-op {
+  background: var(--surface-2);
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+.key-digit {
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.key:active {
+  background: var(--surface-2);
+}
+
+.calc-mem,
+.calc-tape {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.calc-mem h3,
+.calc-tape h3,
+.settings-preview h3,
+.settings-about h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.mem-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mem-row select {
+  min-height: 44px;
+  font: inherit;
+}
+
+.mem-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mem-key {
+  min-width: 56px;
+}
+
+.calc-note {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.mem-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+
+.mem-cell {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mem-name {
+  color: var(--muted);
+}
+
+.mem-val {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.calc-sigma {
+  margin: 8px 0 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.tape-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tape-list {
+  max-height: 40vh;
+  margin: 0;
+  padding: 0 0 0 28px;
+  overflow: auto;
+}
+
+.tape-line {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.tape-line:hover {
+  background: var(--surface-2);
+}
+
+.tape-val {
+  font-weight: 700;
+}
+
+.date-readout {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.settings-preview,
+.settings-about {
+  max-width: 640px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.about-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.about-list dt {
+  color: var(--muted);
+}
+
+.about-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

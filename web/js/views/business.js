@@ -2,6 +2,7 @@
 // 四張表單同時存在 DOM，切換分頁只是顯示／隱藏，所以各分頁輸入的內容會保留。
 // 稅額分頁多一個「稅率預設值」下拉（來自 sheets.js 的 TAX_PRESETS）並顯示出處連結與查證日期。
 import { TAX_PRESETS } from "../sheets.js";
+import * as settingsStore from "../settings.js";
 import { renderForm, setValues } from "./form.js";
 import { runEngineAction, watchStale, markStale } from "./run.js";
 
@@ -58,6 +59,13 @@ function buildPresets(panel) {
     }
   };
   for (const type of ["input", "click", "keydown"]) panel.addEventListener(type, sync);
+  // 設定頁選了預設稅率：開啟稅額分頁時自動選取並帶入稅率（表單已先 renderForm）
+  const preferred = settingsStore.get().taxPreset;
+  if (preferred in TAX_PRESETS) {
+    select.value = preferred;
+    showSource(preferred);
+    setValues("tax", { RATE: String(TAX_PRESETS[preferred].rate) });
+  }
   return box;
 }
 

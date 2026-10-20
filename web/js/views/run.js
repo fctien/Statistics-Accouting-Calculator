@@ -7,9 +7,10 @@ import { callEngine } from "../py-client.js";
 import { SHEETS } from "../sheets.js";
 import * as settingsStore from "../settings.js";
 import { createGuard } from "../generation.js";
-import { readInputs, showErrors, showResult, setBusy, showFormMessage } from "./form.js";
+import { readInputs, showErrors, showResult, setBusy, showFormMessage, getOnAction } from "./form.js";
 
 const guard = createGuard(); // 世代：輸入改變或結果失效就 bump，進行中的請求回來時檢查
+const lastOk = new Map(); // sheetId -> {form, actionId}：目前畫面上仍有效的最後一次成功計算
 const STALE_TITLE = "這是舊的計算結果，輸入已改變，請按計算重新求出";
 
 function formOf(sheetId) {
@@ -33,6 +34,7 @@ export function clearStale(sheetId) {
  */
 export function markStale(sheetId, exceptWrap = null) {
   guard.bump(sheetId);
+  lastOk.delete(sheetId);
   const form = formOf(sheetId);
   if (!form) return;
   for (const wrap of form.querySelectorAll(".field")) {
@@ -127,7 +129,10 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
     if (!live) setBusy(sheetId, false);
   }
   if (!isCurrent() || !guard.isCurrent(sheetId, token)) return null; // 請求期間輸入已改：丟棄舊回應
-  if (response.ok === true) clearStale(sheetId);
+  if (response.ok === true) {
+    clearStale(sheetId);
+    lastOk.set(sheetId, { form: formOf(sheetId), actionId });
+  }
   const toShow = response.ok !== true && mapError ? (mapError(response) || response) : response;
   const shown = showResult(toShow, sheetId, actionId);
   if (response.ok !== true) {
@@ -136,4 +141,24 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
   }
   restore();
   return { response, shown, inputs };
+}
+
+/**
+ * 設定（小數位數、千分位）改變後，重新執行每張工作表「目前仍有效」的最後一次計算，
+ * 讓畫面上的結果用新格式重新顯示（由引擎格式化，JS 不自己改字串）。
+ * 已被編輯或失敗而失效的結果不會重算；表單已被換掉（換頁）的紀錄一律忽略。
+ */
+export async function refreshAfterSettings() {
+  for (const [sheetId, rec] of [...lastOk]) {
+    if (!rec.form || !rec.form.isConnected || rec.form !== formOf(sheetId)) {
+      lastOk.delete(sheetId);
+      continue;
+    }
+    const onAction = getOnAction(sheetId);
+    if (onAction) await onAction(rec.actionId);
+  }
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("bacalc-settings", () => { refreshAfterSettings(); });
 }

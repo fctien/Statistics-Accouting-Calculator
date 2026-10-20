@@ -32,6 +32,11 @@ function getForm(sheetId) {
   return entry.form;
 }
 
+/** 該工作表目前表單的動作處理函式（opts.onAction）；沒有掛載時為 null。設定改變後重新計算用。 */
+export function getOnAction(sheetId) {
+  return getForm(sheetId) ? forms.get(sheetId).opts.onAction || null : null;
+}
+
 function fieldWrap(form, fieldId) {
   return form.querySelector(`.field[data-field="${CSS.escape(fieldId)}"]`);
 }

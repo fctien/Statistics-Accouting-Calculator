@@ -931,3 +931,31 @@
 
 **待辦**
 - 無
+
+## 2026-10-20 Task 24：計算機、紙帶、記憶、設定（M3 收尾，tag step5）
+
+**需求**
+- 計算機畫面（算式輸入、手機按鍵面板、紙帶、M0–M9 記憶面板、Σ 累加）與完整設定畫面（小數位數、千分位、日期格式、AOS／Chain、外觀、稅率預設、「關於」含啟動計時）
+
+**做法**
+- 純模型（可 node 測試）：memstore.js 鏡射 engine/memory.py（÷0、溢位不改記憶；toJSON／fromJSON 同 to_dict 形狀）、tape.js（上限 500、歷史瀏覽 walker）、keypad.js（按鍵表＋游標插入／退格）、datefmt.js
+- views/calc.js：所有算式與顯示都走 callEngine(calc/eval)，記憶值以 MEM 送出；紙帶存原始值，設定改變時用「把數值當常數算式」交給引擎重新格式化，JS 不自己格式化；錯誤只顯示在輸入框下方不進紙帶；Chain 模式顯示 −2^2 = 4 提示
+- views/settings.js：選了立即生效（settings.commit 寫入＋套用外觀＋發 bacalc-settings 事件）；即時預覽由引擎格式化；關於區的 SHELL_HASH 讀 sw.js 文字、MicroPython 套件版本讀 py/manifest.json（避免與 SHELL_HASH 循環），計時取自 app.js 的 timings
+- run.js 記錄每張工作表最後一次仍有效的成功計算，bacalc-settings 事件時重新呼叫該畫面的 onAction（含 AMORT／DEPR 表格與 CSV）；頁首加小數位數選單
+- 日期顯示格式：date／bond 的日期欄位旁加讀數（輸入欄位仍是 type=date）；稅額分頁開啟時套用設定的稅率預設
+
+**產出**
+- web/js/{memstore,tape,keypad,datefmt}.js、views/{calc,settings,datereadout}.js；修改 app.js、settings.js、sheets.js、run.js、form.js、date.js、bond.js、business.js、index.html、app.css、sw.js；tests/js/{memstore,tape,keypad}.test.mjs、settings.test.mjs
+
+**驗證**
+- node --test 全綠、pytest 全綠、build_web／check_shell／check_portable 通過
+- 瀏覽器：200+10% → 220.00；Chain 下 2+3*4 → 20.00；點紙帶把 200+10% 帶回輸入框；M3=7 後 M÷0 顯示「記憶沒有改變：除以零」且 M3 仍 7.00；TVM 算出 PMT 599.55 後頁首改 4 位 → 即時變 599.5505；歐式千分位切換後紙帶 2.469.135,78 ↔ 2,469,135.7820
+
+**問題與修正**
+- memstore.store(i, undefined) 因預設參數 x = 0 被當成 0 存入（測試抓到），改為不給預設值
+- 先用 Bash heredoc 寫檔因引號解析失敗，改用 Write 工具
+- 測試與實作同時寫，沒有單獨保留 RED 輸出
+- 瀏覽器工具輸入欄位後立刻操作頁首選單，會先觸發欄位的 change（blur）使結果標為過期（既有 watchStale 的保守行為，不會顯示錯數字）
+
+**待辦**
+- Task 25：紙帶、記憶、設定的持久化（IndexedDB）

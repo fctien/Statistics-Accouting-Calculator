@@ -5,6 +5,7 @@
 // 改了其他輸入再按計算會重新求它（沿用通用表單的重新求解規則）。
 import { renderForm, showResult } from "./form.js";
 import { runEngineAction, watchStale } from "./run.js";
+import { attachDateReadouts } from "./datereadout.js";
 
 const SHEET = "bond";
 
@@ -54,4 +55,5 @@ export function mount(container) {
   calc.title = "留空殖利率就求價格，留空價格就求殖利率（Enter）";
   actions.prepend(calc);
   watchStale(SHEET);
+  attachDateReadouts(form); // 日期欄位旁依設定顯示美式／歐式格式
 }

@@ -5,7 +5,7 @@ import { callEngine, onStatus } from "./py-client.js";
 import { SHEETS } from "./sheets.js";
 import * as settingsStore from "./settings.js";
 import { initNav, go, select } from "./views/nav.js";
-import { renderForm, readInputs, showErrors, setValues, showInfo } from "./views/form.js";
+import { renderForm } from "./views/form.js";
 import { runEngineAction } from "./views/run.js";
 import * as tvmView from "./views/tvm.js";
 import * as amortView from "./views/amort.js";
@@ -16,6 +16,8 @@ import * as cashflowView from "./views/cashflow.js";
 import * as statsView from "./views/stats.js";
 import * as bondView from "./views/bond.js";
 import * as deprView from "./views/depr.js";
+import * as calcView from "./views/calc.js";
+import * as settingsView from "./views/settings.js";
 
 export const APP_VERSION = "0.1.0";
 
@@ -78,21 +80,14 @@ const VIEWS = {
   stats: statsView,
   bond: bondView,
   depr: deprView,
+  calc: calcView,
+  settings: settingsView,
 };
 
 let pendingPrefill = null; // 跨工作表帶值（TVM → AMORT）：下一次掛載的畫面取用一次
 
-/** 執行通用工作表動作：設定頁不經引擎，其餘交給 views/run.js。 */
+/** 執行通用工作表動作（交給 views/run.js；設定頁與計算機有自己的畫面，不走這裡）。 */
 async function runAction(sheetId, actionId) {
-  const sheet = SHEETS[sheetId];
-  if (sheet.engine === null) { // 設定頁：不經引擎
-    const { inputs, errors } = readInputs(sheetId, actionId);
-    if (showErrors(sheetId, errors)) return;
-    const { errors: bad } = settingsStore.set(inputs);
-    settingsStore.applyTheme();
-    if (!showErrors(sheetId, bad)) showInfo(sheetId, "已套用設定（只存在這台裝置）");
-    return;
-  }
   await runEngineAction(sheetId, actionId);
 }
 
@@ -104,7 +99,6 @@ function setHeading(sheetId) {
 }
 
 function mountSheet(sheetId, { initial }) {
-  const sheet = SHEETS[sheetId];
   const title = document.getElementById("sheet-title");
   const container = document.getElementById("sheet");
   setHeading(sheetId);
@@ -119,6 +113,7 @@ function mountSheet(sheetId, { initial }) {
         pendingPrefill = values || null;
         go(id);
       },
+      about: { appVersion: APP_VERSION, timings }, // 設定頁的「關於」區
       onSelect: (id) => { // 畫面內切換子分頁：同步標題與網址
         select(id);
         setHeading(id);
@@ -129,12 +124,29 @@ function mountSheet(sheetId, { initial }) {
       onAction: (actionId) => runAction(sheetId, actionId),
     });
   }
-  if (sheet.engine === null) setValues(sheetId, settingsStore.get());
   if (!initial) title.focus(); // 換頁後把焦點移到標題，螢幕閱讀器會念出新工作表
+}
+
+/** 頁首的小數位數選單：與設定頁同一個設定，改了立即重新顯示目前的結果。 */
+function initQuickDecimals() {
+  const sel = document.getElementById("quick-decimals");
+  if (!sel) return;
+  for (let i = 0; i <= 9; i++) sel.append(new Option(String(i), String(i)));
+  sel.append(new Option("浮動", ""));
+  const sync = () => {
+    const d = settingsStore.get().decimals;
+    sel.value = d === null ? "" : String(d);
+  };
+  sync();
+  sel.addEventListener("change", () => {
+    settingsStore.commit({ decimals: sel.value === "" ? null : Number(sel.value) });
+  });
+  document.addEventListener("bacalc-settings", sync);
 }
 
 function onAppShell() {
   settingsStore.applyTheme();
+  initQuickDecimals();
   initNav({
     sidebar: document.getElementById("side-nav"),
     tabbar: document.getElementById("tab-bar"),

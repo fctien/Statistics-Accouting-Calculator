@@ -16,7 +16,9 @@ function fakeStorage(initial = {}) {
 test("沒有 localStorage：回傳預設值，set 只在記憶體生效", () => {
   delete globalThis.localStorage;
   _resetCache();
-  assert.deepEqual(get(), { decimals: 2, sep: "us", mode: "AOS", theme: "auto" });
+  assert.deepEqual(get(), {
+    decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "",
+  });
   assert.deepEqual(DEFAULTS, get());
   const r = set({ decimals: 4 });
   assert.deepEqual(r.errors, {});
@@ -29,13 +31,27 @@ test("讀寫 localStorage；不合法值忽略並回報", () => {
   const st = fakeStorage({ "bacalc.settings": JSON.stringify({ decimals: 5, sep: "xx", theme: "dark" }) });
   globalThis.localStorage = st;
   _resetCache();
-  assert.deepEqual(get(), { decimals: 5, sep: "us", mode: "AOS", theme: "dark" });
+  assert.deepEqual(get(), {
+    decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "",
+  });
   const r = set({ decimals: null, mode: "CHAIN", sep: "fr", bogus: 1 });
   assert.deepEqual(Object.keys(r.errors), ["sep"]);
   assert.deepEqual(JSON.parse(st.map.get("bacalc.settings")),
-    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark" });
+    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "" });
   assert.deepEqual(toEngine(), { decimals: null, sep: "us", mode: "CHAIN" });
   delete globalThis.localStorage;
+});
+
+test("日期格式與稅率預設值：合法才寫入", () => {
+  delete globalThis.localStorage;
+  _resetCache();
+  assert.deepEqual(set({ dateFmt: "eu", taxPreset: "營業稅" }).errors, {});
+  assert.equal(get().dateFmt, "eu");
+  assert.equal(get().taxPreset, "營業稅");
+  assert.deepEqual(Object.keys(set({ dateFmt: "jp", taxPreset: 5 }).errors).sort(), ["dateFmt", "taxPreset"]);
+  assert.equal(get().dateFmt, "eu");
+  assert.deepEqual(toEngine(), { decimals: 2, sep: "us", mode: "AOS" });
+  _resetCache();
 });
 
 test("localStorage 丟例外或內容壞掉：不影響運作", () => {
