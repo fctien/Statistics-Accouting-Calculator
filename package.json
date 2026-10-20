@@ -7,6 +7,7 @@
     "@micropython/micropython-webassembly-pyscript": "1.29.0-6"
   },
   "scripts": {
-    "test:mpy": "node tools/run_mpy_golden.mjs"
+    "test:mpy": "node tools/run_mpy_golden.mjs",
+    "test:worker": "node tools/check_worker.mjs"
   }
 }

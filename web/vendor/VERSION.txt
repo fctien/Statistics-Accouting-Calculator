@@ -1,0 +1,2 @@
+@micropython/micropython-webassembly-pyscript 1.29.0-6
+micropython.js = micropython.mjs (byte-identical, renamed for MIME type)

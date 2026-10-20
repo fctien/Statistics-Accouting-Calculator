@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BACalc 自我測試 selftest</title>
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    th, td { border: 1px solid #cfd8dc; padding: 4px 6px; text-align: left; vertical-align: top; }
+    th { background: #e3f2fd; }
+    td.num { font-family: ui-monospace, Consolas, monospace; }
+    .pass { color: var(--ok); font-weight: 600; }
+    .fail { color: var(--bad); font-weight: 600; }
+    #summary { font-size: 1.1rem; font-weight: 700; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-title">BACalc 自我測試（MicroPython 內 golden）</h1>
+    <span id="py-status" class="pill pill-loading">載入中</span>
+  </header>
+  <main>
+    <p>在瀏覽器的 Web Worker 中以 MicroPython 執行 <code>engine.bridge</code>：
+      golden 案例比對 Excel 值（相對誤差 ≤ tol，以 max(1, |期望值|) 為底，須為有限數值），
+      錯誤路徑案例比對 ok／error／field 完全相同</p>
+    <p id="summary">執行中…</p>
+    <p id="queue-note"></p>
+    <h2>Golden 案例</h2>
+    <table>
+      <thead><tr><th>#</th><th>id</th><th>欄位</th><th>期望</th><th>實得</th><th>相對差</th><th>結果</th></tr></thead>
+      <tbody id="golden-rows"></tbody>
+    </table>
+    <h2>錯誤路徑案例</h2>
+    <table>
+      <thead><tr><th>#</th><th>id</th><th>期望</th><th>實得</th><th>結果</th></tr></thead>
+      <tbody id="error-rows"></tbody>
+    </table>
+  </main>
+  <script type="module">
+    import { callEngine, callEngineRaw, getStatus, onStatus } from "./js/py-client.js";
+
+    const DEFAULT_TOL = 1e-9;
+    const $ = (id) => document.getElementById(id);
+    const isNum = (x) => typeof x === "number" && Number.isFinite(x);
+    const LABEL = { loading: "載入中", ready: "就緒", error: "錯誤" };
+
+    onStatus((s, d) => {
+      const pill = $("py-status");
+      pill.className = "pill pill-" + s;
+      pill.textContent = LABEL[s] + (s === "ready" ? ` ${d.ms} ms` : "");
+      if (s === "error") pill.title = d.message;
+    });
+
+    function cell(tr, text, cls) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      if (cls) td.className = cls;
+      tr.appendChild(td);
+    }
+
+    async function getJson(rel) {
+      const res = await fetch(rel);
+      if (!res.ok) throw new Error(`下載失敗 ${res.status}：${rel}（是否已執行 tools/build_web.py？）`);
+      return res.json();
+    }
+
+    // 佇列測試：在 Worker ready 之前就送出一筆請求，ready 後必須自動得到正確回應
+    const queueProbe = (() => {
+      const statusAtSend = getStatus();
+      const req = { sheet: "iconv", action: "to_eff", inputs: { NOM: 12, CY: 12 }, settings: {} };
+      return callEngine(req).then(
+        (r) => ({ statusAtSend, ok: r.ok === true && isNum(r.values && r.values.EFF), r }),
+        (e) => ({ statusAtSend, ok: false, r: String(e) }));
+    })();
+
+    async function runGolden(cases) {
+      const body = $("golden-rows");
+      const fails = [];
+      // 依序送出（也驗證佇列順序）；Promise.all 會一次排入佇列
+      const resps = await Promise.all(cases.map((c) => callEngine(c.call).catch((e) => ({ ok: false, error: String(e) }))));
+      cases.forEach((c, i) => {
+        const r = resps[i];
+        const tol = isNum(c.tol) ? c.tol : DEFAULT_TOL;
+        const got = r && r.ok ? (r.values || {})[c.expect_key] : undefined;
+        let diff = null, pass = false, why = "";
+        if (!r || !r.ok) why = "引擎回報失敗：" + (r && r.error);
+        else if (!isNum(got)) why = "非有限數值：" + JSON.stringify(got);
+        else if (!isNum(c.expected)) why = "期望值不是有限數值";
+        else {
+          diff = Math.abs(got - c.expected) / Math.max(1, Math.abs(c.expected));
+          pass = diff <= tol;
+          if (!pass) why = `相對差 ${diff} > ${tol}`;
+        }
+        if (!pass) fails.push(`${c.id}: ${why}`);
+        const tr = document.createElement("tr");
+        cell(tr, String(i + 1));
+        cell(tr, c.id);
+        cell(tr, c.expect_key);
+        cell(tr, String(c.expected), "num");
+        cell(tr, got === undefined ? "—" : String(got), "num");
+        cell(tr, diff === null ? "—" : diff.toExponential(2), "num");
+        cell(tr, pass ? "PASS" : "FAIL " + why, pass ? "pass" : "fail");
+        body.appendChild(tr);
+      });
+      return fails;
+    }
+
+    async function runErrors(cases) {
+      const body = $("error-rows");
+      const fails = [];
+      for (const [i, c] of cases.entries()) {
+        let r;
+        try {
+          r = "raw" in c ? await callEngineRaw(c.raw) : await callEngine(c.request);
+        } catch (e) {
+          r = { thrown: String(e) };
+        }
+        const pick = (o) => JSON.stringify({ ok: o.ok, error: o.error, field: o.field });
+        const pass = !!r && pick(r) === pick(c.expected);
+        if (!pass) fails.push(c.id);
+        const tr = document.createElement("tr");
+        cell(tr, String(i + 1));
+        cell(tr, c.id);
+        cell(tr, pick(c.expected), "num");
+        cell(tr, JSON.stringify(r), "num");
+        cell(tr, pass ? "PASS" : "FAIL", pass ? "pass" : "fail");
+        body.appendChild(tr);
+      }
+      return fails;
+    }
+
+    async function main() {
+      const t0 = performance.now();
+      const [golden, errors] = await Promise.all([
+        getJson("py/data/excel.json"), getJson("py/data/error_cases.json")]);
+      const gFails = await runGolden(golden);
+      const eFails = await runErrors(errors);
+      const q = await queueProbe;
+      const queueOk = q.ok && q.statusAtSend === "loading";
+      $("queue-note").textContent =
+        `佇列測試：送出時狀態 ${q.statusAtSend}，回應 ${q.ok ? "正確" : "失敗"}` +
+        (q.statusAtSend !== "loading" ? "（送出時已 ready，未測到佇列）" : "");
+      const empty = golden.length === 0 || errors.length === 0;
+      const pass = !empty && gFails.length === 0 && eFails.length === 0 && queueOk;
+      const text = `${pass ? "PASS" : "FAIL"} golden ${golden.length - gFails.length}/${golden.length}，` +
+        `錯誤路徑 ${errors.length - eFails.length}/${errors.length}，` +
+        `佇列 ${queueOk ? "OK" : "FAIL"}（${Math.round(performance.now() - t0)} ms）`;
+      $("summary").textContent = text;
+      $("summary").className = pass ? "pass" : "fail";
+      window.selftestResult = { pass, golden: golden.length, errors: errors.length, gFails, eFails, queue: q };
+    }
+
+    main().catch((e) => {
+      $("summary").textContent = "FAIL " + ((e && e.message) || e);
+      $("summary").className = "fail";
+      window.selftestResult = { pass: false, error: String(e) };
+    });
+  </script>
+</body>
+</html>

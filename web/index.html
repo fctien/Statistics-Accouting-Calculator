@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BACalc 財務計算機</title>
+  <meta name="description" content="仿 TI BA II Plus Professional 的財務／會計計算機（可離線 PWA）">
+  <meta name="theme-color" content="#1565c0">
+  <!-- 全部使用相對網址（relative URL）：部署在 GitHub Pages 子路徑下 -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- View：殼（app shell）；內容區 #app 由 Task 21 填入 -->
+  <header class="app-header">
+    <h1 class="app-title">BACalc 財務計算機</h1>
+    <span id="py-status" class="pill pill-loading" role="status"
+          aria-live="polite" title="Python 引擎載入中">載入中</span>
+  </header>
+  <main id="app"></main>
+  <noscript><p class="noscript">本程式需要啟用 JavaScript。</p></noscript>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# 鎖定的 MicroPython 執行環境：位元組必須與 npm 套件相同，不做換行轉換
+web/vendor/* -text
