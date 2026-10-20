@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BACalc 實作計畫（Implementation Plan）</title>
+<style>
+body { font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+       max-width: 960px; margin: 0 auto; padding: 16px; line-height: 1.7;
+       color: #1f2d3d; background: #fff; }
+h1, h2 { color: #1565c0; border-bottom: 2px solid #bbdefb; padding-bottom: 4px; }
+h3 { color: #1976d2; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 15px; }
+th, td { border: 1px solid #bbdefb; padding: 6px 8px; vertical-align: top; }
+th { background: #e3f2fd; }
+code { background: #f1f8ff; padding: 1px 4px; border-radius: 3px; }
+pre { background: #f1f8ff; padding: 12px; overflow-x: auto; }
+blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
+             background: #f5faff; }
+</style></head><body>
+<h1>BACalc 實作計畫（Implementation Plan）</h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> 做出仿 BA II Plus Professional 的離線財務計算 PWA（Python 引擎跑在 MicroPython），並產出 AI Agent 版、EMBA 版兩套教材（Prompt 卡＋PPT）</p>
+<p><strong>Architecture:</strong> Model 是 <code>engine/*.py</code>，只用 CPython 與 MicroPython 都支援的可攜子集，由 <code>engine/bridge.py</code> 用 JSON 字串進出。瀏覽器端由 Web Worker 載入 MicroPython 並呼叫 bridge；View 是原生 HTML／CSS／JS。golden 值由 Excel COM 產生並存成 JSON，CPython（pytest）與 MicroPython（Node）共用同一份。</p>
+<p><strong>Tech Stack:</strong> Python 3.11（pytest 7.4）、MicroPython 1.29.0 WebAssembly（npm <code>@micropython/micropython-webassembly-pyscript@1.29.0-6</code>）、原生 JS（ES module）、IndexedDB、Google Identity Services、Node 22（<code>node --test</code>）、Excel 16 COM（pywin32，只用來產生 golden）、pptxgenjs（create-info-ppt）、python-pptx</p>
+<p><strong>Spec:</strong> <code>docs/spec-2026-10-19.md</code>（2026-10-20 修訂版）</p>
+<h2>Global Constraints</h2>
+<ul>
+<li>MVC：Model＝<code>engine/</code>（無 I/O、不 import 瀏覽器相關模組）；Controller＝<code>engine/bridge.py</code>＋<code>web/js/app.js</code>＋<code>web/js/py-worker.js</code>；View＝<code>web/index.html</code>、<code>web/css/</code>、<code>web/js/views/</code></li>
+<li>可攜子集：<code>engine/</code> 禁止 import <code>decimal</code>、<code>datetime</code>、<code>ast</code>、<code>fractions</code>、<code>dataclasses</code>、<code>typing</code>、<code>functools</code>、任何第三方套件；可用 <code>math</code>、<code>json</code></li>
+<li>絕不產生看起來正常但錯誤的數字：算不出來回傳 <code>{"ok": false, "error": &lt;中文原因&gt;, "field": &lt;欄位或 null&gt;}</code>；結果含 <code>inf</code> 或 <code>nan</code> 一律視為錯誤</li>
+<li>禁止 <code>eval</code>／<code>exec</code></li>
+<li>疊代求解：|f(x)| &lt; 1e-10，最多 200 次；未收斂回錯誤</li>
+<li>金額彙總用「分」整數，四捨五入為 half away from zero，只能呼叫 <code>engine/money.py</code></li>
+<li>日期用序數日（0001-01-01 為 1），格里曆，只能呼叫 <code>engine/dates.py</code></li>
+<li>golden 值每筆都有 <code>source</code> 欄位（Excel 公式字串，或 TI Guidebook 頁碼）；對不上就回報，不改 golden 硬湊</li>
+<li>雙執行環境：同一 golden 案例 CPython 與 MicroPython 差異 &gt; 1e-9（相對誤差）即失敗</li>
+<li>檔案、註解：Python PEP 8，註解繁體中文、重要名詞附英文</li>
+<li>新增 web 檔案必須列進 <code>web/sw.js</code> 的 <code>APP_SHELL</code>；<code>CACHE_VERSION</code> 與 <code>web/js/app.js</code> 的 <code>APP_VERSION</code> 同步</li>
+<li>每次驗證產生 <code>logs/verify-YYYYMMDD-HHMM.html</code>（含 commit hash），跑之前 git 必須乾淨</li>
+<li>每個 Task 結束追加 <code>DEVLOG.md</code>（需求／做法／產出／驗證／問題與修正／待辦）</li>
+<li>安裝套件、推送 GitHub、關閉使用者開著的程式（Excel、PowerPoint）前，先問使用者</li>
+<li>教學步驟 tag：<code>step0</code>～<code>step9</code>，打在規格書 5.2 節指定的位置</li>
+</ul>
+<h2>Review Focus</h2>
+<ol>
+<li><strong>I/Y＝0 或極小</strong>：TVM 公式除以 i 會爆掉；應改用 i＝0 的極限公式（PV＋PMT·N＋FV＝0），結果與 i＝1e-12 連續 → Task 5 加 <code>test_tvm_zero_rate</code></li>
+<li><strong>溢位與非有限值</strong>：N＝1e6、I/Y＝1000 時 <code>(1+i)**N</code> 變 <code>inf</code>，畫面不可顯示 <code>inf</code> 或亂數 → Task 1 <code>result.ok()</code> 檢查有限值，Task 5 加 <code>test_tvm_overflow_is_error</code></li>
+<li><strong>留空格數不對</strong>：全部填滿、或留兩格以上空白時，要明確說明「請只留一格空白」，不可默默算某一格 → Task 16 加 <code>test_bridge_blank_count</code></li>
+<li><strong>歐式千分位輸入</strong>：設定為 EU 時，<code>1.000,50</code> 要解析成 1000.5；US 模式下 <code>1,000.50</code> 也是 1000.5；兩種模式下 <code>1.000,50</code> 不能被誤讀成 1.0 → Task 15 加 <code>test_parse_number_locale</code></li>
+<li><strong>日期邊界</strong>：2 月 29 日、月底與 30/360 規則（例如 1/31 → 2/28）要與 Excel <code>DAYS360</code> 一致 → Task 4 加 <code>test_days360_month_end</code></li>
+</ol>
+<hr />
+<h2>檔案地圖（File Map）</h2>
+<table>
+<thead>
+<tr>
+<th>檔案</th>
+<th>職責</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>engine/result.py</code></td>
+<td><code>ok()</code>／<code>err()</code> 統一回傳格式，檢查非有限值</td>
+</tr>
+<tr>
+<td><code>engine/money.py</code></td>
+<td>分整數、四捨五入、稅額</td>
+</tr>
+<tr>
+<td><code>engine/dates.py</code></td>
+<td>序數日、星期、ACT 與 30/360 天數</td>
+</tr>
+<tr>
+<td><code>engine/solver.py</code></td>
+<td>牛頓法（Newton）＋二分法（bisection）共用求根</td>
+</tr>
+<tr>
+<td><code>engine/tvm.py</code>、<code>amort.py</code>、<code>cashflow.py</code>、<code>iconv.py</code>、<code>stats.py</code>、<code>bond.py</code>、<code>depr.py</code>、<code>business.py</code></td>
+<td>各工作表</td>
+</tr>
+<tr>
+<td><code>engine/calc.py</code>、<code>memory.py</code></td>
+<td>算式剖析、記憶</td>
+</tr>
+<tr>
+<td><code>engine/fmt.py</code></td>
+<td>數字顯示格式、輸入解析</td>
+</tr>
+<tr>
+<td><code>engine/bridge.py</code></td>
+<td><code>call(request_json) -&gt; response_json</code> 唯一入口</td>
+</tr>
+<tr>
+<td><code>golden/cases.py</code></td>
+<td>golden 案例定義（輸入＋Excel 公式）</td>
+</tr>
+<tr>
+<td><code>golden/runner.py</code></td>
+<td>可攜的 golden 比對器（CPython 與 MicroPython 共用）</td>
+</tr>
+<tr>
+<td><code>tests/golden/excel.json</code></td>
+<td>Excel 產生的 golden 值（commit 進 repo）</td>
+</tr>
+<tr>
+<td><code>tools/make_golden_excel.py</code></td>
+<td>用 Excel COM 計算 golden（只在 Windows 有 Excel 時執行）</td>
+</tr>
+<tr>
+<td><code>tools/check_portable.py</code>、<code>tools/mutate.py</code>、<code>tools/build_web.py</code>、<code>tools/check_shell.py</code>、<code>tools/verify_all.py</code>、<code>tools/md2html.py</code></td>
+<td>工具</td>
+</tr>
+<tr>
+<td><code>tools/run_mpy_golden.mjs</code>、<code>tools/spike_float.mjs</code></td>
+<td>Node 上跑 MicroPython</td>
+</tr>
+<tr>
+<td><code>web/…</code></td>
+<td>PWA</td>
+</tr>
+<tr>
+<td><code>teaching/…</code></td>
+<td>教材</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>M1：引擎（step0～step3）</h2>
+<h3>Task 0：教學起點 tag 與 pytest 設定</h3>
+<p><strong>Files:</strong>
+- Create: <code>pytest.ini</code>、<code>engine/__init__.py</code>、<code>golden/__init__.py</code>、<code>tests/__init__.py</code>、<code>tests/conftest.py</code>
+- Modify: <code>DEVLOG.md</code></p>
+<p><strong>Interfaces:</strong>
+- Produces: <code>tests/conftest.py</code> 的 fixture <code>golden_cases(sheet: str) -&gt; list[dict]</code>，讀 <code>tests/golden/excel.json</code> 並以 <code>sheet</code> 欄位過濾</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 在目前的 commit（已含 <code>CLAUDE.md</code>）打 tag <code>step0</code>；本計畫檔 commit 後打 tag <code>step1</code></li>
+<li>[ ] <strong>Step 2:</strong> 寫 <code>pytest.ini</code>：<code>testpaths = tests</code>，<code>addopts = -q</code></li>
+<li>[ ] <strong>Step 3:</strong> 執行 <code>python -m pytest</code>，預期輸出 <code>no tests ran</code>（exit code 5 可接受）</li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>chore: pytest 設定</code></li>
+</ul>
+<h3>Task 1：統一回傳格式與可攜性檢查</h3>
+<p><strong>Files:</strong>
+- Create: <code>engine/result.py</code>、<code>tools/check_portable.py</code>
+- Test: <code>tests/test_result.py</code>、<code>tests/test_portable.py</code></p>
+<p><strong>Interfaces:</strong>
+- Produces:
+  - <code>ok(values: dict, warnings: list | None = None) -&gt; dict</code>：若任一數值非有限，改回傳 <code>err("計算結果超出範圍（溢位）", field=&lt;該鍵&gt;)</code>
+  - <code>err(message: str, field: str | None = None) -&gt; dict</code>
+  - <code>is_finite(x: float) -&gt; bool</code>（不用 <code>math.isfinite</code>，以 <code>x == x and x not in (inf, -inf)</code> 實作，確保 MicroPython 可用）
+  - <code>check_portable.scan(root: str) -&gt; list[str]</code>（違規訊息清單）；CLI 有違規時 exit 1</p>
+<ul>
+<li>[ ] <strong>Step 1: 寫失敗測試</strong></li>
+</ul>
+<pre><code class="language-python">def test_ok_shape():
+    assert ok({&quot;PMT&quot;: -1.5}) == {&quot;ok&quot;: True, &quot;values&quot;: {&quot;PMT&quot;: -1.5}, &quot;warnings&quot;: []}
+
+def test_ok_rejects_inf():
+    r = ok({&quot;FV&quot;: float(&quot;inf&quot;)})
+    assert r[&quot;ok&quot;] is False and r[&quot;field&quot;] == &quot;FV&quot;
+
+def test_err_shape():
+    assert err(&quot;無解&quot;, &quot;CF&quot;) == {&quot;ok&quot;: False, &quot;error&quot;: &quot;無解&quot;, &quot;field&quot;: &quot;CF&quot;}
+
+def test_portable_flags_decimal(tmp_path):
+    (tmp_path / &quot;bad.py&quot;).write_text(&quot;import decimal\n&quot;, encoding=&quot;utf-8&quot;)
+    assert any(&quot;decimal&quot; in m for m in scan(str(tmp_path)))
+
+def test_portable_engine_clean():
+    assert scan(&quot;engine&quot;) == []
+</code></pre>
+<ul>
+<li>[ ] <strong>Step 2:</strong> 執行 <code>python -m pytest tests/test_result.py tests/test_portable.py</code>，預期 FAIL（ImportError）</li>
+<li>[ ] <strong>Step 3:</strong> 實作。<code>scan</code> 用 CPython 的 <code>ast</code> 解析 <code>import</code>／<code>from … import</code>（工具在 CPython 跑，不受可攜限制），比對 Global Constraints 的禁用清單；另外用正規式找 <code>eval(</code>、<code>exec(</code></li>
+<li>[ ] <strong>Step 4:</strong> 再跑一次，預期 PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 統一回傳格式與可攜性檢查</code></li>
+</ul>
+<h3>Task 2：golden 案例與 Excel 產生器</h3>
+<p><strong>Files:</strong>
+- Create: <code>golden/cases.py</code>、<code>golden/runner.py</code>、<code>tools/make_golden_excel.py</code>、<code>tests/golden/excel.json</code>
+- Test: <code>tests/test_golden_file.py</code></p>
+<p><strong>Interfaces:</strong>
+- Produces:
+  - <code>golden/cases.py</code>：<code>CASES: list[dict]</code>，每筆 <code>{"id": str, "sheet": str, "call": {...bridge 請求...}, "excel": {"formula": str}, "expect_key": str, "tol": float}</code>；<code>tol</code> 預設 1e-9（相對誤差）
+  - <code>tests/golden/excel.json</code>：<code>[{"id", "sheet", "call", "expect_key", "expected": float, "source": "Excel 16: =PMT(...)", "tol"}]</code>
+  - <code>golden/runner.py</code>：<code>run(cases: list[dict], call_fn) -&gt; list[str]</code>（失敗訊息清單），只用可攜子集，供 pytest 與 MicroPython 共用
+- Consumes: 無（<code>call</code> 欄位的格式依 Task 16 定義，請求格式見下）</p>
+<p><strong>bridge 請求格式（全計畫共用）：</strong> <code>{"sheet": "tvm", "action": "solve", "inputs": {...}, "settings": {...}}</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 在 <code>golden/cases.py</code> 定義案例，每張工作表至少 3 筆，<strong>至少</strong>包含：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>sheet</th>
+<th>案例（輸入）</th>
+<th>Excel 公式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tvm</td>
+<td>房貸 N=360、I/Y=6、PV=300000、FV=0、P/Y=C/Y=12、END，求 PMT</td>
+<td><code>=PMT(0.06/12,360,300000,0,0)</code></td>
+</tr>
+<tr>
+<td>tvm</td>
+<td>N=60、PMT=-500、PV=0、I/Y=3、BGN，求 FV</td>
+<td><code>=FV(0.03/12,60,-500,0,1)</code></td>
+</tr>
+<tr>
+<td>tvm</td>
+<td>N=48、PV=20000、PMT=-480、FV=0，求 I/Y</td>
+<td><code>=RATE(48,-480,20000,0,0)*12*100</code></td>
+</tr>
+<tr>
+<td>tvm</td>
+<td>I/Y=5、PV=-1000、PMT=0、FV=2000、P/Y=C/Y=1，求 N</td>
+<td><code>=NPER(0.05,0,-1000,2000)</code></td>
+</tr>
+<tr>
+<td>tvm</td>
+<td>P/Y=12、C/Y=4、N=120、I/Y=8、PMT=-200、FV=0，求 PV</td>
+<td><code>=PV((1+0.08/4)^(4/12)-1,120,-200,0,0)</code></td>
+</tr>
+<tr>
+<td>amort</td>
+<td>房貸案例 P1=1、P2=12 的 INT、PRN；BAL 用 FV 公式</td>
+<td><code>=CUMIPMT(0.005,360,300000,1,12,0)</code>、<code>=CUMPRINC(...)</code>、<code>=-FV(0.005,12,PMT,300000)</code></td>
+</tr>
+<tr>
+<td>cashflow</td>
+<td>CF0=-10000、C01..C04=3000,4200,6800,-1500，I=10 求 NPV、IRR、MIRR(RI=12)</td>
+<td><code>=CF0+NPV(0.1,…)</code>、<code>=IRR(…)*100</code>、<code>=MIRR(…,0.1,0.12)*100</code></td>
+</tr>
+<tr>
+<td>cashflow</td>
+<td>群組：CF0=-7000、C01=3000 F01=3，求 IRR</td>
+<td><code>=IRR({-7000,3000,3000,3000})*100</code></td>
+</tr>
+<tr>
+<td>iconv</td>
+<td>NOM=12、C/Y=12 → EFF；EFF=10、C/Y=4 → NOM</td>
+<td><code>=EFFECT(0.12,12)*100</code>、<code>=NOMINAL(0.1,4)*100</code></td>
+</tr>
+<tr>
+<td>stats</td>
+<td>X=1..6、Y=2.1,3.9,6.2,7.8,10.1,12.2：x̄、Sx、σx、LIN 的 a、b、r</td>
+<td><code>=AVERAGE</code>、<code>=STDEV.S</code>、<code>=STDEV.P</code>、<code>=INTERCEPT</code>、<code>=SLOPE</code>、<code>=CORREL</code></td>
+</tr>
+<tr>
+<td>stats</td>
+<td>同資料 Ln、EXP、PWR 的 a、b、r</td>
+<td><code>=INTERCEPT(Y,LN(X))</code> 等，EXP 的 a 用 <code>=EXP(INTERCEPT(LN(Y),X))</code></td>
+</tr>
+<tr>
+<td>bond</td>
+<td>結算 2026-06-12、到期 2036-01-01、票面 7%、RV=100、YLD=8、2/Y、ACT，求 PRI 與 AI</td>
+<td><code>=PRICE(…,0.07,0.08,100,2,1)</code>、<code>=ACCRINT</code> 或 <code>=COUPDAYBS(…)/COUPDAYS(…)*3.5</code></td>
+</tr>
+<tr>
+<td>bond</td>
+<td>同上 30/360，給 PRI=95 求 YLD</td>
+<td><code>=YIELD(…,95,100,2,0)*100</code></td>
+</tr>
+<tr>
+<td>depr</td>
+<td>CST=10000、SAL=1000、LIF=5、M01=1：SL、SYD 第 3 年；DB 200% 第 2 年；DBX 200% 第 4 年</td>
+<td><code>=SLN</code>、<code>=SYD</code>、<code>=DDB(…,2,2)</code>、<code>=VDB(…,3,4,2,FALSE)</code></td>
+</tr>
+<tr>
+<td>date</td>
+<td>2026-01-31 → 2026-03-01 ACT；1/31 → 2/28 的 30/360；跨 2028-02-29</td>
+<td><code>=DAYS(…)</code>、<code>=DAYS360(…,FALSE)</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>[ ] <strong>Step 2:</strong> 寫 <code>tools/make_golden_excel.py</code>：用 <code>win32com.client.DispatchEx("Excel.Application")</code> 開<strong>新的</strong>隱藏 Excel 實例（不接管使用者已開啟的 Excel），新增活頁簿、寫公式、讀值，最後只 <code>Quit()</code> 自己的實例；輸出 <code>tests/golden/excel.json</code>，<code>source</code> 填 <code>"Excel 16: " + 公式</code></li>
+<li>[ ] <strong>Step 3:</strong> 執行 <code>python tools/make_golden_excel.py</code>，預期印出案例數，且 JSON 每筆都有 <code>expected</code> 與 <code>source</code></li>
+<li>[ ] <strong>Step 4: 寫測試</strong> <code>tests/test_golden_file.py</code></li>
+</ul>
+<pre><code class="language-python">def test_every_case_has_source_and_value():
+    data = json.load(open(&quot;tests/golden/excel.json&quot;, encoding=&quot;utf-8&quot;))
+    assert len(data) &gt;= 30
+    for c in data:
+        assert c[&quot;source&quot;].startswith((&quot;Excel 16:&quot;, &quot;TI Guidebook&quot;))
+        assert isinstance(c[&quot;expected&quot;], float)
+
+def test_each_sheet_has_three_cases():
+    sheets = Counter(c[&quot;sheet&quot;] for c in data)
+    for s in [&quot;tvm&quot;, &quot;amort&quot;, &quot;cashflow&quot;, &quot;iconv&quot;, &quot;stats&quot;, &quot;bond&quot;, &quot;depr&quot;, &quot;date&quot;]:
+        assert sheets[s] &gt;= 3
+</code></pre>
+<ul>
+<li>[ ] <strong>Step 5:</strong> 執行，預期 PASS</li>
+<li>[ ] <strong>Step 6:</strong> Commit <code>test: Excel golden 值</code>（JSON 進 repo，之後跑測試不需要 Excel）</li>
+</ul>
+<blockquote>
+<p>golden 值方向：Excel 與 TI 的正負號慣例相同（付出為負），bridge 輸出直接與 Excel 比對；I/Y、IRR、EFF 等以「百分比數字」比對（Excel 結果 ×100）</p>
+</blockquote>
+<h3>Task 3：金額與日期（money、dates）</h3>
+<p><strong>Files:</strong>
+- Create: <code>engine/money.py</code>、<code>engine/dates.py</code>
+- Test: <code>tests/test_money.py</code>、<code>tests/test_dates.py</code></p>
+<p><strong>Interfaces:</strong>
+- Produces:
+  - <code>round_div(num: int, den: int) -&gt; int</code>：整數除法，half away from zero
+  - <code>to_cents(x: float) -&gt; int</code>：先 <code>'%.6f' % x</code> 轉字串再解析，避免 <code>2.675*100</code> 的浮點誤差
+  - <code>tax_exclusive(net_cents: int, rate_pct: float) -&gt; dict</code>（<code>{"net","tax","gross"}</code>，皆為分）
+  - <code>tax_inclusive(gross_cents: int, rate_pct: float) -&gt; dict</code>
+  - 稅率內部轉成萬分比整數 <code>rate_bp = round_div(int(rate_pct * 10000), 100)</code>
+  - <code>to_ordinal(y: int, m: int, d: int) -&gt; int</code>、<code>from_ordinal(n: int) -&gt; tuple</code>、<code>weekday(n: int) -&gt; int</code>（0=星期一）
+  - <code>days_act(d1: tuple, d2: tuple) -&gt; int</code>、<code>days_360(d1: tuple, d2: tuple) -&gt; int</code>（美國 NASD 規則，等同 Excel <code>DAYS360(…, FALSE)</code>）
+  - <code>is_valid_date(y, m, d) -&gt; bool</code></p>
+<ul>
+<li>[ ] <strong>Step 1: 寫失敗測試</strong></li>
+</ul>
+<pre><code class="language-python">def test_round_half_away():
+    assert round_div(5, 2) == 3 and round_div(-5, 2) == -3 and round_div(4, 3) == 1
+
+def test_to_cents_no_float_drift():
+    assert to_cents(2.675) == 268 and to_cents(-0.005) == -1
+
+def test_tax_exclusive_5pct():
+    assert tax_exclusive(10000, 5) == {&quot;net&quot;: 10000, &quot;tax&quot;: 500, &quot;gross&quot;: 10500}
+
+def test_tax_inclusive_5pct():
+    r = tax_inclusive(10500, 5)
+    assert r == {&quot;net&quot;: 10000, &quot;tax&quot;: 500, &quot;gross&quot;: 10500}
+    r = tax_inclusive(100, 5)          # 1 元含稅
+    assert r[&quot;net&quot;] + r[&quot;tax&quot;] == 100 and r[&quot;net&quot;] == 95
+
+def test_ordinal_roundtrip_and_leap():
+    for d in [(1, 1, 1), (2000, 2, 29), (2028, 2, 29), (2026, 12, 31)]:
+        assert from_ordinal(to_ordinal(*d)) == d
+    assert not is_valid_date(2026, 2, 29) and not is_valid_date(1900, 2, 29)
+
+def test_weekday_known():
+    assert weekday(to_ordinal(2026, 10, 20)) == 1      # 2026-10-20 是星期二
+
+def test_days360_month_end():                           # Review Focus 5
+    assert days_360((2026, 1, 31), (2026, 2, 28)) == 28
+    assert days_360((2026, 1, 30), (2026, 3, 31)) == 60
+    assert days_act((2028, 2, 28), (2028, 3, 1)) == 2
+</code></pre>
+<p>另加 golden：<code>tests/test_dates.py::test_dates_golden</code> 用 <code>golden_cases("date")</code> 逐筆比對
+- [ ] <strong>Step 2:</strong> 執行，預期 FAIL
+- [ ] <strong>Step 3:</strong> 實作（<code>days_360</code> 的 NASD 規則：d1 為 31 改成 30；d2 為 31 且 d1 ≥ 30 時改成 30；Excel <code>FALSE</code> 模式<strong>不</strong>對 2 月底特別處理，以 golden 為準）
+- [ ] <strong>Step 4:</strong> 執行，預期 PASS；<code>python tools/check_portable.py</code> 無違規
+- [ ] <strong>Step 5:</strong> Commit <code>feat: 分整數金額與序數日日期</code></p>
+<h3>Task 4：共用求根器（solver）</h3>
+<p><strong>Files:</strong>
+- Create: <code>engine/solver.py</code>
+- Test: <code>tests/test_solver.py</code></p>
+<p><strong>Interfaces:</strong>
+- Produces: <code>find_root(f, lo: float, hi: float, guess: float, tol: float = 1e-10, max_iter: int = 200) -&gt; float | None</code>。先以 guess 跑牛頓法（數值微分 h = 1e-7·max(1,|x|)），若發散、跑出 [lo, hi] 或微分為 0，改用二分法；只有在 [lo, hi] 兩端異號時才二分；未收斂回 <code>None</code></p>
+<ul>
+<li>[ ] <strong>Step 1: 寫失敗測試</strong></li>
+</ul>
+<pre><code class="language-python">def test_sqrt2():
+    assert abs(find_root(lambda x: x * x - 2, 0, 2, 1) - 2 ** 0.5) &lt; 1e-10
+
+def test_newton_fails_bisection_rescues():
+    x = find_root(lambda x: x ** (1 / 3) if x &gt;= 0 else -(-x) ** (1 / 3), -1, 2, 1)
+    assert abs(x) &lt; 1e-9
+
+def test_no_root_returns_none():
+    assert find_root(lambda x: x * x + 1, -5, 5, 0) is None
+</code></pre>
+<ul>
+<li>[ ] <strong>Step 2～4:</strong> 跑 FAIL → 實作 → 跑 PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 牛頓法＋二分法求根</code></li>
+</ul>
+<h3>Task 5：TVM（打 tag step2）</h3>
+<p><strong>Files:</strong>
+- Create: <code>engine/tvm.py</code>
+- Test: <code>tests/test_tvm.py</code></p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>result.ok/err</code>、<code>solver.find_root</code>
+- Produces:
+  - <code>period_rate(iy: float, py: float, cy: float) -&gt; float</code>：<code>(1 + iy/100/cy) ** (cy/py) - 1</code>
+  - <code>solve(inputs: dict, unknown: str) -&gt; dict</code>：<code>inputs</code> 鍵為 <code>N, IY, PV, PMT, FV, PY, CY, BGN</code>（BGN 為 bool），<code>unknown</code> 是五個 TVM 變數之一；回傳 <code>ok({unknown: 值})</code>
+  - <code>tvm_residual(n, i, pv, pmt, fv, bgn) -&gt; float</code>（Task 6 也用）</p>
+<p>TVM 方程式（i 為每期利率，k = 1 if BGN else 0）：
+- i ≠ 0：<code>PV·(1+i)^N + PMT·(1+i·k)·((1+i)^N − 1)/i + FV = 0</code>
+- |i| &lt; 1e-12：<code>PV + PMT·N + FV = 0</code>
+- 求 N：<code>N = ln((PMT·(1+ik) − FV·i) / (PMT·(1+ik) + PV·i)) / ln(1+i)</code>；真數 ≤ 0 時回 <code>err("此組數值無法求出 N：現金流方向需相反", "N")</code>
+- 求 I/Y：<code>find_root</code> 求 i，範圍 (−0.9999, 10]，猜測值 0.01；再換回 <code>IY = CY·((1+i)^(PY/CY) − 1)·100</code></p>
+<ul>
+<li>[ ] <strong>Step 1: 寫失敗測試</strong></li>
+</ul>
+<pre><code class="language-python">def test_tvm_golden(golden_cases):
+    for c in golden_cases(&quot;tvm&quot;):
+        inp = c[&quot;call&quot;][&quot;inputs&quot;]                      # 未知欄位的值為 None（留空求解）
+        unknown = next(k for k in (&quot;N&quot;, &quot;IY&quot;, &quot;PV&quot;, &quot;PMT&quot;, &quot;FV&quot;) if inp.get(k) is None)
+        r = solve(inp, unknown)
+        assert r[&quot;ok&quot;] and rel_close(r[&quot;values&quot;][c[&quot;expect_key&quot;]], c[&quot;expected&quot;], c[&quot;tol&quot;]), c[&quot;id&quot;]
+
+def test_tvm_simple_anchor():
+    r = solve({&quot;N&quot;: 1, &quot;IY&quot;: 10, &quot;PV&quot;: -100, &quot;PMT&quot;: 0, &quot;PY&quot;: 1, &quot;CY&quot;: 1, &quot;BGN&quot;: False}, &quot;FV&quot;)
+    assert abs(r[&quot;values&quot;][&quot;FV&quot;] - 110) &lt; 1e-9
+
+def test_tvm_zero_rate():                                # Review Focus 1
+    base = {&quot;N&quot;: 10, &quot;PV&quot;: 1000, &quot;FV&quot;: 0, &quot;PY&quot;: 1, &quot;CY&quot;: 1, &quot;BGN&quot;: False}
+    assert abs(solve({**base, &quot;IY&quot;: 0}, &quot;PMT&quot;)[&quot;values&quot;][&quot;PMT&quot;] + 100) &lt; 1e-9
+    assert abs(solve({**base, &quot;IY&quot;: 1e-10}, &quot;PMT&quot;)[&quot;values&quot;][&quot;PMT&quot;] + 100) &lt; 1e-6
+
+def test_tvm_overflow_is_error():                        # Review Focus 2
+    r = solve({&quot;N&quot;: 1e6, &quot;IY&quot;: 1000, &quot;PV&quot;: -1, &quot;PMT&quot;: 0, &quot;PY&quot;: 1, &quot;CY&quot;: 1, &quot;BGN&quot;: False}, &quot;FV&quot;)
+    assert r[&quot;ok&quot;] is False
+
+def test_tvm_same_sign_no_rate():
+    r = solve({&quot;N&quot;: 10, &quot;PV&quot;: 100, &quot;PMT&quot;: 10, &quot;FV&quot;: 100, &quot;PY&quot;: 1, &quot;CY&quot;: 1, &quot;BGN&quot;: False}, &quot;IY&quot;)
+    assert r[&quot;ok&quot;] is False and r[&quot;field&quot;] == &quot;IY&quot;
+</code></pre>
+<p><code>rel_close(a, b, tol)</code> 放在 <code>tests/conftest.py</code>：<code>abs(a-b) &lt;= tol * max(1, abs(b))</code>
+- [ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS；<code>check_portable.py</code> 無違規
+- [ ] <strong>Step 5:</strong> Commit <code>feat: TVM 貨幣時間價值</code>；打 tag <code>step2</code></p>
+<h3>Task 6：AMORT</h3>
+<p><strong>Files:</strong> Create <code>engine/amort.py</code>；Test <code>tests/test_amort.py</code></p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>tvm.period_rate</code>
+- Produces:
+  - <code>amort(inputs: dict, p1: int, p2: int) -&gt; dict</code>：<code>inputs</code> 同 TVM 且 PMT 已知；回傳 <code>ok({"BAL", "PRN", "INT"})</code>，數值不做中途四捨五入（與 Excel 一致）
+  - <code>schedule(inputs: dict) -&gt; dict</code>：<code>ok({"rows": [[期數, PMT, INT, PRN, BAL], …]})</code>，最後一列若 |BAL| &gt; 0.005 加 warning「最後一期有尾差 x.xx」
+- 錯誤：p1 &lt; 1、p2 &lt; p1、p2 &gt; N → <code>err(..., "P2")</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>amort</code>）、<code>test_amort_rows_sum</code>（各期 PRN 加總＝PV＋BAL）、<code>test_amort_p_range_error</code></li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作（逐期遞推：BGN 第 1 期利息為 0）→ PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 分期攤還</code></li>
+</ul>
+<h3>Task 7：現金流 CF</h3>
+<p><strong>Files:</strong> Create <code>engine/cashflow.py</code>；Test <code>tests/test_cashflow.py</code></p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>solver.find_root</code>
+- Produces：輸入 <code>{"CF0": float, "flows": [[金額, 次數], …], "I": float, "RI": float | None}</code>
+  - <code>expand(cf0, flows) -&gt; list[float]</code>（次數 1～9999 的整數，否則 <code>err</code>）
+  - <code>npv(...)</code>、<code>irr(...)</code>、<code>nfv(...)</code>（<code>NPV·(1+i)^總期數</code>）、<code>mirr(...)</code>（finance rate＝I、reinvest＝RI）、<code>payback(...)</code>、<code>dpayback(...)</code>：都回傳 <code>ok</code>／<code>err</code>
+  - <code>irr</code>：沒有正負號變化 → <code>err("IRR 無解：現金流沒有正負號變化", "CF")</code>；正負號變化 ≥ 2 次 → 在 warnings 加「現金流正負號變化多次，IRR 可能有多個解」；求根範圍 (−0.9999, 10]
+  - <code>payback</code>：累計現金流第一次 ≥ 0 的期間，用該期內線性內插；從未回本 → <code>err("未回本", "PB")</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>cashflow</code>）、<code>test_irr_no_sign_change</code>、<code>test_irr_multiple_sign_warning</code>（CF0=-100, 230, -132）、<code>test_payback_interpolated</code>（-1000, 400, 400, 400 → 2.5）、<code>test_flow_count_invalid</code>（次數 0 → 錯誤）</li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 現金流 NPV/IRR/MIRR/NFV/PB/DPB</code></li>
+</ul>
+<h3>Task 8：利率轉換 ICONV</h3>
+<p><strong>Files:</strong> Create <code>engine/iconv.py</code>；Test <code>tests/test_iconv.py</code></p>
+<p><strong>Interfaces:</strong> <code>nom_to_eff(nom: float, cy: float) -&gt; dict</code>、<code>eff_to_nom(eff: float, cy: float) -&gt; dict</code>（百分比數字）；cy ≤ 0 → <code>err(..., "CY")</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>iconv</code>）、<code>test_roundtrip</code>（nom→eff→nom 差 &lt; 1e-10）、<code>test_cy_invalid</code></li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 名目／有效利率轉換</code></li>
+</ul>
+<h3>Task 9：統計 STAT</h3>
+<p><strong>Files:</strong> Create <code>engine/stats.py</code>；Test <code>tests/test_stats.py</code></p>
+<p><strong>Interfaces:</strong>
+- <code>one_var(xs: list, fs: list | None) -&gt; dict</code>：<code>n, mean_x, sx, sigma_x, sum_x, sum_x2</code>（fs 為次數，預設全 1）
+- <code>two_var(xs, ys, model: str) -&gt; dict</code>：model ∈ <code>LIN, LN, EXP, PWR</code>；回傳 <code>n, mean_x, sx, sigma_x, mean_y, sy, sigma_y, a, b, r, sum_x, sum_x2, sum_y, sum_y2, sum_xy</code>
+  - LIN：y = a + b·x；LN：y = a + b·ln x；EXP：y = a·b^x（對 ln y 做線性）；PWR：y = a·x^b（對 ln x、ln y 做線性）；r 是轉換後資料的相關係數
+- <code>predict(model, a, b, x=None, y=None) -&gt; dict</code>：給 x 求 Y'，或給 y 求 X'
+- 錯誤：n &lt; 2 求 Sx → <code>err</code>；LN／PWR 有 x ≤ 0、EXP／PWR 有 y ≤ 0 → <code>err("…模式需要正數", "X" 或 "Y")</code>；所有 x 相同 → <code>err("X 全部相同，無法迴歸", "X")</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>stats</code>）、<code>test_sx_vs_sigma</code>（[2,4,4,4,5,5,7,9]：σx=2）、<code>test_exp_requires_positive_y</code>、<code>test_constant_x</code>、<code>test_predict_inverse</code>（LIN 給 x 求 y 再反求 x）</li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 統計與迴歸</code></li>
+</ul>
+<h3>Task 10：債券 BOND</h3>
+<p><strong>Files:</strong> Create <code>engine/bond.py</code>；Test <code>tests/test_bond.py</code></p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>dates</code>、<code>solver.find_root</code>
+- Produces：輸入 <code>{"SDT": [y,m,d], "RDT": [y,m,d], "CPN": 年票面利率%, "RV": 每 100 面額贖回價, "basis": "ACT" | "360", "freq": 1 | 2, "YLD" 或 "PRI"}</code>
+  - <code>price(inputs) -&gt; dict</code>：<code>ok({"PRI", "AI"})</code>
+  - <code>yield_(inputs) -&gt; dict</code>：<code>ok({"YLD", "AI"})</code>
+  - 付息日：從到期日每次往回 12/freq 個月（月底規則：到期日是月底，付息日也是月底），找出結算日前後的付息日 PCD、NCD
+  - ACT：A＝PCD 到 SDT 的實際天數，E＝PCD 到 NCD 的實際天數；360：A、E 用 <code>days_360</code>，E＝360/freq
+  - N＝剩餘付息次數，DSC＝E − A
+  - N = 1：<code>PRI = (RV + C/f) / (1 + (DSC/E)·y/f) − (A/E)·C/f</code>
+  - N &gt; 1：<code>PRI = RV/(1+y/f)^(N−1+DSC/E) + Σ_{k=1..N} (C/f)/(1+y/f)^(k−1+DSC/E) − (A/E)·C/f</code>
+  - <code>AI = (A/E)·C/f</code>（C、y 為小數）
+  - 錯誤：SDT ≥ RDT、日期不合法 → <code>err</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>bond</code>）、<code>test_price_yield_roundtrip</code>、<code>test_settle_after_maturity_error</code></li>
+<li>[ ] <strong>Step 2:</strong> 若某一 golden 與 Excel 差距 &gt; 1e-6，<strong>停下來回報</strong>（Excel <code>PRICE</code> 與 TI 的 30/360 規則可能不同），不得調整公式去硬湊</li>
+<li>[ ] <strong>Step 3～4:</strong> 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 債券價格、殖利率、應計利息</code></li>
+</ul>
+<h3>Task 11：折舊 DEPR</h3>
+<p><strong>Files:</strong> Create <code>engine/depr.py</code>；Test <code>tests/test_depr.py</code></p>
+<p><strong>Interfaces:</strong>
+- <code>schedule(method: str, cst: float, sal: float, lif: int, m01: float = 1, db_pct: float = 200) -&gt; dict</code>：<code>ok({"rows": [[年, DEP, RBV, RDV], …]})</code>；method ∈ <code>SL, SYD, DB, DBX</code>
+- <code>year(method, …, yr: int) -&gt; dict</code>：<code>ok({"DEP", "RBV", "RDV"})</code>
+- 規則：
+  - SL：年折舊 =(CST−SAL)/LIF；M01 ≠ 1 時第一年乘 (13−M01)/12，其餘順延到第 LIF+1 年
+  - DB：rate = DB%/100/LIF；每年 DEP = min(RBV·rate, RBV−SAL)；M01 ≠ 1 時第一年乘 (13−M01)/12
+  - DBX：同 DB，當直線法（剩餘可折舊額 ÷ 剩餘年數）較大時改用直線法（等同 Excel <code>VDB(…, FALSE)</code>）
+  - SYD：只支援 M01 = 1；M01 ≠ 1 時回 <code>err("SYD 部分年度需 TI 手冊範例驗證，目前僅支援 M01=1", "M01")</code>；DBX 的 M01 ≠ 1 也一樣處理（<strong>決定理由</strong>：沒有可靠的標準答案，不產生無法驗證的數字）
+  - 錯誤：LIF &lt; 1、SAL &gt; CST、YR 超出範圍</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>depr</code>）、<code>test_sl_partial_first_year</code>（CST=12000、SAL=0、LIF=5、M01=7：第 1 年 1200、第 6 年 1200）、<code>test_db_never_below_salvage</code>、<code>test_syd_partial_year_rejected</code>、<code>test_rows_sum_to_depreciable</code></li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 折舊 SL/SYD/DB/DBX</code></li>
+</ul>
+<h3>Task 12：商業與稅務</h3>
+<p><strong>Files:</strong> Create <code>engine/business.py</code>；Test <code>tests/test_business.py</code></p>
+<p><strong>Interfaces（皆為「留一格 None 求解」）：</strong>
+- <code>profit(cst, sel, mar=None, mu=None, unknown: str) -&gt; dict</code>：毛利率 MAR＝(SEL−CST)/SEL·100；加成率 MU＝(SEL−CST)/CST·100；同時回傳兩者
+- <code>breakeven(fc, vc, p, pft, q, unknown: str) -&gt; dict</code>：<code>PFT = P·Q − (FC + VC·Q)</code>；P＝VC 求 Q → <code>err("售價等於變動成本，無法損益兩平", "P")</code>
+- <code>pct_change(old, new, pct, pd, unknown: str) -&gt; dict</code>：<code>NEW = OLD·(1 + %CH/100)^#PD</code>；#PD 預設 1
+- <code>tax(amount: float, rate_pct: float, mode: str) -&gt; dict</code>：mode ∈ <code>exclusive, inclusive</code>；內部呼叫 <code>money.tax_*</code>，輸出元（分 /100）
+- <code>TAX_PRESETS</code>：<code>{"營業稅": 5, …}</code>，每筆附 <code>{"rate", "source_url", "checked": "YYYY-MM-DD"}</code>；<strong>實作時上網查證</strong>扣繳與二代健保補充保費現行稅率並填入來源連結，查不到可靠來源就不放</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：<code>test_profit_margin_vs_markup</code>（CST=80、SEL=100 → MAR=20、MU=25）、<code>test_breakeven_q</code>（FC=10000、VC=6、P=10、PFT=0 → Q=2500）、<code>test_pct_change_compound</code>（OLD=100、%CH=10、#PD=2 → 121）、<code>test_tax_inclusive_vs_exclusive</code>、<code>test_presets_have_source</code></li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 毛利、損益兩平、百分比變動、稅務</code></li>
+</ul>
+<h3>Task 13：日期工作表</h3>
+<p><strong>Files:</strong> Modify <code>engine/dates.py</code>（加入 <code>date_sheet</code>）；Test <code>tests/test_dates.py</code></p>
+<p><strong>Interfaces:</strong> <code>date_sheet(dt1, dt2, dbd, basis: str, unknown: str) -&gt; dict</code>：unknown ∈ <code>DBD, DT1, DT2</code>；回傳值包含 <code>weekday1</code>、<code>weekday2</code>（中文「星期一」…）；360 模式下反求日期若有多個解，回傳最早的一個並加 warning</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：golden（<code>date</code>）、<code>test_solve_dt2_act</code>（2026-01-01 加 59 天 → 2026-03-01）、<code>test_weekday_label</code></li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 日期工作表</code></li>
+</ul>
+<h3>Task 14：計算機算式與記憶</h3>
+<p><strong>Files:</strong> Create <code>engine/calc.py</code>、<code>engine/memory.py</code>；Test <code>tests/test_calc.py</code>、<code>tests/test_memory.py</code></p>
+<p><strong>Interfaces:</strong>
+- <code>evaluate(expr: str, mode: str = "AOS", ans: float = 0.0, mem: dict | None = None) -&gt; dict</code>：<code>ok({"value": float})</code>
+- 文法（遞迴下降）：</p>
+<pre><code>expr    := term (('+'|'-') term)*
+term    := unary (('*'|'×'|'/'|'÷') unary)*
+unary   := ('-'|'+') unary | power         # 負號優先序低於 ^：-2^2 = -4
+power   := postfix ('^' unary)?            # 右結合：2^3^2 = 512
+postfix := primary ('!' | '%' | '²')*
+primary := NUMBER | 'ANS' | 'M'[0-9] | FUNC '(' args ')' | '(' expr ')' | '√' postfix
+FUNC    := sqrt ln exp inv nPr nCr        # nPr(n,r)、nCr(n,r)
+</code></pre>
+<ul>
+<li>算式中的逗號只當函式參數分隔，<strong>不接受千分位</strong>（避免 <code>nCr(5,200)</code> 歧義）；UI 在送出前不轉換</li>
+<li><code>%</code>：一般情況為 ÷100；作為 <code>+</code>／<code>-</code> 的右運算元時為「左邊 × b/100」（<code>200+10%</code> = 220），與計算機習慣相同</li>
+<li>Chain 模式：<code>+ − × ÷ ^</code> 一律由左到右，不分優先順序（<code>2+3×4</code> = 20）</li>
+<li>錯誤：除以零、<code>ln</code> 非正數、<code>!</code> 非整數或 &gt; 170、括號不平衡、未知符號 → <code>err("…", "expr")</code>，訊息指出位置</li>
+<li>
+<p><code>memory.py</code>：<code>Memory</code> 類別，<code>store(i, v)</code>、<code>recall(i)</code>、<code>add(i, v)</code>、<code>sub(i, v)</code>、<code>mul(i, v)</code>、<code>div(i, v)</code>、<code>accumulate(v) -&gt; {"sum", "count"}</code>、<code>to_dict()</code>／<code>from_dict()</code></p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: 寫失敗測試</strong></p>
+</li>
+</ul>
+<pre><code class="language-python">@pytest.mark.parametrize(&quot;expr,val&quot;, [
+    (&quot;1+2*3&quot;, 7), (&quot;(1+2)*3&quot;, 9), (&quot;2^3^2&quot;, 512), (&quot;-2^2&quot;, -4),
+    (&quot;200+10%&quot;, 220), (&quot;50%&quot;, 0.5), (&quot;5!&quot;, 120), (&quot;nCr(5,2)&quot;, 10),
+    (&quot;nPr(5,2)&quot;, 20), (&quot;√16+1&quot;, 5),
+])
+def test_eval_aos(expr, val):
+    assert abs(evaluate(expr)[&quot;value&quot;] - val) &lt; 1e-12
+
+def test_chain_mode():
+    assert evaluate(&quot;2+3*4&quot;, mode=&quot;CHAIN&quot;)[&quot;value&quot;] == 20
+
+def test_ans_and_memory():
+    assert evaluate(&quot;ANS*2+M3&quot;, ans=5, mem={&quot;M3&quot;: 1})[&quot;value&quot;] == 11
+
+@pytest.mark.parametrize(&quot;bad&quot;, [&quot;1/0&quot;, &quot;ln(0)&quot;, &quot;(1+2&quot;, &quot;2**&quot;, &quot;3.5!&quot;, &quot;abc&quot;])
+def test_errors(bad):
+    assert evaluate(bad)[&quot;ok&quot;] is False
+
+def test_no_eval_used():
+    assert &quot;eval(&quot; not in open(&quot;engine/calc.py&quot;, encoding=&quot;utf-8&quot;).read()
+</code></pre>
+<ul>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 算式剖析與記憶</code></li>
+</ul>
+<h3>Task 15：顯示格式與輸入解析</h3>
+<p><strong>Files:</strong> Create <code>engine/fmt.py</code>；Test <code>tests/test_fmt.py</code></p>
+<p><strong>Interfaces:</strong>
+- <code>format_number(x: float, decimals: int | None, sep: str = "us") -&gt; str</code>：decimals 為 0～9 或 None（浮動）；sep ∈ <code>us</code>（<code>1,234.50</code>）、<code>eu</code>（<code>1.234,50</code>）
+  - 做法：用 <code>'%.15g' % x</code> 取得 15 位有效數字的十進位字串，再以字串做 half away from zero 進位（不用 <code>round()</code>、不用 <code>format(x, ',.2f')</code>）
+  - 浮動模式：最多 10 位有效數字，去除尾端 0；|x| ≥ 1e10 或 0 &lt; |x| &lt; 1e-9 用科學記號 <code>1.2345E12</code>
+- <code>parse_number(text: str, sep: str = "us") -&gt; float | None</code>：接受千分位、<code>1e3</code>、前後空白、全形數字；無法解析回 <code>None</code></p>
+<ul>
+<li>[ ] <strong>Step 1: 寫失敗測試</strong></li>
+</ul>
+<pre><code class="language-python">def test_format_fixed():
+    assert format_number(1234.5, 2) == &quot;1,234.50&quot;
+    assert format_number(2.675, 2) == &quot;2.68&quot;
+    assert format_number(-0.005, 2) == &quot;-0.01&quot;
+    assert format_number(1234.5, 2, &quot;eu&quot;) == &quot;1.234,50&quot;
+
+def test_format_float_mode():
+    assert format_number(1 / 3, None) == &quot;0.3333333333&quot;
+    assert format_number(1.5e12, None) == &quot;1.5E12&quot;
+
+def test_parse_number_locale():                          # Review Focus 4
+    assert parse_number(&quot;1,000.50&quot;, &quot;us&quot;) == 1000.5
+    assert parse_number(&quot;1.000,50&quot;, &quot;eu&quot;) == 1000.5
+    assert parse_number(&quot;1.000,50&quot;, &quot;us&quot;) is None
+    assert parse_number(&quot;１２３&quot;, &quot;us&quot;) == 123
+</code></pre>
+<ul>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 顯示格式與輸入解析</code></li>
+</ul>
+<h3>Task 16：bridge（Controller 入口）</h3>
+<p><strong>Files:</strong> Create <code>engine/bridge.py</code>；Test <code>tests/test_bridge.py</code></p>
+<p><strong>Interfaces:</strong>
+- <code>call(request_json: str) -&gt; str</code>：請求格式見 Task 2；回應為 <code>result</code> 的 dict 再加 <code>"display": {鍵: format_number(...)}</code>（依 <code>settings.decimals</code>、<code>settings.sep</code>）
+- 「留空求解」：<code>action == "solve"</code> 時，在該工作表可求解的欄位中找值為 <code>null</code> 的欄位；剛好一格 → 當作 unknown；0 格或 ≥ 2 格 → <code>err("請只留一格空白（目前空白：…）", null)</code>
+- 任何未預期例外都包成 <code>err("內部錯誤：&lt;類別名&gt;", null)</code>，不讓例外穿出
+- 路由表 <code>ROUTES = {("tvm", "solve"): …, ("amort", "range"): …, ("amort", "schedule"): …, ("cashflow", "npv"|"irr"|"nfv"|"mirr"|"pb"|"dpb"): …, ("iconv", "to_eff"|"to_nom"): …, ("stats", "one_var"|"two_var"|"predict"): …, ("bond", "price"|"yield"): …, ("depr", "year"|"schedule"): …, ("business", "profit"|"breakeven"|"pct_change"|"tax"): …, ("date", "solve"): …, ("calc", "eval"): …}</code>
+- golden 案例的 <code>call</code> 欄位直接送進 <code>call()</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：<code>test_bridge_all_golden</code>（用 <code>golden/runner.run(cases, call)</code>，回傳空清單）、<code>test_bridge_blank_count</code>（Review Focus 3：TVM 全填與留兩格都回錯誤，訊息含「只留一格」）、<code>test_bridge_unknown_route</code>、<code>test_bridge_never_raises</code>（送入非 JSON 字串仍回 <code>ok: false</code>）、<code>test_display_uses_settings</code></li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: bridge 統一入口</code></li>
+</ul>
+<h3>Task 17：突變測試（打 tag step3）</h3>
+<p><strong>Files:</strong> Create <code>tools/mutate.py</code>；Test 由工具本身執行</p>
+<p><strong>Interfaces:</strong> <code>MUTATIONS: list[tuple[file, old, new, 說明]]</code>，至少 15 筆；工具逐一套用 → 跑 <code>pytest -x -q</code> → 還原；任一突變「存活」（測試仍通過）就 exit 1 並列出</p>
+<p>至少包含：TVM 拿掉 BGN 因子 <code>(1+i*k)</code>、period_rate 的 <code>cy/py</code> 對調、NPV 從第 0 期開始折現、IRR 範圍下限改 0、Sx 分母 n−1 改 n、EXP 模型忘了取 exp(a)、DB 未扣到殘值為止、SL 的 (13−M01) 改 (12−M01)、days_360 拿掉 31→30、round_div 改成無條件捨去、tax_inclusive 稅額改用 net×rate、format_number 進位改捨去、<code>%</code> 在加法中改成 ÷100、Chain 模式改成 AOS、bridge 留空檢查改成 ≥1 格</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 寫 <code>tools/mutate.py</code></li>
+<li>[ ] <strong>Step 2:</strong> 執行 <code>python tools/mutate.py</code>，預期 <code>15/15 mutants killed</code></li>
+<li>[ ] <strong>Step 3:</strong> 有存活的突變 → 補測試到對應 Task 的測試檔，直到全部擋下</li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>test: 突變測試</code>；打 tag <code>step3</code></li>
+</ul>
+<hr />
+<h2>M2：MicroPython 與 PWA 殼（step4）</h2>
+<h3>Task 18：spike——MicroPython 雙精度驗證（決策點）</h3>
+<p><strong>Files:</strong> Create <code>tools/spike_float.mjs</code>、<code>package.json</code>、<code>logs/spike-micropython-YYYYMMDD.html</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> <strong>先問使用者</strong>是否同意安裝 <code>npm install --save-exact @micropython/micropython-webassembly-pyscript@1.29.0-6</code>（只裝在 <code>BACalc/node_modules</code>）</li>
+<li>[ ] <strong>Step 2:</strong> <code>spike_float.mjs</code> 用 <code>loadMicroPython()</code> 執行以下檢查並印出 JSON：</li>
+<li><code>1e300*10 == float('inf')</code>、<code>0.1+0.2 == 0.30000000000000004</code>、<code>2**-1074 &gt; 0</code>（次正規數，雙精度才成立）</li>
+<li><code>'%.15g' % (1/3)</code> 與 CPython 相同；<code>'%.17g' % 0.1</code> 與 CPython 相同</li>
+<li><code>math</code> 有 <code>log, exp, sqrt, pow, floor</code>；<code>import json</code> 可用</li>
+<li>用 Task 16 的 bridge 跑全部 golden，失敗清單為空</li>
+<li>[ ] <strong>Step 3:</strong> 結果寫入 HTML log（含 commit hash）</li>
+<li>[ ] <strong>Step 4: 決策</strong></li>
+<li>全部通過 → 繼續 Task 19</li>
+<li>任一項不通過 → <strong>停下來回報使用者</strong>，提議改走 Pyodide 退路：Task 19～20 中的 <code>micropython.*</code> 換成鎖定版本的 Pyodide 檔案，其餘不變；在 DEVLOG 寫明原因</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>spike: MicroPython 雙精度驗證</code></li>
+</ul>
+<h3>Task 19：Node 上的 MicroPython golden 測試</h3>
+<p><strong>Files:</strong> Create <code>tools/run_mpy_golden.mjs</code>；Modify <code>package.json</code>（<code>"scripts": {"test:mpy": "node tools/run_mpy_golden.mjs"}</code>）</p>
+<p><strong>Interfaces:</strong>
+- Consumes: <code>golden/runner.run</code>、<code>engine/bridge.call</code>、<code>tests/golden/excel.json</code>
+- <code>golden/runner.py</code> 另提供 <code>dump(cases, call_fn) -&gt; dict</code>（<code>{案例 id: 數值}</code>）與 CLI <code>python -m golden.runner --dump</code>（印出 JSON）
+- 做法：Node 先以子程序執行 <code>python -m golden.runner --dump</code> 取得 CPython 結果；再把 <code>engine/*.py</code>、<code>golden/*.py</code> 用 <code>mp.FS.writeFile</code> 寫進 MicroPython 虛擬檔案系統，執行 <code>run</code> 與 <code>dump</code>；golden 失敗或兩邊相對差異 &gt; 1e-9 即 exit 1</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 執行 <code>npm run test:mpy</code>，預期 <code>N/N passed, max diff vs CPython &lt; 1e-9</code></li>
+<li>[ ] <strong>Step 2:</strong> 故意改壞一筆 golden 的 expected，確認工具會 exit 1，再還原</li>
+<li>[ ] <strong>Step 3:</strong> Commit <code>test: MicroPython 雙執行環境 golden</code></li>
+</ul>
+<h3>Task 20：PWA 殼＋Web Worker（打 tag step4）</h3>
+<p><strong>Files:</strong>
+- Create: <code>web/index.html</code>、<code>web/css/app.css</code>、<code>web/manifest.webmanifest</code>、<code>web/sw.js</code>、<code>web/icons/</code>（192、512 png）、<code>web/js/app.js</code>、<code>web/js/py-worker.js</code>、<code>web/js/py-client.js</code>、<code>web/selftest.html</code>、<code>tools/build_web.py</code>、<code>tools/check_shell.py</code>、<code>.claude/launch.json</code>
+- Test: <code>tests/test_shell.py</code>、<code>web/selftest.html</code></p>
+<p><strong>Interfaces:</strong>
+- <code>tools/build_web.py</code>：把 <code>engine/*.py</code>、<code>golden/runner.py</code>、<code>tests/golden/excel.json</code> 複製到 <code>web/py/</code>；把 <code>node_modules/@micropython/…/micropython.{mjs,wasm}</code> 複製到 <code>web/vendor/</code>；<code>--bump</code> 時同步升 <code>CACHE_VERSION</code> 與 <code>APP_VERSION</code>
+- <code>py-worker.js</code>（Web Worker）：載入 MicroPython、寫入 <code>web/py/*.py</code>、回覆 <code>{type: "ready", ms}</code>；收到 <code>{id, request}</code> 呼叫 <code>bridge.call</code> 回 <code>{id, response}</code>
+- <code>py-client.js</code>：<code>export function callEngine(request: object): Promise&lt;object&gt;</code>；Worker 尚未 ready 時把請求放進佇列，ready 後依序送出；<code>export function onStatus(cb)</code> 回報 <code>loading | ready | error</code>
+- <code>app.js</code>：<code>export const APP_VERSION</code>；記錄 <code>performance.mark("shell")</code>、<code>performance.mark("py-ready")</code>
+- <code>sw.js</code>：<code>install</code> 時預先快取 <code>APP_SHELL</code>（含 <code>vendor/</code> 與 <code>py/</code>）；fetch 採 cache-first；<code>activate</code> 刪除舊版本快取
+- <code>check_shell.py</code>：<code>web/</code> 下每個檔案都要在 <code>APP_SHELL</code> 中；兩個版本號相同；否則 exit 1
+- <code>.claude/launch.json</code>：<code>{"name": "bacalc", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8765", "-d", "web"], "port": 8765}</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試 <code>tests/test_shell.py</code>：呼叫 <code>check_shell</code> 的函式，預期無違規；<code>test_version_sync</code></li>
+<li>[ ] <strong>Step 2:</strong> 實作上述檔案；執行 <code>python tools/build_web.py</code></li>
+<li>[ ] <strong>Step 3:</strong> <code>preview_start bacalc</code> → 開 <code>/selftest.html</code>，預期頁面顯示全部 golden PASS</li>
+<li>[ ] <strong>Step 4:</strong> 開 <code>/</code>，量測 <code>shell</code> 與 <code>py-ready</code> 時間（一般網路、DevTools 模擬 Slow 4G、離線重新整理各一次），結果寫入 <code>logs/verify-*.html</code></li>
+<li>[ ] <strong>Step 5:</strong> 在 Worker 未 ready 前送出請求，確認 ready 後自動回應（<code>py-client</code> 佇列）</li>
+<li>[ ] <strong>Step 6:</strong> Commit <code>feat: PWA 殼、Web Worker 與 MicroPython 橋接</code>；打 tag <code>step4</code></li>
+</ul>
+<hr />
+<h2>M3：人性化 UI（step5）</h2>
+<h3>Task 21：表單框架與欄位定義</h3>
+<p><strong>Files:</strong> Create <code>web/js/sheets.js</code>（各工作表欄位定義）、<code>web/js/views/form.js</code>、<code>web/js/views/nav.js</code>、<code>web/js/input.js</code>；Test <code>tests/js/input.test.mjs</code></p>
+<p><strong>Interfaces:</strong>
+- <code>sheets.js</code>：<code>export const SHEETS = {tvm: {title: "貨幣時間價值 TVM", fields: [{id: "N", label: "期數", abbr: "N", unit: "期", help: "…", example: "360"}, …], actions: [...]}, …}</code>
+- <code>form.js</code>：<code>renderForm(sheetId, container)</code>、<code>readInputs(sheetId) -&gt; {inputs, errors}</code>（空白欄位為 <code>null</code>）、<code>showResult(response)</code>（成功填入求出的欄位並高亮；失敗在對應欄位顯示紅字）
+- <code>input.js</code>：<code>toSigned(value, direction: "in"|"out")</code>（收到為正、付出為負）、<code>fromSigned(value) -&gt; {value, direction}</code>
+- 版面：手機為單欄＋底部分頁列；寬度 ≥ 900px 時左側選單、右側工作表（數字輸入用 <code>inputmode="decimal"</code>）
+- 鍵盤：Enter 計算、Esc 清除、Tab 換欄</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試 <code>node --test tests/js/</code>：<code>toSigned</code> 方向轉換；<code>collect(values: object) -&gt; {inputs, errors}</code>（<code>readInputs</code> 內部呼叫的純函式，空白轉 <code>null</code>、無法解析的欄位列入 errors），不需要 DOM 套件</li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>feat: 工作表表單框架</code></li>
+</ul>
+<h3>Task 22：TVM、AMORT、ICONV、商業、日期畫面</h3>
+<p><strong>Files:</strong> Create <code>web/js/views/tvm.js</code>、<code>amort.js</code>、<code>iconv.js</code>、<code>business.js</code>、<code>date.js</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 實作；AMORT 表格可匯出 CSV（<code>web/js/csv.js</code>：<code>toCSV(rows, headers) -&gt; string</code>，附 <code>node --test</code> 測試，含逗號與引號跳脫）</li>
+<li>[ ] <strong>Step 2: e2e（in-app 瀏覽器）</strong>：每個畫面輸入 golden 的一個案例，讀取畫面上的值與 golden 比對（依顯示小數位數）；TVM 留兩格空白時顯示「請只留一格空白」</li>
+<li>[ ] <strong>Step 3:</strong> 截圖存 <code>logs/</code>，結果寫入 verify log</li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>feat: TVM/AMORT/ICONV/商業/日期畫面</code></li>
+</ul>
+<h3>Task 23：CF、STAT、BOND、DEPR 畫面</h3>
+<p><strong>Files:</strong> Create <code>web/js/views/cashflow.js</code>、<code>stats.js</code>、<code>bond.js</code>、<code>depr.js</code>、<code>web/js/paste.js</code></p>
+<p><strong>Interfaces:</strong> <code>paste.js</code>：<code>parsePastedTable(text: string, sep) -&gt; number[][] | {error}</code>（Excel 複製的 tab 分隔、可含千分位；任一格無法解析就整體回錯誤並指出列與欄）</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> <code>node --test</code>：<code>parsePastedTable</code> 正常、含空列、含文字格三種情況</li>
+<li>[ ] <strong>Step 2:</strong> 實作畫面（CF 與 STAT 為可編輯表格，可新增／刪除列、貼上）</li>
+<li>[ ] <strong>Step 3:</strong> e2e 同 Task 22，另測 IRR 無解時顯示中文原因</li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>feat: CF/STAT/BOND/DEPR 畫面</code></li>
+</ul>
+<h3>Task 24：計算機、紙帶、記憶、設定（打 tag step5）</h3>
+<p><strong>Files:</strong> Create <code>web/js/views/calc.js</code>、<code>web/js/views/settings.js</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 計算機：算式輸入框、按鍵面板（手機）、紙帶（點任一行把算式帶回輸入框）、M0–M9 面板、累加 Σ；設定：小數位數、千分位、日期格式、AOS／Chain、深色模式、稅率預設（附來源連結）、「關於」區顯示啟動時間</li>
+<li>[ ] <strong>Step 2:</strong> e2e：<code>200+10%</code> 顯示 220；切換 Chain 後 <code>2+3*4</code> 顯示 20；小數位數改 4 位後 TVM 結果即時重新顯示</li>
+<li>[ ] <strong>Step 3:</strong> 執行 <code>python tools/check_shell.py</code> 與 <code>pytest</code></li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>feat: 計算機、紙帶、記憶、設定</code>；打 tag <code>step5</code></li>
+</ul>
+<hr />
+<h2>M4：儲存與雲端（step6～step7）</h2>
+<h3>Task 25：IndexedDB 與 JSON 匯出入（打 tag step6）</h3>
+<p><strong>Files:</strong> Create <code>web/js/storage/idb.js</code>、<code>web/js/storage/backup.js</code>；Test <code>tests/js/backup.test.mjs</code></p>
+<p><strong>Interfaces:</strong>
+- <code>idb.js</code>：<code>get(store, key)</code>、<code>put(store, value)</code>、<code>all(store)</code>、<code>clear(store)</code>；store ∈ <code>settings, scenarios, tape, memory</code>；tape 超過 500 行刪最舊
+- <code>backup.js</code>（純函式，可在 Node 測）：<code>makeExport(data) -&gt; object</code>（<code>app</code>、<code>schema: 1</code>、<code>exported_at</code> 為 +08:00 ISO 字串）、<code>validateImport(obj) -&gt; {ok, error}</code>、<code>mergeData(local, incoming, mode: "merge"|"replace") -&gt; data</code>（merge：scenarios 以 id 比 <code>updated_at</code> 取新者）</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：<code>validateImport</code> 拒絕 <code>app</code> 不符、<code>schema</code> 不符、缺 <code>data</code>；<code>mergeData</code> 兩種模式</li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 實作 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> e2e：存兩個情境 → 匯出 → 清空 → 匯入 → 情境與設定相同；選「取代」時會出現確認對話框</li>
+<li>[ ] <strong>Step 6:</strong> Commit <code>feat: 本機儲存與 JSON 匯出入</code>；打 tag <code>step6</code></li>
+</ul>
+<h3>Task 26：Google Drive 同步（打 tag step7）</h3>
+<p><strong>Files:</strong> Create <code>web/js/storage/gdrive.js</code>、<code>docs/google-oauth-setup.md</code>（轉成 HTML）</p>
+<p><strong>Interfaces:</strong>
+- <code>gdrive.js</code>：<code>connect(clientId) -&gt; Promise&lt;token&gt;</code>（GIS token client，scope <code>https://www.googleapis.com/auth/drive.appdata</code>）、<code>upload(json)</code>、<code>download() -&gt; json | null</code>、<code>remoteModified() -&gt; string | null</code>；檔名 <code>bacalc-backup.json</code>，存放在 <code>appDataFolder</code>
+- 衝突：遠端比本機新時顯示兩邊時間，讓使用者選擇，不自動覆蓋
+- Client ID 在設定頁輸入，存在 IndexedDB 的 <code>settings</code>
+- GIS 程式庫 <code>https://accounts.google.com/gsi/client</code> 只在使用者按「連結 Google Drive」時才動態載入（不放進 precache；離線時按鈕停用並說明）</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 寫 <code>docs/google-oauth-setup.md</code>：Google Cloud Console 建立專案 → 啟用 Drive API → OAuth 同意畫面（外部、測試使用者加自己）→ 建立 Web 用戶端 ID → 授權 JavaScript 來源加入 <code>http://localhost:8765</code> 與 GitHub Pages 網址；每一步附官方文件連結</li>
+<li>[ ] <strong>Step 2:</strong> 實作 <code>gdrive.js</code> 與設定頁 UI</li>
+<li>[ ] <strong>Step 3:</strong> <strong>請使用者</strong>依說明申請 Client ID；拿到後一起手動測：上傳 → 改本機 → 下載出現衝突提示 → 選擇雲端版本</li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>feat: Google Drive 同步</code>；打 tag <code>step7</code></li>
+</ul>
+<hr />
+<h2>M5：驗證 Skill 與部署（step8～step9）</h2>
+<h3>Task 27：一鍵驗證與 Skill（打 tag step8）</h3>
+<p><strong>Files:</strong> Create <code>tools/verify_all.py</code>、<code>.claude/skills/verify-bacalc/SKILL.md</code></p>
+<p><strong>Interfaces:</strong>
+- <code>verify_all.py</code>：先檢查 <code>git status --porcelain</code> 為空，否則 exit 1；依序執行 <code>check_portable</code>、<code>pytest</code>、<code>mutate</code>、<code>npm run test:mpy</code>、<code>node --test tests/js/</code>、<code>build_web --check</code>、<code>check_shell</code>；產生 <code>logs/verify-YYYYMMDD-HHMM.html</code>（commit hash、每項 PASS/FAIL、耗時、失敗輸出）；任一項失敗 exit 1
+- Skill：說明何時用（改完程式、commit 前）、執行 <code>python tools/verify_all.py</code>、失敗時先讀 log 再修，不可修改 golden 讓測試通過</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 執行 <code>python tools/verify_all.py</code>，預期全部 PASS 並產生 log</li>
+<li>[ ] <strong>Step 2:</strong> 故意改壞 <code>tvm.py</code> 一行，確認 verify 失敗且 log 標出 pytest 失敗；再還原</li>
+<li>[ ] <strong>Step 3:</strong> 若使用者同意安裝 Playwright，加入 <code>e2e/test_ui.py</code> 把 Task 22～25 的 e2e 自動化；不同意就保留 in-app 瀏覽器手動 e2e 檢查表 <code>e2e/checklist.md</code></li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>feat: 一鍵驗證與 verify-bacalc skill</code>；打 tag <code>step8</code></li>
+</ul>
+<h3>Task 28：部署與手機安裝（打 tag step9）</h3>
+<p><strong>Files:</strong> Create <code>.github/workflows/pages.yml</code>、<code>README.md</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> <strong>先問使用者</strong>：GitHub repo 名稱（建議 <code>fctien/bacalc</code>，網址全小寫）、public 或 private</li>
+<li>[ ] <strong>Step 2:</strong> <code>pages.yml</code>：push 到 <code>main</code> 時執行 <code>python tools/build_web.py</code>，再用 <code>actions/upload-pages-artifact</code> 上傳 <code>web/</code>、<code>actions/deploy-pages</code> 部署（GitHub Pages 的「從分支部署」只能用根目錄或 <code>/docs</code>，所以這裡用 Actions）；另一個 job 跑 <code>pytest</code> 與 <code>npm run test:mpy</code></li>
+<li>[ ] <strong>Step 3:</strong> 經使用者同意後推送；確認線上網址可開、<code>selftest.html</code> 全綠</li>
+<li>[ ] <strong>Step 4:</strong> 把線上網址加進 Google OAuth 的授權來源（使用者操作）</li>
+<li>[ ] <strong>Step 5:</strong> <strong>請使用者</strong>在手機上安裝 → 開飛航模式 → 操作 TVM 與 CF；回報殼顯示與 Python 就緒時間（設定頁「關於」區）</li>
+<li>[ ] <strong>Step 6:</strong> Commit <code>ci: GitHub Pages 部署</code>；打 tag <code>step9</code></li>
+</ul>
+<hr />
+<h2>M6：教材</h2>
+<h3>Task 29：單一來源 prompts.py</h3>
+<p><strong>Files:</strong> Create <code>teaching/prompts.py</code>；Test <code>tests/test_prompts.py</code></p>
+<p><strong>Interfaces:</strong>
+- <code>STEPS: list[dict]</code>，每筆 <code>{"id": "step0"…"step9", "title", "goal", "ai": {"prompt", "expected", "verify", "pitfalls": [..]}, "emba": {"prompt", "expected", "verify", "pitfalls": [..], "start_tag"}}</code>
+- <code>USER_CLAUDE_MD</code>、<code>PROJECT_CLAUDE_MD</code>：給學生的兩層 CLAUDE.md 範本字串（專案層級以本 repo 的 <code>CLAUDE.md</code> 為基礎，精簡成五段：常用指令／專案結構／程式風格／工作方式／重要規則）
+- EMBA 版的 <code>verify</code> 必須是「拿實體計算機或 Excel 對答案」的具體操作，例如「Excel 輸入 <code>=PMT(0.06/12,360,300000)</code>，應得 -1798.65」</p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 測試：10 個步驟齊全；每個欄位非空；AI 版 <code>verify</code> 中的指令在對應 tag 上存在（用 <code>git show &lt;tag&gt;:&lt;path&gt;</code> 檢查檔案）；EMBA 版 <code>start_tag</code> 都是存在的 tag；所有字串沒有句點「。」（簡報規則）</li>
+<li>[ ] <strong>Step 2～4:</strong> FAIL → 撰寫內容 → PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>docs: 教學 prompts 單一來源</code></li>
+</ul>
+<h3>Task 30：Prompt 卡與簡報</h3>
+<p><strong>Files:</strong> Create <code>teaching/build_cards.py</code>、<code>teaching/deck/build_deck.py</code>；產出 <code>teaching/out/Prompt卡_AI.html</code>、<code>Prompt卡_EMBA.html</code>、<code>BACalc_AI.pptx</code>、<code>BACalc_EMBA.pptx</code>、<code>BACalc_AI_講稿.pptx</code>、<code>BACalc_EMBA_講稿.pptx</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> <code>build_cards.py</code>：每個步驟一張卡（目標／Prompt 原文＋複製按鈕／預期產出／驗收指令／常見坑），可列印（<code>@media print</code> 每張卡一頁）</li>
+<li>[ ] <strong>Step 2:</strong> <code>build_deck.py</code>：依 create-info-ppt 技能（淺藍白、封面左上北科 logo、字級 ≥ 16pt（例外 14pt）、不用句點、1.5 倍行距、重要名詞附英文），內容含 App 實際截圖（取自 <code>logs/</code>）、兩層 CLAUDE.md、每步驟的 Prompt 與驗收；講稿版每頁備忘稿放【講稿】與【投影片說明】</li>
+<li>[ ] <strong>Step 3:</strong> 驗證：python-pptx 讀回檢查字級最小值 ≥ 14、無「。」、每頁都有備忘稿、頁數與步驟對應</li>
+<li>[ ] <strong>Step 4:</strong> Commit <code>docs: Prompt 卡與教學簡報</code></li>
+</ul>
+<h3>Task 31：課前演練、學生版與 run_all</h3>
+<p><strong>Files:</strong> Create <code>teaching/rehearse.md</code>（演練紀錄）、<code>teaching/make_package.py</code>、<code>run_all.py</code></p>
+<ul>
+<li>[ ] <strong>Step 1:</strong> 演練：開新的子代理當學生，在暫存 worktree 從 <code>step0</code>（EMBA 版則從各 <code>start_tag</code>）照卡片逐步下 Prompt；使用者層級 CLAUDE.md 演練時用<strong>假的家目錄</strong>，不碰真正的 <code>C:/Users/User/.claude</code>；記錄每步是否重現、遇到的坑，回寫進 <code>prompts.py</code> 的 <code>pitfalls</code></li>
+<li>[ ] <strong>Step 2:</strong> <code>make_package.py --zip</code>：學生版 zip（Prompt 卡 HTML、簡報 PDF（PowerPoint COM 匯出；<strong>若使用者已開著 PowerPoint，先問再處理</strong>）、<code>docs/google-oauth-setup.html</code>；不含 pptx、不含講稿）</li>
+<li>[ ] <strong>Step 3:</strong> <code>run_all.py</code>：verify_all → build_cards → build_deck → make_package，產生總 log</li>
+<li>[ ] <strong>Step 4:</strong> 執行 <code>python run_all.py</code>，預期全部 PASS</li>
+<li>[ ] <strong>Step 5:</strong> Commit <code>docs: 演練紀錄、學生版、run_all</code>；追加 DEVLOG，更新記憶（BACalc 位置與重現指令）</li>
+</ul>
+<hr />
+<h2>規格對照（Self-Review 結果）</h2>
+<table>
+<thead>
+<tr>
+<th>規格章節</th>
+<th>對應 Task</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.2 S1 golden 一致</td>
+<td>2、5～16</td>
+</tr>
+<tr>
+<td>0.2 S2 雙執行環境</td>
+<td>18、19</td>
+</tr>
+<tr>
+<td>0.2 S2b 殼先顯示、啟動計時</td>
+<td>20、24</td>
+</tr>
+<tr>
+<td>0.2 S3 手機安裝離線</td>
+<td>20、28</td>
+</tr>
+<tr>
+<td>0.2 S4 本機儲存、匯出入、Drive</td>
+<td>25、26</td>
+</tr>
+<tr>
+<td>0.2 S5 錯誤不產生假數字</td>
+<td>1、5、7、9、11、16</td>
+</tr>
+<tr>
+<td>0.2 S6 教材＋tag</td>
+<td>0、5、17、20、24～31</td>
+</tr>
+<tr>
+<td>1.1 共用載入優化、退路</td>
+<td>18、20</td>
+</tr>
+<tr>
+<td>1.2 可攜子集</td>
+<td>1（check_portable）、每個 Task 的 Step 4</td>
+</tr>
+<tr>
+<td>2.1 人性化輸入 1～8</td>
+<td>15、16、21～24</td>
+</tr>
+<tr>
+<td>2.2 各工作表</td>
+<td>5～14、22～24</td>
+</tr>
+<tr>
+<td>2.3 數值規則</td>
+<td>1、3、4、15</td>
+</tr>
+<tr>
+<td>3 儲存與雲端</td>
+<td>25、26</td>
+</tr>
+<tr>
+<td>4 測試 1～5</td>
+<td>2、17、19、20、22～25、27</td>
+</tr>
+<tr>
+<td>5 教材</td>
+<td>29～31</td>
+</tr>
+<tr>
+<td>7 需使用者操作</td>
+<td>18 S1、26 S3、27 S3、28 S1/S4/S5、31 S2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>刻意縮小的範圍（請確認）：</strong>
+- SYD、DBX 的「非 1 月開始（M01 ≠ 1）」目前回錯誤，原因是沒有可靠的標準答案；若你能提供 TI Guidebook 的範例，再補上
+- 扣繳、二代健保補充保費的稅率若查不到可靠的官方來源，就不放進預設值
+- Playwright 自動化 e2e 要看你是否同意安裝；不安裝時改用 in-app 瀏覽器手動檢查表</p>
+</body></html>
