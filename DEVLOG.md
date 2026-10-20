@@ -356,3 +356,22 @@
 
 **待辦**
 - TI BA II Plus 實機的 30/360 與 Excel basis 0 規則可能有差異，尚未以 TI Guidebook 案例核對
+
+## 2026-10-20 Task 11 折舊 DEPR
+**需求**
+- engine/depr.py：schedule、year；SL、SYD、DB、DBX；M01≠1 僅 SL、DB
+
+**做法**
+- 逐年迴圈產生 [年, DEP, RBV, RDV]；DBX 取 DB 額與直線法較大者並以剩餘可折舊額封頂；SYD/DBX 的 M01≠1 回指定錯誤；輸入全面驗證（有限數、bool、LIF 整數 ≤10000、M01 1..13）
+
+**產出**
+- engine/depr.py、tests/test_depr.py（10 項）、task-11-report.md
+
+**驗證**
+- 6 筆 depr golden 全過；全套 pytest、tools/check_portable.py 通過
+
+**問題與修正**
+- 失敗的嘗試：測試假設 DB%=1e308 會溢位，實際 min 封頂為殘值、結果合法；改測試為「結果有限且封頂」
+
+**待辦**
+- DB 在 M01≠1 的最後一年行為尚未以 TI 手冊範例核對
