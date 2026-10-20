@@ -487,3 +487,27 @@
 
 **待辦**
 - bridge 接線時決定 sep／decimals 的來源；M2 spike 實機驗證
+
+## 2026-10-20 Task 16（Controller 入口 engine/bridge.py）
+**需求**
+- call(request_json)->str 統一路由 24 條 (sheet, action)，驗證輸入、留一格空白、格式化 display、永不擲例外
+
+**做法**
+- 每條路由一個 handler：先逐欄驗證（有限數、bool 只給 BGN、日期 [y,m,d]、清單），失敗以 _InputError 轉 err；再呼叫引擎；最外層 try/except Exception 包成「內部錯誤：類別名」
+- 留一格空白：tvm／date／breakeven／pct_change 恰一格 null；profit 特例（一格，或 CST/SEL 一格＋MAR/MU 一格→求 CST/SEL，或 CST、SEL 已填且 MAR、MU 同空→算兩者）；pct_change 的 PD 與另一格同空時 PD 預設 1
+- display：純量格式化（int 固定 0 位）、rows 逐格；日期 list 與字串不放入 display
+- amort（range 與 schedule）N、depr LIF 超過 10000 拒絕
+- tools/golden_dump.py 改傳 dict 進 dict 出的轉接函式，路徑改為相對 repo 根
+
+**產出**
+- engine/bridge.py、tests/test_bridge.py、tools/golden_dump.py 修正
+
+**驗證**
+- 先 RED（ModuleNotFoundError）；實作後 test_bridge 7 項、全套 pytest、check_portable 通過；golden_dump 51 案無 null；engine/ 無 "eval("
+
+**問題與修正**
+- 失敗的嘗試：第一次用 shell heredoc 寫檔因引號解析失敗、未寫入任何檔案，改用寫檔工具
+- golden 全數一次通過，未動 golden 資料
+
+**待辦**
+- UI 依 bridge 模組 docstring 的鍵對照表接線；MicroPython 上驗證 json.dumps(allow_nan=False) 行為
