@@ -420,3 +420,28 @@
 
 **待辦**
 - 取得財政部扣繳率官方頁面後補 TAX_PRESETS；健保署頁面可讀時換成更直接的來源
+
+## 2026-10-20 Task 14（計算機算式與記憶）
+**需求**
+- engine/calc.py：遞迴下降算式剖析器（AOS／CHAIN），禁止動態執行函式；engine/memory.py：M0–M9 與累加器
+
+**做法**
+- 手寫 tokenizer（數字含 .5、1e3、2.5E-3；運算子含 × ÷ √ ² − ，；識別字 ANS、M0–M9、sqrt/ln/exp/inv/nPr/nCr）
+- 文法照規格；% 旗標由 postfix 向上傳遞，僅「直接作為 + − 右運算元」時才以 左×b/100 計算
+- CHAIN：二元 + − × ÷ ^ 同級左到右；一元負號／後置／函式／括號照常（故 CHAIN 的 -2^2 = 4）
+- 未設定的 Mn 視為 0.0；所有錯誤回 err(訊息含 1 起算位置, "expr")；巢狀深度上限 40
+- Memory 方法回 ok／err 字典，失敗時記憶不變；from_dict 驗證並忽略未知鍵與不合格值
+
+**產出**
+- engine/calc.py、engine/memory.py、tests/test_calc.py、tests/test_memory.py
+
+**驗證**
+- 先寫測試確認 RED（ModuleNotFoundError），實作後全套 pytest 通過、check_portable 通過、engine/ 無 "eval("
+
+**問題與修正**
+- 失敗的嘗試：tokenizer 用 str.isdigit()，「²」(U+00B2) 的 isdigit 為 True，3² 被當成數字而出錯；改成明確的 "0123456789" 比對
+- 失敗的嘗試：測試中位置斷言寫錯（"1+ $" 的 $ 在第 4 字元），修正測試
+- 簡報規格的測試寫 evaluate(...)["value"]，實際 ok() 信封是 ["values"]["value"]，測試採後者
+
+**待辦**
+- bridge 接線時決定 UI 如何傳 mem／ans；MicroPython 實機驗證 calc（含 math.pow、遞迴深度）
