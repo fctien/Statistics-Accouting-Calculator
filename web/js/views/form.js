@@ -292,6 +292,8 @@ function resetValues(form, sheetId) {
     clearFieldError(wrap);
   }
   clearMessages(form);
+  // 通知專屬畫面（run.js watchStale）：表單已清除，輸出表格與匯出鈕也要清掉
+  form.dispatchEvent(new CustomEvent("form-reset", { bubbles: true }));
 }
 
 function clearMessages(form) {

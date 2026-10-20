@@ -856,3 +856,27 @@
 
 **待辦**
 - controller 依 brief Step 2～3 做 golden e2e 與截圖；Task 23～24 的 CF／BOND／DEPR／STAT／CALC 專屬畫面
+
+## 2026-10-20 Task 22 修正輪 1：CSV 純數字、清除鈕、請求期間編輯
+
+**需求**
+- CSV 儲存格要是 Excel 認得的純數字；清除鈕／Esc 要連攤還表與匯出鈕一起清掉；請求進行中改輸入，舊回應不可顯示
+
+**做法**
+- csv.js 新增 exportSettings（sep 固定 us）與 plainNumberRows（去千分位）；AMORT 顯示表用使用者設定，CSV 用同樣輸入再向引擎要一次 sep=us 的 display（捨入仍由引擎做）；刪除鎖定千分位字串的舊測試
+- form.js resetValues 送出 bubbling 的 form-reset；run.js watchStale 視同編輯
+- 新增 generation.js（純函式世代守衛）；markStale bump，runEngineAction 呼叫前取 token、回來比對不符就丟棄
+- ICONV 防抖函式在表單已脫離 DOM 時不送請求；schedule 成功卻沒有列時顯示錯誤訊息
+
+**產出**
+- web/js/generation.js、csv.js、views/{run,amort,iconv,form}.js、sw.js；tests/js/generation.test.mjs、csv.test.mjs、tests/test_web_sheets.py（sep us／eu × 小數 0／2／4 的純數字測試）
+
+**驗證**
+- node 與 pytest 全綠、build_web／check_shell 通過
+- 瀏覽器（sep=eu）：畫面表格 −599,55；CSV 開頭 BOM EF BB BF、360 列全為 /^-?\d+(\.\d+)?$/；按清除後表格消失、匯出鈕停用；N=10000 的 schedule 進行中改 I/Y，回來後沒有表格也沒有結果
+
+**問題與修正**
+- 第一次驗證在 eu 設定下輸入 599.55 被判格式錯誤（eu 的點是千分位），改輸入 599,55；進行中請求未回來時按鈕會暫時停用，屬預期
+
+**待辦**
+- controller 再審

@@ -22,6 +22,19 @@ export function toCSV(rows, headers, opts = {}) {
   return (opts.bom ? BOM : "") + body;
 }
 
+/**
+ * 匯出用的引擎設定：小數點固定 "."、不含千分位（sep: "us"），小數位數維持使用者設定。
+ * 四捨五入由引擎完成，JS 不再自己捨入。
+ */
+export function exportSettings(settings) {
+  return { ...settings, sep: "us" };
+}
+
+/** 去掉 "us" 格式字串的千分位逗號（"1,234.50" → "1234.50"），讓 Excel 視為數字。 */
+export function plainNumberRows(rows) {
+  return rows.map((row) => row.map((c) => String(c).replace(/,/g, "")));
+}
+
 /** 觸發瀏覽器下載文字檔（Blob＋a[download]）；與 toCSV 分開，方便測試。 */
 export function download(filename, text, mime = "text/csv;charset=utf-8") {
   const blob = new Blob([text], { type: mime });

@@ -1,9 +1,11 @@
 // View：AMORT 攤還。通用表單（P1～P2 區間的 BAL／PRN／INT）＋完整攤還表（id="amort-table"）
 // ＋「匯出 CSV」（id="amort-csv"）。表格內容一律用引擎的 display 字串，尾差警告顯示在表格上方
 // （表單的結果區）。改輸入（P1／P2 除外）或計算失敗時，攤還表立刻清掉，不留舊表。
-import { renderForm, setFieldState } from "./form.js";
-import { runEngineAction, watchStale } from "./run.js";
-import { toCSV, download } from "../csv.js";
+import { renderForm, setFieldState, showResult } from "./form.js";
+import { runEngineAction, watchStale, generation, isGeneration } from "./run.js";
+import { callEngine } from "../py-client.js";
+import * as settingsStore from "../settings.js";
+import { toCSV, download, exportSettings, plainNumberRows } from "../csv.js";
 
 const SHEET = "amort";
 const HEADERS = ["期數", "每期付款 PMT", "利息 INT", "本金 PRN", "餘額 BAL"];
@@ -41,17 +43,17 @@ export function mount(container, ctx = {}) {
   const formBox = el("div");
   const tableBox = el("div", { id: "amort-table-box", class: "amort-box" });
   host.append(formBox, tableBox);
-  let rows = null; // 目前畫面上的表（display 字串二維陣列）
+  let csvRows = null; // 匯出用：引擎以 sep "us" 四捨五入後的純數字字串（無千分位）
 
   const csv = el("button", { type: "button", id: "amort-csv", class: "btn" }, "匯出 CSV");
   csv.disabled = true;
   csv.title = "把目前的攤還表存成 CSV（可用 Excel 開啟）";
   csv.addEventListener("click", () => {
-    if (rows) download("amort-schedule.csv", toCSV(rows, HEADERS, { bom: true }));
+    if (csvRows) download("amort-schedule.csv", toCSV(csvRows, HEADERS, { bom: true }));
   });
 
   const clearTable = () => {
-    rows = null;
+    csvRows = null;
     tableBox.replaceChildren();
     csv.disabled = true;
   };
@@ -63,11 +65,27 @@ export function mount(container, ctx = {}) {
     const shown = res.response.display?.rows;
     if (!Array.isArray(shown) || shown.length === 0) {
       clearTable();
+      showResult({ ok: false, error: "引擎沒有回傳攤還表（沒有資料列），請檢查輸入", field: null }, SHEET, actionId);
       return;
     }
-    rows = shown;
+    const token = generation(SHEET);
     tableBox.replaceChildren(buildTable(shown));
-    csv.disabled = false;
+    // CSV：同樣輸入再算一次，但小數點固定 "."、無千分位（捨入仍由引擎完成）
+    try {
+      const again = await callEngine({
+        sheet: SHEET, action: "schedule", inputs: res.inputs, settings: exportSettings(settingsStore.toEngine()),
+      });
+      const plain = again.ok === true ? again.display?.rows : null;
+      if (!isGeneration(SHEET, token)) { clearTable(); return; } // 期間輸入已改：表與匯出一起作廢
+      if (!Array.isArray(plain) || plain.length !== shown.length) throw new Error("匯出資料取得失敗");
+      csvRows = plainNumberRows(plain);
+      csv.disabled = false;
+    } catch (e) {
+      if (isGeneration(SHEET, token)) {
+        csv.disabled = true;
+        showResult({ ok: false, error: "無法產生 CSV 匯出資料：" + (e.message || e), field: null }, SHEET, actionId);
+      }
+    }
   };
 
   const form = renderForm(SHEET, formBox, { onAction: run });

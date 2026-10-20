@@ -6,8 +6,10 @@
 import { callEngine } from "../py-client.js";
 import { SHEETS } from "../sheets.js";
 import * as settingsStore from "../settings.js";
+import { createGuard } from "../generation.js";
 import { readInputs, showErrors, showResult, setBusy } from "./form.js";
 
+const guard = createGuard(); // 世代：輸入改變或結果失效就 bump，進行中的請求回來時檢查
 const STALE_TITLE = "這是舊的計算結果，輸入已改變，請按計算重新求出";
 
 function formOf(sheetId) {
@@ -30,6 +32,7 @@ export function clearStale(sheetId) {
  * exceptWrap：剛被使用者編輯的欄位（不標過期）。
  */
 export function markStale(sheetId, exceptWrap = null) {
+  guard.bump(sheetId);
   const form = formOf(sheetId);
   if (!form) return;
   for (const wrap of form.querySelectorAll(".field")) {
@@ -61,6 +64,20 @@ export function watchStale(sheetId, onStale) {
   form.addEventListener("input", handler);
   form.addEventListener("change", handler);
   form.addEventListener("click", handler);
+  form.addEventListener("form-reset", (e) => { // 清除鈕／Esc：等同編輯
+    markStale(sheetId);
+    onStale?.(e);
+  });
+}
+
+/** 目前世代 token（給需要自行檢查的畫面，例：攤還 CSV 的第二次請求）。 */
+export function generation(sheetId) {
+  return guard.get(sheetId);
+}
+
+/** token 是否仍是目前世代。 */
+export function isGeneration(sheetId, token) {
+  return guard.isCurrent(sheetId, token);
 }
 
 /**
@@ -83,6 +100,7 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
     restore();
     return null;
   }
+  const token = guard.get(sheetId);
   if (!live) setBusy(sheetId, true);
   let response;
   try {
@@ -94,7 +112,7 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
   } finally {
     if (!live) setBusy(sheetId, false);
   }
-  if (!isCurrent()) return null;
+  if (!isCurrent() || !guard.isCurrent(sheetId, token)) return null; // 請求期間輸入已改：丟棄舊回應
   if (response.ok === true) clearStale(sheetId);
   const shown = showResult(response, sheetId, actionId);
   if (response.ok !== true) {
@@ -102,5 +120,5 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
     onFail?.();
   }
   restore();
-  return { response, shown };
+  return { response, shown, inputs };
 }

@@ -25,6 +25,7 @@ export function mount(container) {
   watchStale(SHEET);
 
   const live = debounce(async () => {
+    if (!form.isConnected) return; // 畫面已換掉（teardown）：不再送請求
     const { action, target } = LIVE[source];
     const input = form.querySelector(`#f-${SHEET}-${source}`);
     setValues(SHEET, { [target]: "" }); // 目標欄位交給引擎填（不是使用者值）

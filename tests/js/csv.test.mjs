@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { toCSV, csvField, BOM } from "../../web/js/csv.js";
+import { toCSV, csvField, BOM, exportSettings, plainNumberRows } from "../../web/js/csv.js";
 
 test("一般欄位不加引號，列以 CRLF 分隔且結尾有 CRLF", () => {
   assert.equal(toCSV([["1", "2"], ["3", "4"]], ["a", "b"]), "a,b\r\n1,2\r\n3,4\r\n");
@@ -14,10 +14,6 @@ test("含逗號、雙引號、換行的欄位加引號，引號重複一次", ()
   assert.equal(csvField("a\nb"), '"a\nb"');
   assert.equal(csvField("a\rb"), '"a\rb"');
   assert.equal(csvField("plain"), "plain");
-});
-
-test("千分位數字在 toCSV 中被正確引號包住", () => {
-  assert.equal(toCSV([["1", "1,234.50"]], ["期", "餘額"]), '期,餘額\r\n1,"1,234.50"\r\n');
 });
 
 test("bom 選項加上 UTF-8 BOM（U+FEFF）", () => {
@@ -40,4 +36,14 @@ test("null／undefined 當空欄位，數字轉字串", () => {
 
 test("標頭也會跳脫", () => {
   assert.equal(toCSV([], ['a,"b"']), '"a,""b"""\r\n');
+});
+
+test("exportSettings 固定 sep 為 us，其他設定不變", () => {
+  assert.deepEqual(exportSettings({ decimals: 3, sep: "eu", mode: "AOS" }), { decimals: 3, sep: "us", mode: "AOS" });
+});
+
+test("plainNumberRows 去掉千分位，結果是純數字", () => {
+  const out = plainNumberRows([["1", "-1,234.50", "1,234,567.00", "0.00"]]);
+  assert.deepEqual(out, [["1", "-1234.50", "1234567.00", "0.00"]]);
+  for (const c of out[0]) assert.match(c, /^-?\d+(\.\d+)?$/);
 });

@@ -164,3 +164,36 @@ def test_tax_presets_mirror_engine():
     for name, p in TAX_PRESETS.items():
         assert p["source_url"].startswith("https://"), name
         assert p["checked"], name
+
+
+@pytest.mark.parametrize("sep", ["us", "eu"])
+@pytest.mark.parametrize("decimals", [0, 2, 4])
+def test_amort_csv_cells_are_plain_numbers(sep, decimals):
+    """匯出 CSV：不論使用者的千分位設定，儲存格都是純數字（引擎以 sep=us 捨入，JS 只去逗號）。"""
+    import re
+    req = {"sheet": "amort", "action": "schedule",
+           "inputs": {"N": 360, "IY": 6, "PV": 250000.0, "PMT": -1498.8757,
+                      "FV": 0, "PY": 12, "CY": 12, "BGN": False},
+           "settings": {"decimals": decimals, "sep": sep}}
+    js = ("import {exportSettings, plainNumberRows} from './web/js/csv.js';"
+          "const req = JSON.parse(process.argv[1]);"
+          "req.settings = exportSettings(req.settings);"
+          "console.log(JSON.stringify(req.settings));")
+    proc = run_node(["--input-type=module", "-e", js, json.dumps(req)])
+    assert proc.returncode == 0, proc.stderr
+    settings = json.loads(proc.stdout)
+    assert settings["sep"] == "us" and settings["decimals"] == decimals
+    req["settings"] = settings
+    resp = json.loads(call(json.dumps(req)))
+    assert resp["ok"], resp
+    js2 = ("import {plainNumberRows} from './web/js/csv.js';"
+           "let t='';process.stdin.on('data',d=>t+=d).on('end',()=>"
+           "console.log(JSON.stringify(plainNumberRows(JSON.parse(t)))));")
+    proc = run_node(["--input-type=module", "-e", js2],
+                    stdin=json.dumps(resp["display"]["rows"]))
+    assert proc.returncode == 0, proc.stderr
+    rows = json.loads(proc.stdout)
+    assert len(rows) == 360
+    for row in rows:
+        for cell in row:
+            assert re.fullmatch(r"-?\d+(\.\d+)?", cell), cell
