@@ -734,3 +734,42 @@
 
 **待辦**
 - controller 瀏覽器重新驗證後打 tag step4
+
+## 2026-10-20 Task 21 工作表表單框架
+
+**需求**
+- View 端框架：所有工作表的欄位定義（sheets.js）、通用表單（views/form.js）、導覽（views/nav.js）、純函式輸入解析（input.js）、設定（settings.js），讓 Task 22～24 只需加各表版面
+- 欄位 id 必須與 engine/bridge.py 鍵對照表完全一致；Enter 計算、Esc 清除、Tab 換欄；inputmode=decimal；ⓘ 說明；收到↓／付出↑；深色模式與無障礙（label for、aria-describedby）
+- 先掛最小示範：index 顯示導覽＋TVM 表單，計算鈕呼叫 callEngine
+
+**做法**
+- input.js 逐行移植 engine/fmt.parse_number（US／EU 千分位、全形數字、1e3），不依賴 Python；collect(values, kinds, sep) 空白→null、百分比 5／5% 皆為 5、日期 [y,m,d]、清單、「金額 x 次數」、positive／integer／min 即時驗證；toSigned／fromSigned（收到正、付出負，0 不產生 -0）
+- sheets.js：14 張表，欄位 {id, key?, out?, alias?, label, abbr, unit, help, example, kind, options?, output?, initial?}；動作 {id, label, primary, send?, solve?}；STAT 預測的 X'／Y' 與資料清單同名，用 id XP／YP + key X／Y 區分；STAT 回傳 a、b 以 out 對到 A、B 欄
+- form.js：產生 label＋abbr、ⓘ 說明（aria-expanded）、單位、方向鈕與「TI 正負號」提示、錯誤訊息（aria-invalid＋aria-describedby）；showResult 只填空白或上次求出的欄位（PROFIT 會回傳全部四格，使用者輸入不覆蓋），求出值保留完整精度（dataset.exact）；中文輸入法組字中的 Enter 不觸發
+- 自我審查後新增 input.resolveBlanks：求出 PMT 後改 N 直接按 Enter，沒有空白時把上次求出且未改動的欄位再當未知數
+- nav.js：hash 路由（#tvm、#cf…）、< 900px 底部 5 分頁＋更多選單、≥ 900px 左側全部工作表、localStorage 記住上次（try/catch）
+- app.js：每張表先用通用表單，動作直接送 callEngine（設定頁改寫 settings 並套用外觀）；app.css 改為色彩變數＋prefers-color-scheme／data-theme 深色模式＋響應式
+- sw.js APP_SHELL 加 5 個新檔，build_web 更新 SHELL_HASH；selftest.html 表頭改用色彩變數（深色模式可讀）
+
+**產出**
+- web/js/input.js、sheets.js、settings.js、views/form.js、views/nav.js；改 web/js/app.js、index.html、css/app.css、sw.js、selftest.html、package.json（test:js）
+- tests/js/input.test.mjs、sheets.test.mjs、settings.test.mjs、helpers/*.mjs；tests/_node.py、test_web_js.py、test_web_input.py、test_web_sheets.py
+- logs/verify-20261020-1554.html
+
+**驗證**
+- RED：input.test.mjs、sheets.test.mjs 先跑皆因模組不存在失敗；resolveBlanks 測試先因缺 export 失敗
+- GREEN：node --test 22 pass；pytest 264 passed（新增 6）；build_web --check、check_shell、check_portable、check_worker、flake8 皆通過
+- JS／Python 數字解析 126 案逐一相同；突變測試（關掉全形數字轉換）時該測試失敗
+- 欄位範例端到端：每張表每個動作用 example 呼叫 bridge 皆 ok，且回傳值與輸出欄位 example 相符
+- 瀏覽器畫面、鍵盤、TVM 示範：待 controller 以瀏覽器驗證
+
+**問題與修正**
+- 失敗的嘗試：`node --test tests/js`（目錄）在 Node 22 找不到模組 → 改傳 glob 字串 `tests/js/*.test.mjs`（Node 自行展開，Windows 亦可）
+- 自己的測試寫錯：EU 模式 "1.5" 是不合法千分位，改為 "1,5"
+- 端到端測試抓到猜錯的說明範例：IRR 13.7→13.78、MIRR 11.9→11.83、F 範例 "1 1 2 1 1" 會讓 n=6 → 改 "1 1 1 1 1"
+- pytest.ini 的 addopts 已含 -q，再加 -q 會吃掉最後的 passed 摘要，驗證時改用 -o addopts
+
+**待辦**
+- controller 瀏覽器驗證（手機寬／桌面寬、深色模式、Enter／Esc／Tab、TVM 示範、更多選單）
+- Task 22～24：各工作表專屬版面（CF 現金流表格、攤還／折舊表、STAT 資料表、CALC 按鍵與紙帶）；目前用通用表單暫代
+- Task 25：設定改存 IndexedDB；日期格式（US／EUR）與稅率預設尚未放進設定頁
