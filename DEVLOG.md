@@ -129,3 +129,7 @@
 
 **待辦**
 - Task 16 之後 `tools/golden_dump.py` 才能實際執行；PB／DPB、amort 之 TI 符號慣例待與 TI Guidebook 對照
+
+## 2026-10-20 Task 2 修正輪 1
+**問題與修正**
+- amort BAL 改用 `=-FV(...)`（與 PV 同號、對應 TI BAL 顯示），重產 excel.json：BAL y1=296315.96486317005、y2=292404.7065002685；測試與可攜檢查通過

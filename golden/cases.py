@@ -84,17 +84,17 @@ CASES = [
     _case("tvm_pv_py12_cy4", "tvm", "solve",
           _tvm(N=120, IY=8, PMT=-200, FV=0, PY=12, CY=4),
           "=PV((1+0.08/4)^(4/12)-1,120,-200,0,0)", "PV"),
-    # ---- amort（PMT 取自同次 Excel 計算；BAL=FV(rate,P2,PMT,PV) 不加負號）----
+    # ---- amort（PMT 取自同次 Excel 計算；BAL=-FV(rate,P2,PMT,PV)，與 PV 同號）----
     _case("amort_int_y1", "amort", "range", dict(_AM, P1=1, P2=12),
           "=CUMIPMT(0.005,360,300000,1,12,0)", "INT", pmt_formula=_PMT),
     _case("amort_prn_y1", "amort", "range", dict(_AM, P1=1, P2=12),
           "=CUMPRINC(0.005,360,300000,1,12,0)", "PRN", pmt_formula=_PMT),
     _case("amort_bal_y1", "amort", "range", dict(_AM, P1=1, P2=12),
-          "=FV(0.005,12,{PMT},300000)", "BAL", pmt_formula=_PMT),
+          "=-FV(0.005,12,{PMT},300000)", "BAL", pmt_formula=_PMT),
     _case("amort_int_y2", "amort", "range", dict(_AM, P1=13, P2=24),
           "=CUMIPMT(0.005,360,300000,13,24,0)", "INT", pmt_formula=_PMT),
     _case("amort_bal_y2", "amort", "range", dict(_AM, P1=13, P2=24),
-          "=FV(0.005,24,{PMT},300000)", "BAL", pmt_formula=_PMT),
+          "=-FV(0.005,24,{PMT},300000)", "BAL", pmt_formula=_PMT),
     # ---- cashflow ----
     _case("cf_npv", "cashflow", "npv", _cf(-10000, _CF4, 10),
           "=-10000+NPV(0.1,3000,4200,6800,-1500)", "NPV"),
