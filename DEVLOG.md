@@ -274,3 +274,22 @@
 
 **待辦**
 - bridge 串接（後續 Task）
+
+## 2026-10-20 Task 7 修正輪 1
+**需求**
+- PB/DPB 在 CF0>=0 回 0.0 屬誤導；9999 期極端利率會擲 OverflowError/ZeroDivisionError；多重根測試過鬆
+
+**做法**
+- CF0>=0 回 err；新增 _disc/_grow 溢位轉 inf，公開函式回「數值過大，無法計算」；強化測試
+
+**產出**
+- engine/cashflow.py、tests/test_cashflow.py、task-7-report.md 更新
+
+**驗證**
+- test_cashflow 12 項、全套 pytest、check_portable 皆通過
+
+**問題與修正**
+- 失敗的嘗試：無
+
+**待辦**
+- 無

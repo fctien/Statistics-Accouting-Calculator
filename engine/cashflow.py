@@ -63,11 +63,31 @@ def _prepare(inputs, need_rate=True):
     return flat, rate, None
 
 
+_INF = float("inf")
+_OVERFLOW_MSG = "數值過大，無法計算"
+
+
+def _disc(c, rate, t):
+    """c / (1+rate)^t；溢位或除以零時回傳 inf（讓求根器視為壞值）。"""
+    try:
+        return c / (1.0 + rate) ** t
+    except (OverflowError, ZeroDivisionError):
+        return _INF
+
+
+def _grow(c, rate, t):
+    """c * (1+rate)^t；溢位時回傳 inf。"""
+    try:
+        return c * (1.0 + rate) ** t
+    except OverflowError:
+        return _INF
+
+
 def _npv_of(flat, rate):
     """CF0 + 各期折現（Excel：CF0 + NPV(rate, flows)）。"""
     total = 0.0
     for t, c in enumerate(flat):
-        total += c / (1.0 + rate) ** t
+        total += _disc(c, rate, t)
     return total
 
 
@@ -76,7 +96,10 @@ def npv(inputs):
     flat, rate, e = _prepare(inputs)
     if e:
         return e
-    return ok({"NPV": _npv_of(flat, rate)})
+    v = _npv_of(flat, rate)
+    if not is_finite(v):
+        return err(_OVERFLOW_MSG, "NPV")
+    return ok({"NPV": v})
 
 
 def nfv(inputs):
@@ -84,7 +107,10 @@ def nfv(inputs):
     flat, rate, e = _prepare(inputs)
     if e:
         return e
-    return ok({"NFV": _npv_of(flat, rate) * (1.0 + rate) ** (len(flat) - 1)})
+    v = _grow(_npv_of(flat, rate), rate, len(flat) - 1)
+    if not is_finite(v):
+        return err(_OVERFLOW_MSG, "NFV")
+    return ok({"NFV": v})
 
 
 def _sign_changes(flat):
@@ -122,24 +148,31 @@ def mirr(inputs):
     n = len(flat)
     if not any(c > 0 for c in flat) or not any(c < 0 for c in flat) or n < 2:
         return err("MIRR 需要同時有正與負的現金流", "CF")
-    fv_pos = sum(c * (1.0 + rein) ** (n - 1 - t)
+    fv_pos = sum(_grow(c, rein, n - 1 - t)
                  for t, c in enumerate(flat) if c > 0)
-    pv_neg = sum(c / (1.0 + fin) ** t for t, c in enumerate(flat) if c < 0)
-    ratio = fv_pos / -pv_neg
-    return ok({"MIRR": (ratio ** (1.0 / (n - 1)) - 1.0) * 100.0})
+    pv_neg = sum(_disc(c, fin, t) for t, c in enumerate(flat) if c < 0)
+    if not is_finite(fv_pos) or not is_finite(pv_neg) or pv_neg == 0:
+        return err(_OVERFLOW_MSG, "MIRR")
+    try:
+        m = ((fv_pos / -pv_neg) ** (1.0 / (n - 1)) - 1.0) * 100.0
+    except (OverflowError, ZeroDivisionError):
+        return err(_OVERFLOW_MSG, "MIRR")
+    return ok({"MIRR": m})
 
 
 def _payback(flat, rate, field):
     """累計現金流首次 >= 0 的期間，期內線性內插；rate 為 None 表不折現。"""
+    if flat[0] >= 0:
+        return err("CF0 須為負值（初始投資）", "CF")
     cum = 0.0
     for t, c in enumerate(flat):
-        v = c if rate is None else c / (1.0 + rate) ** t
+        v = c if rate is None else _disc(c, rate, t)
+        if not is_finite(v):
+            return err(_OVERFLOW_MSG, field)
         prev = cum
         cum += v
         if t > 0 and prev < 0 <= cum:
             return ok({field: (t - 1) + (-prev) / v})
-        if t == 0 and cum >= 0:
-            return ok({field: 0.0})
     return err("未回本", field)
 
 

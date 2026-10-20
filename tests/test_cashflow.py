@@ -27,7 +27,9 @@ def test_irr_no_sign_change():
 def test_irr_multiple_sign_warning():
     r = cashflow.irr(_in(-100, [[230, 1], [-132, 1]]))
     assert r["ok"] and r["warnings"]
-    assert abs(r["values"]["IRR"] - 10) < 1e-6 or r["values"]["IRR"] > 0
+    # 多重根時回傳哪個根取決於起始猜測值 0.1（此例落在 10%）
+    assert abs(r["values"]["IRR"] - 10) < 1e-6
+    assert r["warnings"] == ["現金流正負號變化多次，IRR 可能有多個解"]
 
 
 def test_payback_interpolated():
@@ -46,12 +48,13 @@ def test_payback_never_recovered():
 
 
 def test_dpayback_value():
-    # 折現後累計：-1000, -636.36, -272.73(…) 手算 -1000+500/1.1+500/1.21+500/1.331
+    # 手算：折現值 454.55、413.22、375.66；前兩期累計 -132.23，故 2+132.23/375.66=2.352
     r = cashflow.dpayback(_in(-1000, [[500, 3]]))
     assert r["ok"]
     c1, c2, c3 = 500 / 1.1, 500 / 1.21, 500 / 1.331
     expect = 2 + (1000 - c1 - c2) / c3
     assert abs(r["values"]["DPB"] - expect) < 1e-12
+    assert abs(r["values"]["DPB"] - 2.352) < 5e-4
 
 
 def test_flow_count_invalid():
@@ -71,3 +74,27 @@ def test_mirr_requires_ri_and_both_signs():
 def test_expand():
     assert cashflow.expand(-1, [[2, 2], [3, 1]]) == [-1, 2, 2, 3]
     assert cashflow.expand(-1, [[2, 0]])["ok"] is False
+
+
+def test_payback_positive_cf0_is_error():
+    for f in (cashflow.payback, cashflow.dpayback):
+        r = f(_in(500, [[-100, 3]]))
+        assert r["ok"] is False and r["field"] == "CF"
+
+
+def test_long_horizon_no_exception():
+    """9999 期極端利率：不得擲例外，結果須為錯誤或有限數。"""
+    cases = [
+        (cashflow.irr, _in(-100, [[1, 9999]])),
+        (cashflow.nfv, _in(-100, [[1, 9999]], i=500)),
+        (cashflow.mirr, _in(-100, [[1, 9999]], i=10, ri=500)),
+        (cashflow.npv, _in(-100, [[1, 9999]], i=-99.9)),
+        (cashflow.dpayback, _in(-100, [[1, 9999]], i=-99.9)),
+    ]
+    for f, inp in cases:
+        r = f(inp)
+        if r["ok"]:
+            assert all(v == v and abs(v) != float("inf")
+                       for v in r["values"].values())
+        else:
+            assert r["error"]
