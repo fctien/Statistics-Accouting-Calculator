@@ -12,6 +12,10 @@ import * as amortView from "./views/amort.js";
 import * as iconvView from "./views/iconv.js";
 import * as businessView from "./views/business.js";
 import * as dateView from "./views/date.js";
+import * as cashflowView from "./views/cashflow.js";
+import * as statsView from "./views/stats.js";
+import * as bondView from "./views/bond.js";
+import * as deprView from "./views/depr.js";
 
 export const APP_VERSION = "0.1.0";
 
@@ -70,6 +74,10 @@ const VIEWS = {
   "business-pct": businessView,
   tax: businessView,
   date: dateView,
+  cashflow: cashflowView,
+  stats: statsView,
+  bond: bondView,
+  depr: deprView,
 };
 
 let pendingPrefill = null; // 跨工作表帶值（TVM → AMORT）：下一次掛載的畫面取用一次

@@ -880,3 +880,31 @@
 
 **待辦**
 - controller 再審
+
+## 2026-10-20 Task 23：CF／STAT／BOND／DEPR 專屬畫面與貼上解析
+
+**需求**
+- CF、STAT 改成可編輯表格（新增／刪除列、從 Excel 貼上）；BOND 留一格空白求 PRI 或 YLD；DEPR 折舊表＋CSV 與 M01 規則提示；任何編輯、錯誤、清除後都不能留下看起來像目前結果的舊數字
+
+**做法**
+- 新增純函式 paste.js（parsePastedTable，重用 input.js parseNumber）與 tables.js（applyPaste、readCfTable、readStatTable、MAX_ROWS=500），錯誤一律回 {error, row, col}
+- 新增 views/grid.js（CF 與 STAT 共用的表格元件）、cashflow／stats／bond／depr 四個畫面；run.js 的 runEngineAction 新增 extra／onExtraError／mapError 三個掛鉤，讓表格內容併入送出的輸入、讀取錯誤中止計算、引擎錯誤可認領到表格；form.js 新增 showFormMessage
+- 設計決定：中間的空白列一律報錯（CF 會讓期別錯位，沒有現金流要輸入 0）；STAT 迴歸時次數欄有值報錯而不是默默忽略；單變數次數欄全有或全無
+- BOND 把兩個固定動作鈕換成一顆「計算」，由 YLD／PRI 哪格空白決定求價格或求殖利率，並沿用「上次求出的格子再當未知數」規則
+- 警告（IRR 可能有多個解）樣式改為醒目警告框
+
+**產出**
+- web/js/paste.js、tables.js、views/{grid,cashflow,stats,bond,depr}.js；修改 app.js、sw.js（APP_SHELL）、views/run.js、views/form.js、css/app.css；tests/js/paste.test.mjs、tables.test.mjs
+
+**驗證**
+- node --test 62 pass；pytest 全綠；build_web／check_shell／check_portable 通過
+- 瀏覽器：CF（CF0=−10000，3000／4200／6800／−1500，I=10）NPV 282.77、IRR 11.52 並顯示多解警告；全正現金流 IRR 顯示「IRR 無解：現金流沒有正負號變化」；STAT LIN a=−0.02、b=2.02、預測 X'=7 → 14.12；BOND 價格 93.40、AI 3.13，改 CPN 後重算 86.81，兩格都填報錯，清空 YLD 後求出 6.72；DEPR 定率遞減 DB 第 2 年 2,400.00、折舊表 5 列、CSV 鈕啟用
+
+**問題與修正**
+- parsePastedTable 第一版把「單欄但行尾有 tab」當成多欄而失敗，改為先去掉行尾 tab、寬度 ≤ 1 時改走單欄路徑
+- 用 Bash heredoc 寫含單引號（X'）的檔案時工具解析失敗，改用 Write 工具
+- 先寫實作與測試一起，沒有單獨留下測試失敗（RED）的輸出
+
+**待辦**
+- controller 的 e2e（元素 id：cf-table、cf-add-row、stat-table、stat-add-row、depr-table、depr-csv、bond-calc、f-<sheet>-<field>）
+- DEPR CSV 實際下載內容未在瀏覽器逐格驗證（與 AMORT 同一套 exportSettings／plainNumberRows）

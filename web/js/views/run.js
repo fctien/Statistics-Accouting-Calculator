@@ -7,7 +7,7 @@ import { callEngine } from "../py-client.js";
 import { SHEETS } from "../sheets.js";
 import * as settingsStore from "../settings.js";
 import { createGuard } from "../generation.js";
-import { readInputs, showErrors, showResult, setBusy } from "./form.js";
+import { readInputs, showErrors, showResult, setBusy, showFormMessage } from "./form.js";
 
 const guard = createGuard(); // 世代：輸入改變或結果失效就 bump，進行中的請求回來時檢查
 const STALE_TITLE = "這是舊的計算結果，輸入已改變，請按計算重新求出";
@@ -84,22 +84,36 @@ export function isGeneration(sheetId, token) {
  * 執行工作表動作。回傳 {response, shown}；格式錯誤或被取代（isCurrent 為 false）時回傳 null。
  * opts.isCurrent：回應到達時仍為最新請求才套用（避免舊回應蓋掉新結果）。
  * opts.live：即時換算用，不停用按鈕，並把焦點還給原本的欄位（錯誤標示不搶焦點）。
+ * 專屬畫面有表格（CF、STAT）時另有三個掛鉤：
+ *   opts.extra()            讀表格，回傳 {inputs?: {引擎鍵: 值}, error?: {message, ...}}；
+ *                           inputs 併入送出的輸入，error 會中止計算（與欄位格式錯誤同樣處理）
+ *   opts.onExtraError(err)  表格讀取錯誤時通知畫面標出出錯的格子
+ *   opts.mapError(response) 引擎失敗時先讓畫面認領錯誤（例：field 指向表格而非某個欄位）；
+ *                           回傳要顯示的 response（例：field 改為 null 變成表單層級訊息）
  */
 export async function runEngineAction(sheetId, actionId, opts = {}) {
-  const { isCurrent = () => true, live = false, onFail } = opts;
+  const { isCurrent = () => true, live = false, onFail, extra, onExtraError, mapError } = opts;
   const sheet = SHEETS[sheetId];
   const active = live ? document.activeElement : null;
   const restore = () => {
     if (active && active.isConnected && document.activeElement !== active) active.focus();
   };
   const { inputs, errors } = readInputs(sheetId, actionId);
-  if (Object.keys(errors).length) {
+  const more = extra ? extra() : null;
+  const extraError = more && more.error ? more.error : null;
+  if (Object.keys(errors).length || extraError) {
     markStale(sheetId);
     showErrors(sheetId, errors);
+    if (extraError) {
+      const n = Object.keys(errors).length;
+      showFormMessage(sheetId, n ? `${extraError.message}（另有 ${n} 個欄位格式不正確，請修正紅色欄位）` : extraError.message);
+      onExtraError?.(extraError);
+    }
     onFail?.();
     restore();
     return null;
   }
+  Object.assign(inputs, more && more.inputs);
   const token = guard.get(sheetId);
   if (!live) setBusy(sheetId, true);
   let response;
@@ -114,7 +128,8 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
   }
   if (!isCurrent() || !guard.isCurrent(sheetId, token)) return null; // 請求期間輸入已改：丟棄舊回應
   if (response.ok === true) clearStale(sheetId);
-  const shown = showResult(response, sheetId, actionId);
+  const toShow = response.ok !== true && mapError ? (mapError(response) || response) : response;
+  const shown = showResult(toShow, sheetId, actionId);
   if (response.ok !== true) {
     markStale(sheetId);
     onFail?.();

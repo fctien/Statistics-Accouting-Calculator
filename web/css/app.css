@@ -514,9 +514,12 @@ input[type="checkbox"].control {
 }
 
 .warnings {
-  margin: 4px 0;
-  padding-left: 20px;
+  margin: 8px 0;
+  padding: 8px 12px 8px 32px;
+  border-left: 4px solid var(--warn);
+  background: var(--surface);
   color: var(--warn);
+  font-weight: 700;
 }
 
 /* 重新求解提示：求出的輸入欄位（綠色）會在下次計算時重算 */
@@ -613,4 +616,109 @@ input[type="checkbox"].control {
   position: sticky;
   top: 0;
   background: var(--surface);
+}
+
+/* ---- Task 23：可編輯表格（CF、STAT）與折舊提示 ---- */
+.grid-section {
+  grid-column: 1 / -1;
+}
+
+.grid-box {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.grid-table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.grid-table th,
+.grid-table td {
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.grid-table thead th {
+  text-align: left;
+  background: var(--surface);
+  padding: 6px 8px;
+}
+
+.grid-table abbr {
+  color: var(--muted);
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.grid-rowlabel {
+  padding-right: 8px;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.grid-cell {
+  width: 9.5rem;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  text-align: right;
+}
+
+.grid-cell.cell-error {
+  border-color: var(--bad);
+  background: var(--bad-bg);
+}
+
+.grid-table.has-error {
+  outline: 2px solid var(--bad);
+  outline-offset: 2px;
+}
+
+.row-del {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.grid-msg {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--bad);
+  background: var(--bad-bg);
+  color: var(--fg);
+}
+
+.grid-actions {
+  margin: 8px 0 0;
+}
+
+.grid-hint,
+.field-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.field-hint.hint-rule {
+  padding: 6px 10px;
+  border-left: 4px solid var(--warn);
+  background: var(--surface);
+  color: var(--fg);
+}
+
+@media (max-width: 599px) {
+  .grid-cell {
+    width: 6.2rem;
+  }
 }

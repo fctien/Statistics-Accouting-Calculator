@@ -380,6 +380,12 @@ function showMessage(form, text) {
   msg.hidden = false;
 }
 
+/** 顯示表單層級訊息（不清除其他欄位的錯誤）；給專屬畫面（例：表格的列欄錯誤）使用。 */
+export function showFormMessage(sheetId, text) {
+  const form = getForm(sheetId);
+  if (form) showMessage(form, text);
+}
+
 /**
  * 重新求解提示：有「求出的輸入欄位」（綠色、非輸出欄）時，在表單下方說明再按計算會重算它；
  * 沒有時移除提示（例：使用者改了那一格）。
