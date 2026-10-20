@@ -394,3 +394,29 @@
 
 **待辦**
 - 取得 TI 手冊範例後再開放 SYD/DB/DBX 的 M01≠1
+
+## 2026-10-20 Task 12–13（商業與稅務、日期工作表）
+**需求**
+- engine/business.py：profit、breakeven、pct_change、tax、TAX_PRESETS；engine/dates.py 加 date_sheet
+
+**做法**
+- 皆為「留一格 None 求解」，非未知數須為有限數（bool 拒絕）；除以零一律 err，不回 inf
+- tax 以 money.to_cents／tax_* 運算，輸出換回元
+- date_sheet：ACT 用序數日加減；360 以實際天數估計中心、窗口 |DBD|*0.05+45 天掃描，取最早解，多解加 warning
+- 新增公開 days_in_month，保留 _dim 別名（bond.py 仍在用）
+- TAX_PRESETS 只收官方頁面查證到者：營業稅 5%（財政部稅務入口網）、補充保費 2.11%（衛福部 110 年公告）
+
+**產出**
+- engine/business.py、engine/dates.py、tests/test_business.py、tests/test_dates.py
+
+**驗證**
+- 先寫測試並確認 RED（ModuleNotFoundError／ImportError），實作後全套 pytest 通過、check_portable 通過
+
+**問題與修正**
+- 失敗的嘗試：profit 用 _check(…, unknown="") 驗證，錯誤地回報 unknown 欄位，改為逐欄檢查
+- 失敗的嘗試：原測試誤以為 1/1 起算 89 天有多解；實際 90 天（3/31 與 4/1）才有，修正測試
+- 各類所得扣繳率（薪資／執行業務 10%）僅找到大學轉載簡表，未在財政部／國稅局頁面查證到，故未收錄
+- 二代健保補充保費：健保署頁面回 403，僅以衛福部 110 年公告為來源，無法確認 2026 年仍未調整
+
+**待辦**
+- 取得財政部扣繳率官方頁面後補 TAX_PRESETS；健保署頁面可讀時換成更直接的來源
