@@ -1279,3 +1279,24 @@
 - PDF 產生後人工目視 run_all log 清單上的頁面（AI 33、44、49、73、77、16、19、23、26、30、34；EMBA 9、58），本次沒有做
 - 能登入時用真正的 `claude -p` 重跑 step0～2 演練，取代替身結果；step3～step9 尚未演練
 - rehearse.md「建議」三項（驗收指令檔名、step2 介面補 pytest.ini 與 golden_dump）待作者決定
+
+## 2026-10-21 Task 31 run_all 執行紀錄
+
+**需求**
+- 在乾淨的 commit 30945fe 上執行 `python run_all.py`，留下 log
+
+**做法**
+- commit 後立即執行；PowerPoint 正在執行（使用者開著），export_pdf 依規則停下
+
+**產出**
+- logs/run_all-20261021-1212.html、logs/verify-20261021-1212.html
+
+**驗證**
+- verify_all --quick PASS（mutate 未執行）、build_cards PASS、build_deck PASS（AI 86 頁、EMBA 61 頁）、export_pdf exit 2（未匯出、未連上使用者的 PowerPoint）、make_package 未執行
+- 人工目視清單已列在 log，標「未完成」
+
+**問題與修正**
+- build_deck 每次重產的 pptx 內容與 commit 相同（逐一比對 zip 內每個檔案皆相同），只有 zip 時間戳不同，會讓工作樹變髒；用 git checkout -- teaching/out/ 還原後再 commit log
+
+**待辦**
+- 關閉 PowerPoint 後重跑 run_all，取得 PDF、學生版 zip 與完整 PASS 的 log，並做人工目視
