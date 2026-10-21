@@ -1198,3 +1198,42 @@
 
 **待辦**
 - 上課前用實體 BA II Plus 或 TI Guidebook 核對 5 段按鍵，核對後移除「未實機驗證」並調整測試
+
+## 2026-10-21 Task 30：Prompt 卡與教學簡報
+
+**需求**
+- 由單一來源 teaching/prompts.py 產生兩份 Prompt 卡 HTML（AI、EMBA）與四份簡報（AI、EMBA，各有講稿版）
+- 簡報用使用者的 tien-teaching-deck 格式（deck_kit）；字級 ≥ 16 pt（Prompt／程式碼框可 14 pt）、不用「。」、1.5 倍行距、每頁出處；講稿版每頁備忘稿有【講稿】與【投影片說明】
+- 放 App 實際截圖；step7 標示「選用，作者未實測」；一句話下法的結果標「推測」
+
+**做法**
+- teaching/build_cards.py：每步一張卡（目標／Prompt 原文＋複製鈕／一句話對照（AI）／預期產出／驗收／常見坑／tag），開頭一張兩層 CLAUDE.md 卡；CSS 色彩 token 支援深淺色、@media print 每卡換頁；不載入外部資源；tag 尚未建立時（step9）自動加註
+- teaching/deck/capture_shots.mjs：用上層 Tien Research 已安裝的 Playwright 驅動本機 Chrome（headless），在 localhost:8765 實際輸入後擷取 6 張截圖到 teaching/assets/（TVM、AMORT 表、CF NPV／IRR、計算機紙帶、設定「關於」、手機 375 px）；沒有安裝任何套件
+- teaching/deck/build_deck.py：import 使用者的 deck_kit（Tien Research/deck_kit），內容依序為封面、十步驟蛇形流程圖、案例理由（卡片＋截圖）、MVC（AI）、四段式、EMBA 進行方式（EMBA）、兩層 CLAUDE.md（概念＋兩份範本），每步：概觀流程圖、Prompt 原文（依【…】段落自動分頁）、一句話對照（AI）、驗收、截圖頁（step2～6、9）、實際踩過的坑（AI 版第一條為 bad_evidence）、結論頁
+- 用估算字寬換行的 check_fit 檢查每頁內容不超過 6.45 吋，超出就建置失敗；存檔前把 deck_kit 預設 14 pt 的頁尾、出處、eyebrow 提高到 16 pt（Consolas 除外）
+- prompts.py 三處學員可見文字的「你」改寫（技能規定投影片不對學生說「你」；Prompt 原文中對 AI 說的「你」保留）
+- tests/test_teaching_outputs.py：python-pptx 讀回檢查字級、「。」、備忘稿兩段、十步驟頁數、step7 標示、Prompt 逐行出現、講稿版與一般版文字一致、卡片含每步 id 與原文且無外部資源；out/ 不存在時略過
+
+**產出**
+- teaching/build_cards.py、teaching/deck/build_deck.py、teaching/deck/capture_shots.mjs、teaching/assets/*.png（6 張）
+- teaching/out/Prompt卡_AI.html、Prompt卡_EMBA.html、BACalc_AI.pptx、BACalc_AI_講稿.pptx（84 頁）、BACalc_EMBA.pptx、BACalc_EMBA_講稿.pptx（61 頁）
+- tests/test_teaching_outputs.py（18 項）
+
+**驗證**
+- python -m pytest tests/test_teaching_outputs.py：18 passed；python -m pytest：307 passed（基準 commit f7391fc）
+- 故意弄壞一份副本（加「。」、14 pt 內文、刪一頁備忘稿說明、改掉卡片 step7 id、刪一份 pptx）：5 failed、5 skipped，測試抓得到；out/ 不存在時 18 skipped
+- pptx 技能 validate.py：四份都 All validations PASSED
+- 卡片：Playwright 開啟淺色桌面與深色 390 px 截圖目視、複製鈕顯示「已複製」、主題切換、列印 PDF（EMBA 12 頁＝一卡一頁；AI 19 頁，內容多的卡跨兩頁）
+- 簡報：本機沒有 LibreOffice，依使用者規則也不開 PowerPoint，改用 PIL 以微軟正黑體實際量字寬畫出粗略預覽逐頁目視，未見溢出
+
+**問題與修正**
+- 截圖第一版 CF、計算機截在沒有表格與紙帶的位置，改成捲到 #cf-table、紙帶後重拍
+- 一句話對照頁第一版把 bad_evidence 放在同頁，step0 估算下緣 7.16 吋超出，改把 bad_evidence 移到「實際踩過的坑」第一條
+- 坑的分頁估算沒算項目符號「・」，step5 超出，改成估算時含符號
+- 攤還截圖說明太長換兩行壓到下方說明，縮短；課程架構頁標題去掉括號內容
+- build_cards 的 tag 加註第一次用字串取代沒套用（只加了 import），flake8 抓到 subprocess 未使用才發現，改用 Edit 重寫
+
+**待辦**
+- Task 31：PDF 匯出時用 PowerPoint 或 LibreOffice 實際轉圖逐頁目視（目前只有估算與 PIL 粗略預覽）
+- 講稿為依資料組成的範本句，上課前可依實際節奏潤飾（請在 prompts.py 或 build_deck.py 改，再重產）
+- step9 tag 建立後重跑兩個產生器，「尚未建立」加註會自動消失
