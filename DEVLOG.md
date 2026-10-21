@@ -1173,3 +1173,28 @@
 **待辦**
 - Task 30 依本檔產生 Prompt 卡與簡報；Task 31 演練後回寫 pitfalls 與 bad_result
 - step9 打 tag 後，test_prompts 會自動改用 tag 檢查 step9 的驗收指令
+
+## 2026-10-21 Task 29 修正輪 1：按鍵標示未驗證、DEPR 順序、白話用語
+
+**需求**
+- 審查意見：BA II Plus 按鍵依記憶撰寫卻寫成事實；DEPR 欄位順序可能錯；step0 五段式與 step0 tag 不符；RED/GREEN 指令的 -q 重複；EMBA npm 坑的原因寫錯；EMBA 殘留術語；測試文件未註明不查旗標
+
+**做法**
+- 5 處 BA II Plus 按鍵都加「（按鍵依記憶撰寫，未實機驗證）」，新增 test_ba_keystrokes_marked_unverified（含按鍵的 BA II Plus 字串必須含「未實機驗證」）
+- DEPR 改為 LIF、M01、CST、SAL、YR、DEP、RBV、RDV（推測順序，同樣標未驗證），拿掉「依序」等暗示按鍵次數確定的字樣
+- step0 expected／verify 改對照 PROJECT_CLAUDE_MD 範本，註明 step0 tag 的 CLAUDE.md 早於範本、段落不同
+- step2 要貼 RED/GREEN 處改用 python -m pytest（pytest.ini 已含 -q）
+- EMBA npm 坑改為「先確認專案資料夾有 package.json」；Service Worker、commit、突變測試改白話，JSON、OAuth Client ID 加括號說明
+- tests/test_prompts.py docstring 註明只查路徑與 npm script，不查旗標、不執行指令
+
+**產出**
+- teaching/prompts.py、tests/test_prompts.py（14 項）
+
+**驗證**
+- python -m pytest tests/test_prompts.py：14 passed；python -m pytest：289 passed；prompts.py 無「。」
+
+**問題與修正**
+- 無失敗嘗試；BA II Plus 按鍵（含 DEPR 欄位順序）仍未實機或手冊核對，只是標示清楚
+
+**待辦**
+- 上課前用實體 BA II Plus 或 TI Guidebook 核對 5 段按鍵，核對後移除「未實機驗證」並調整測試

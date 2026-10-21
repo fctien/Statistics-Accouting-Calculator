@@ -92,7 +92,8 @@ PROJECT_CLAUDE_MD = """\
 
 _EXCEL_PMT = "Excel 輸入 =PMT(0.06/12,360,300000)，應得 -1,798.65（可能顯示成貨幣格式）"
 _BA_PMT = ("BA II Plus：[2ND][CLR TVM]，確認 [2ND][P/Y] 為 12 後 [2ND][QUIT]，"
-           "360 [N]、6 [I/Y]、300000 [PV]、0 [FV]、[CPT][PMT]，應顯示 -1,798.65")
+           "360 [N]、6 [I/Y]、300000 [PV]、0 [FV]、[CPT][PMT]，應顯示 -1,798.65"
+           "（按鍵依記憶撰寫，未實機驗證）")
 _EXCEL_NPV = "Excel 輸入 =-10000+NPV(0.1,3000,4200,6800,-1500)，應得 282.77"
 
 # ---------------------------------------------------------------------------
@@ -131,11 +132,14 @@ STEPS = [
                             "自我檢查才發現 MicroPython 沒有 ast 模組，改成自寫遞迴下降剖析器"
                             "（DEVLOG 2026-10-20 規格修訂）；"
                             "執行環境的限制沒寫進 CLAUDE.md，AI 每次都會重新犯",
-            "expected": "~/.claude/CLAUDE.md 有五條通用原則；專案根目錄有五段式 CLAUDE.md 與 DEVLOG.md；"
+            "expected": "~/.claude/CLAUDE.md 有五條通用原則；專案根目錄有 DEVLOG.md 與五段式 CLAUDE.md"
+                        "（對照本教材的 PROJECT_CLAUDE_MD 範本；step0 tag 的 CLAUDE.md 早於範本，段落不同，只當參考）；"
                         "AI 能正確複述規則",
             "verify": [
                 'claude -p "用三點複述這個專案 CLAUDE.md 最重要的規則"',
                 'claude -p "engine/ 可以 import decimal 嗎？為什麼"',
+                "把自己的 CLAUDE.md 與 Prompt 卡上的專案層級範本 PROJECT_CLAUDE_MD 逐段對照，五段都要有"
+                "（下一行是作者當時的版本，早於五段式範本，段落不同，只當參考）",
                 "git show step0:CLAUDE.md",
             ],
             "pitfalls": [
@@ -270,7 +274,7 @@ STEPS = [
 - 求出 N ≤ 0 或無解時回 {"ok": false}，不回傳看似合理的數字
 - golden 對不上就停下來回報，不准改 golden 或放寬容差
 【驗收】
-- python -m pytest tests/test_tvm.py -q 全過，貼出 RED 與 GREEN 兩次輸出
+- python -m pytest tests/test_tvm.py 全過，貼出 RED 與 GREEN 兩次輸出（pytest.ini 已含 -q，不要再加 -q，否則看不到 passed 摘要）
 - 房貸 N=360、I/Y=6、PV=300000、FV=0，PMT 應為 -1798.65（=PMT(0.06/12,360,300000)）""",
             "bad_prompt": "用 Python 寫 TVM 計算，要有測試",
             "bad_result": "推測：AI 先寫程式再補測試，金額可能用 decimal，"
@@ -280,7 +284,7 @@ STEPS = [
             "expected": "engine/tvm.py、money.py、dates.py、solver.py、result.py 與對應測試；"
                         "tests/golden/excel.json 每筆附 Excel 公式；check_portable 通過",
             "verify": [
-                "python -m pytest tests/test_tvm.py -q",
+                "python -m pytest tests/test_tvm.py",
                 "python -m pytest -q",
                 "python tools/check_portable.py engine",
                 "python tools/golden_dump.py",
@@ -395,8 +399,9 @@ STEPS = [
                 _EXCEL_NPV,
                 "Excel 輸入 =IRR({-10000,3000,4200,6800,-1500})，儲存格設成百分比 2 位小數，應得 11.52%",
                 "BA II Plus：[CF][2ND][CLR WORK]，CF0 輸入 10000 [+|-] [ENTER]，"
-                "[↓] C01=3000 [ENTER] [↓] F01=1，依序輸入 C02=4200、C03=6800、C04=1500 [+|-]，"
-                "[NPV] I=10 [ENTER] [↓][CPT] 應得 282.77；[IRR][CPT] 應得 11.52",
+                "[↓] C01=3000 [ENTER] [↓] F01=1，同樣輸入 C02=4200、C03=6800、C04=1500 [+|-]，"
+                "[NPV] I=10 [ENTER] [↓][CPT] 應得 282.77；[IRR][CPT] 應得 11.52"
+                "（按鍵依記憶撰寫，未實機驗證）",
             ],
             "pitfalls": [
                 "全部是正的現金流沒有 IRR，App 要顯示「IRR 無解：現金流沒有正負號變化」而不是 0",
@@ -485,13 +490,15 @@ STEPS = [
                 "打開自我測試頁 selftest.html，每一題都應顯示 PASS",
                 "App 利率換算：名目利率 12、每年複利 12 次，有效利率應為 12.68；"
                 "Excel =EFFECT(0.12,12) 得 0.126825",
-                "BA II Plus：[2ND][ICONV]，NOM=12 [ENTER]，[↓][↓] C/Y=12 [ENTER]，[↑] 到 EFF 按 [CPT]，應得 12.68",
+                "BA II Plus：[2ND][ICONV]，NOM=12 [ENTER]，[↓][↓] C/Y=12 [ENTER]，[↑] 到 EFF 按 [CPT]，應得 12.68"
+                "（按鍵依記憶撰寫，未實機驗證）",
                 "請 AI 停掉伺服器（模擬沒網路）後重新整理，畫面仍在、仍能算出 12.68",
             ],
             "pitfalls": [
-                "改了 App 重新整理還是舊畫面：這是瀏覽器快取（Service Worker），本專案開發時遇過多次，"
+                "改了 App 重新整理還是舊畫面：這是瀏覽器把舊版存起來（快取）造成的，本專案開發時遇過多次，"
                 "要請 AI 做好自動更新，不是叫你一直清快取",
-                "AI 第一次安裝套件時裝錯資料夾（裝到上一層），所以「安裝前先問我」這條規則很重要",
+                "AI 第一次安裝套件時裝錯資料夾（裝到上一層），原因是專案資料夾還沒有套件清單檔 package.json；"
+                "安裝前要請 AI 先確認專案資料夾裡有 package.json",
             ],
             "start_tag": "step3",
         },
@@ -563,7 +570,8 @@ STEPS = [
                 "App 攤還：房貸例題 P1=1、P2=12，利息 INT 應為 -17,899.78；"
                 "Excel =CUMIPMT(0.005,360,300000,1,12,0) 得 -17,899.78",
                 "BA II Plus：做完 TVM 房貸後 [2ND][AMORT]，P1=1 [ENTER] [↓] P2=12 [ENTER]，"
-                "[↓] BAL=296,315.96、[↓] PRN=-3,684.04、[↓] INT=-17,899.78",
+                "[↓] BAL=296,315.96、[↓] PRN=-3,684.04、[↓] INT=-17,899.78"
+                "（按鍵依記憶撰寫，未實機驗證）",
                 "App 債券：交割日 2026-06-12、到期日 2036-01-01、票面 7%、殖利率 8%、半年付息、ACT，價格應為 93.40；"
                 "Excel =PRICE(DATE(2026,6,12),DATE(2036,1,1),0.07,0.08,100,2,1) 得 93.40",
                 "下載攤還表 CSV 用 Excel 開啟，數字欄可以直接 =SUM，不會變成文字（儲存格左上角沒有綠色三角形）",
@@ -624,7 +632,7 @@ STEPS = [
 【任務】
 請讓 App 記住我的資料：關掉再打開，設定、計算紀錄、記憶值都還在；還要能匯出備份檔、再匯入回來
 【介面】
-設定頁有「匯出 JSON」和「匯入 JSON」兩個按鈕；匯入時讓我選「取代」或「合併」
+設定頁有「匯出 JSON」和「匯入 JSON」兩個按鈕（JSON 是一種純文字的備份檔格式）；匯入時讓我選「取代」或「合併」
 【限制】
 - 資料只存在我的裝置，不上傳
 - 匯入壞掉的檔案時要告訴我哪裡不對，不能弄壞現有資料
@@ -694,7 +702,7 @@ STEPS = [
 - 雲端和手機上的資料不一樣時，先問我要用哪一份
 【驗收】
 用白話告訴我申請步驟，以及授權時會要求哪些權限""",
-            "expected": "AI 說明在 Google Cloud Console 申請 OAuth Client ID 的步驟，"
+            "expected": "AI 說明在 Google Cloud Console 申請 OAuth Client ID（Google 發給這個 App 的識別碼）的步驟，"
                         "以及只要求「App 專屬資料」權限；不想申請的人改用 JSON 匯出存到任何雲端資料夾",
             "verify": [
                 "照 docs/google-oauth-setup.html 核對 AI 的說明：授權畫面只應要求 App 專屬資料的權限",
@@ -769,13 +777,15 @@ STEPS = [
 跑一次給我看報告；再故意改壞一個公式跑一次，讓我看到失敗的樣子，然後還原""",
             "expected": "logs/verify-日期時間.html 顯示全部 PASS；故意改壞時對應項目 FAIL",
             "verify": [
-                "打開 logs 資料夾裡最新的報告，總結應為全部 PASS，並記錄版本編號 commit",
+                "打開 logs 資料夾裡最新的報告，總結應為全部 PASS，並寫著這次檢查的版本編號",
                 "App 折舊：成本 10,000、殘值 1,000、5 年直線法，第 1 年折舊 1,800.00；Excel =SLN(10000,1000,5) 得 1,800",
                 "同一題第 2 年改用 200% 定率遞減，App 應得 2,400.00；Excel =DDB(10000,1000,5,2,2) 得 2,400",
-                "BA II Plus：[2ND][DEPR] 選 SL，依序輸入 LIF=5、M01=1、YR=1、CST=10000、SAL=1000，[↓] 到 DEP 應為 1,800",
+                "BA II Plus：[2ND][DEPR] 選 SL，用 [↓] 找到各欄輸入 LIF=5、M01=1、CST=10000、SAL=1000、YR=1，"
+                "再找到 DEP 應為 1,800（欄位順序推測為 LIF、M01、CST、SAL、YR、DEP、RBV、RDV；"
+                "按鍵依記憶撰寫，未實機驗證）",
             ],
             "pitfalls": [
-                "完整檢查約要 2 分多鐘（故意改壞公式的突變測試最慢），要等它跑完",
+                "完整檢查約要 2 分多鐘（最慢的一項是「故意改壞公式，確認測試抓得到」），要等它跑完",
                 "故意改壞一個公式時不只一項會失敗（網頁版也跟著不一致），這是正常的",
             ],
             "start_tag": "step6",

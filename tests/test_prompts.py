@@ -1,7 +1,11 @@
 """教學單一來源 teaching/prompts.py 的自測（self-test）。
 
 檢查：10 個步驟順序、必要欄位非空、四段式 Prompt 標籤、驗收指令引用的檔案在對應 git tag 上存在、
-EMBA 起點 tag 存在、所有字串沒有全形句點「。」（簡報規則）、兩層 CLAUDE.md 範本結構
+EMBA 起點 tag 存在、所有字串沒有全形句點「。」（簡報規則）、兩層 CLAUDE.md 範本結構、
+BA II Plus 按鍵標示「未實機驗證」
+
+限制：驗收指令只檢查引用的 repo 路徑與 npm script 是否存在，不檢查旗標（flag，例如 --quick、
+--allow-dirty）是否被該 tag 的工具支援，也不實際執行指令
 """
 import fnmatch
 import json
@@ -154,6 +158,17 @@ def test_no_fullwidth_period_anywhere():
     texts += [prompts.USER_CLAUDE_MD, prompts.PROJECT_CLAUDE_MD]
     bad = [t[:40] for t in texts if "。" in t]
     assert not bad, bad
+
+
+def test_ba_keystrokes_marked_unverified():
+    """BA II Plus 按鍵依記憶撰寫，未在實機核對，必須標示"""
+    keys = ("[2ND]", "[CPT]", "[CF]", "[ENTER]")
+    found = 0
+    for t in _all_strings(prompts.STEPS):
+        if "BA II Plus" in t and any(k in t for k in keys):
+            found += 1
+            assert "未實機驗證" in t, t[:60]
+    assert found >= 5, found
 
 
 def test_user_claude_md_five_principles():
