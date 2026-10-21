@@ -8,7 +8,7 @@
 import math
 
 from engine.result import err, ok
-from engine.solver import find_root
+from engine.solver import find_root, snap_zero_pct
 
 _VARS = ("N", "IY", "PV", "PMT", "FV")
 _ZERO_RATE = 1e-12
@@ -68,7 +68,7 @@ def _solve_iy(inp, py, cy):
         iy = cy * ((1 + i) ** (py / cy) - 1) * 100
     except OverflowError:
         return err(_OVERFLOW_MSG, "IY")
-    return ok({"IY": iy})
+    return ok({"IY": snap_zero_pct(iy)})
 
 
 def solve(inputs, unknown):

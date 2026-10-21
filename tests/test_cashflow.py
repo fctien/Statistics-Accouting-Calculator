@@ -142,3 +142,12 @@ def test_payback_exact_boundary():
     """累計現金流剛好為 0 時即算回本（突變測試補強）。"""
     r = cashflow.payback(_in(-1000, [[500, 2]]))
     assert r["ok"] and rel_close(r["values"]["PB"], 2.0, 1e-12)
+
+
+def test_irr_true_zero_is_exact_zero():
+    # [-1000, 1000] 的 IRR 正好 0%：不可顯示 -1.266E-15 這種求根雜訊
+    from engine import cashflow
+    for flows in ([[1000, 1]], [[500, 2]]):
+        r = cashflow.irr({"CF0": -1000, "flows": flows})
+        assert r["ok"], r
+        assert r["values"]["IRR"] == 0.0, r

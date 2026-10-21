@@ -87,3 +87,12 @@ def test_yield_unsolvable():
     # 價格極端高，殖利率需 < -99% → 無解
     r = bond.yield_(_in(pri=1e12))
     assert r["ok"] is False and r["field"] == "YLD"
+
+
+def test_yield_true_zero_is_exact_zero():
+    # 以 YLD=0 算出的價格反求殖利率：必須正好 0，不可是 8.8E-15
+    p = bond.price(_in(cpn=5.0, yld=0))
+    assert p["ok"], p
+    y = bond.yield_(_in(cpn=5.0, pri=p["values"]["PRI"]))
+    assert y["ok"], y
+    assert y["values"]["YLD"] == 0.0, y

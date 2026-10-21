@@ -5,7 +5,7 @@
 並回傳 result.ok / result.err。百分比輸入與輸出皆為「百分數」（10 代表 10%）。
 """
 from engine.result import err, is_finite, ok
-from engine.solver import find_root
+from engine.solver import find_root, snap_zero_pct
 
 _MAX_COUNT = 9999
 _MULTI_SIGN_WARN = "現金流正負號變化多次，IRR 可能有多個解"
@@ -178,7 +178,7 @@ def irr(inputs):
     root = _irr_root(flat)
     if root is None:
         return err("IRR 無法收斂", "IRR")
-    return ok({"IRR": root * 100.0}, warnings)
+    return ok({"IRR": snap_zero_pct(root * 100.0)}, warnings)
 
 
 def mirr(inputs):

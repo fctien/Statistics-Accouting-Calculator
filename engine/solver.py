@@ -60,3 +60,16 @@ def find_root(f, lo, hi, guess, tol=1e-10, max_iter=200):
     if x is not None:
         return x
     return _bisect(f, lo, hi, tol, max_iter)
+
+
+# 百分數結果的零點雜訊門檻：疊代求根在真實解為 0 時常停在 ±1e-15 附近，
+# 顯示成 -1.266E-15 或 0.000000001 會像是一個真的（錯的）數字；
+# 1e-9 個百分點遠小於任何顯示位數與求根容許誤差，收成 0 不影響正確性。
+SNAP_PCT = 1e-9
+
+
+def snap_zero_pct(x):
+    """疊代求解結果（百分數）|x| < SNAP_PCT 時回傳 0.0（不回傳 -0.0），否則原值。"""
+    if -SNAP_PCT < x < SNAP_PCT:
+        return 0.0
+    return x

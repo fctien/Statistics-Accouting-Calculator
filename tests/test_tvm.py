@@ -58,3 +58,13 @@ def test_tvm_n_unreachable():
 
 def test_period_rate():
     assert abs(period_rate(12, 12, 12) - 0.01) < 1e-15
+
+
+def test_iy_true_zero_is_exact_zero():
+    # 真實利率 0%：I/Y 求解結果必須是 0，不可在 9 位小數下顯示 0.000000001
+    from engine import tvm
+    for n, pv, pmt, fv in ((10, -1000, 0, 1000), (360, -100000, 100000 / 360, 0)):
+        r = tvm.solve({"N": n, "PV": pv, "PMT": pmt, "FV": fv, "PY": 12,
+                       "CY": 12, "BGN": False}, "IY")
+        assert r["ok"], r
+        assert r["values"]["IY"] == 0.0, r

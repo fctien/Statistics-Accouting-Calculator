@@ -9,7 +9,7 @@
 from engine.dates import is_valid_date, to_ordinal, days_act, days_360, \
     _dim
 from engine.result import ok, err
-from engine.solver import find_root
+from engine.solver import find_root, snap_zero_pct
 
 # 殖利率搜尋區間（小數）：(-0.99, 10]，下界取 -0.99 + 1e-9 以表示開區間
 _Y_LO = -0.99 + 1e-9
@@ -158,4 +158,4 @@ def yield_(inputs):
     y = find_root(f, _Y_LO, _Y_HI, guess)
     if y is None:
         return err("殖利率無法收斂（不在 -99%～1000% 範圍內）", "YLD")
-    return ok({"YLD": y * 100, "AI": _ai(p)})
+    return ok({"YLD": snap_zero_pct(y * 100), "AI": _ai(p)})
