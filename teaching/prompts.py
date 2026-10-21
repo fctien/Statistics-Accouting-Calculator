@@ -14,7 +14,8 @@ Prompt 卡（HTML）與簡報（PPT）都由本檔產生，請只改這裡
   - ai：AI Agent 版
     - prompt：四段式【任務】【介面】【限制】【驗收】，【介面】只寫別人會依賴的東西
     - bad_prompt：一句話下法（對照組）
-    - bad_result：一句話下法可能的結果，開頭「推測：」（本專案尚未實測一句話版本）
+    - bad_result：一句話下法的結果；step0～step2 已演練，開頭「實測：」（2026-10-21 替身演練，
+      見 teaching/rehearse.md）；step3～step9 尚未實測，開頭「推測：」
     - bad_evidence：本專案實際發生過的同類問題，開頭「實際踩過：」並附出處
     - expected：預期產出
     - verify：list[str]，在該步 tag 上存在、可執行的驗收指令
@@ -125,9 +126,9 @@ STEPS = [
 - 寫完用三點複述最重要的規則
 - 我開新對話問「engine/ 可以用 decimal 嗎」，你要回答不行並說明原因""",
             "bad_prompt": "幫我寫一個 CLAUDE.md",
-            "bad_result": "推測：AI 會寫出一份通用的 Python 專案規範，"
-                          "很可能建議用 decimal 算金額、datetime 算日期，"
-                          "沒有「可攜子集」與「不回假數字」，後面每一步都要重講",
+            "bad_result": "實測：AI 照資料夾裡的規格書寫出「Pyodide、AST 白名單、金額用 decimal」，"
+                          "五段缺四段、沒有 DEVLOG.md；問「engine/ 可以用 decimal 嗎」依這份檔案只會答可以"
+                          "（2026-10-21 替身演練）",
             "bad_evidence": "實際踩過：規劃時原本要用 AST 白名單解析算式，"
                             "自我檢查才發現 MicroPython 沒有 ast 模組，改成自寫遞迴下降剖析器"
                             "（DEVLOG 2026-10-20 規格修訂）；"
@@ -149,6 +150,12 @@ STEPS = [
                 "（progress ledger M1 結尾）；沒寫的規則 AI 不會自己遵守",
                 "需求只給一半時 AI 會猜：修規格時使用者第一則訊息只有「規格書要修改：」，"
                 "請使用者補充後才拿到真正需求（DEVLOG 2026-10-20 規格修訂）",
+                "step0 tag 的規格書仍寫 Pyodide、AST 白名單、金額用 decimal，和這步 Prompt 的 MicroPython 限制矛盾，"
+                "要請 AI 列出矛盾，step1 修規格時再改（演練 2026-10-21）",
+                "驗收的 claude -p 需要已登入 Claude Code，演練用假家目錄時只得到 Not logged in，"
+                "改在互動對話中問同樣的問題（演練 2026-10-21）",
+                "git show step0:CLAUDE.md 只能在 clone 本 repo（含 tag）的資料夾執行，"
+                "自己新建的資料夾會出現 fatal: invalid object name（演練 2026-10-21）",
             ],
         },
         "emba": {
@@ -205,8 +212,9 @@ STEPS = [
 - 計畫包含 MVC 分層、TDD、突變測試、MicroPython 雙執行環境測試
 - 寫完自我檢查一次，列出你不確定的地方""",
             "bad_prompt": "幫我做一個 BA II Plus 計算機的網頁 App",
-            "bad_result": "推測：AI 直接開始寫 HTML 與 JavaScript，計算寫在畫面程式裡（沒有 MVC），"
-                          "沒有 golden 值與出處，也不會先比較執行環境的大小",
+            "bad_result": "實測：AI 只在對話裡給三行計畫就問要不要開始寫（使用者層級規則要求先給計畫），"
+                          "docs/ 沒有計畫檔、沒比較執行環境大小，三條驗收指令都找不到檔案"
+                          "（2026-10-21 替身演練）",
             "bad_evidence": "實際踩過：規格第一版用 Pyodide，修訂時實測 jsDelivr 傳輸大小，"
                             "Pyodide 約 5.3 MB、MicroPython 約 0.23 MB，才改成 MicroPython"
                             "（DEVLOG 2026-10-20 規格修訂）；如果先寫程式再換執行環境，要整個重來",
@@ -223,6 +231,10 @@ STEPS = [
                 "計畫裡標明改用手算測試（progress ledger Task 2 裁定）",
                 "計畫裡寫的工具指令可能和實作不同：計畫寫 python -m golden.runner --dump，"
                 "實作改成 python tools/golden_dump.py（DEVLOG Task 2）",
+                "驗收指令寫的是作者的檔名 plan-2026-10-20.md，學生計畫的日期不同，"
+                "要換成自己的檔名，否則 FileNotFoundError（演練 2026-10-21）",
+                "Prompt 要求規格同意後才拆計畫，用 claude -p 一次跑完沒有機會同意，"
+                "這一步要用互動對話（演練 2026-10-21）",
             ],
         },
         "emba": {
@@ -277,8 +289,9 @@ STEPS = [
 - python -m pytest tests/test_tvm.py 全過，貼出 RED 與 GREEN 兩次輸出（pytest.ini 已含 -q，不要再加 -q，否則看不到 passed 摘要）
 - 房貸 N=360、I/Y=6、PV=300000、FV=0，PMT 應為 -1798.65（=PMT(0.06/12,360,300000)）""",
             "bad_prompt": "用 Python 寫 TVM 計算，要有測試",
-            "bad_result": "推測：AI 先寫程式再補測試，金額可能用 decimal，"
-                          "無解時回 0 或負的期數，測試只驗它自己算出來的數字，沒有外部出處",
+            "bad_result": "實測：測試只驗自己算的數字、沒有出處；PV 與 PMT 同號時求 N 回 -183.7 期，"
+                          "I/Y 無解時沒收斂仍回 15.07%，都是看似正常的錯數字"
+                          "（2026-10-21 替身演練）",
             "bad_evidence": "實際踩過：PV、PMT 同號的無解案例，初版求 N 回傳約 -8.3 期，"
                             "看起來像數字其實沒有意義，改成 N ≤ 0 一律回錯誤（DEVLOG Task 5）",
             "expected": "engine/tvm.py、money.py、dates.py、solver.py、result.py 與對應測試；"
@@ -298,6 +311,12 @@ STEPS = [
                 "不必移除套件（DEVLOG Task 0＋1）",
                 "萬分比寫錯分母：稅率初版除以 1000000（應為 10000），是測試 RED 才抓到（DEVLOG Task 3＋4）",
                 "I/Y 真的是 0% 時牛頓法停在 -1.2e-7%，畫面可能顯示 -0.00（progress ledger Task 5，待改）",
+                "step1 tag 沒有 pytest.ini（Prompt 說的「已含 -q」是 step2 的狀態），從 step1 接手要先建 pytest.ini "
+                "並加 -p no:hydra_pytest，否則本機 pytest 一啟動就崩潰（演練 2026-10-21）",
+                "驗收的 python tools/golden_dump.py 不在 Prompt 的【介面】，照 Prompt 做不會產生，"
+                "執行時找不到檔案（演練 2026-10-21）",
+                "I/Y 為 0% 時 ((1+i)^n−1)/i 有相消誤差，演練第一版二分法跑滿 200 次仍回「未收斂」，"
+                "改用接近 0 時的一階展開才通過（演練 2026-10-21）",
             ],
         },
         "emba": {

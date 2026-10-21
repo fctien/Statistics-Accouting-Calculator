@@ -233,10 +233,10 @@ def render_step(step, version):
         parts.append(
             '<h3>一句話下法對照</h3><div class="compare">'
             '<div><div class="label">一句話下法</div><p><code>%s</code></p>'
-            '<p><span class="guess">推測（未實測）</span>%s</p></div>'
+            '<p><span class="guess">%s</span>%s</p></div>'
             '<div><div class="label">本專案實際發生</div><p>%s</p></div></div>'
-            % (esc(data["bad_prompt"]), esc(_strip_prefix(data["bad_result"], "推測：")),
-               esc(data["bad_evidence"])))
+            % ((esc(data["bad_prompt"]),) + tuple(esc(x) for x in bad_result_label(data["bad_result"]))
+               + (esc(data["bad_evidence"]),)))
     parts += [
         "<h3>預期產出</h3><p>%s</p>" % esc(data["expected"]),
         "<h3>驗收</h3>%s" % render_list(data["verify"], code=(version == "ai")),
@@ -245,6 +245,16 @@ def render_step(step, version):
         "</section>",
     ]
     return "\n".join(parts)
+
+
+def bad_result_label(text):
+    """一句話下法結果的標示：回傳 (標籤, 去掉前綴的內文)
+
+    「實測：」→ 實測（替身演練，見 rehearse.md）；「推測：」或其他 → 推測（未實測）
+    """
+    if text.startswith("實測："):
+        return "實測（替身演練）", text[len("實測："):]
+    return "推測（未實測）", _strip_prefix(text, "推測：")
 
 
 def _strip_prefix(text, prefix):

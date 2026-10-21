@@ -1237,3 +1237,45 @@
 - Task 31：PDF 匯出時用 PowerPoint 或 LibreOffice 實際轉圖逐頁目視（目前只有估算與 PIL 粗略預覽）
 - 講稿為依資料組成的範本句，上課前可依實際節奏潤飾（請在 prompts.py 或 build_deck.py 改，再重產）
 - step9 tag 建立後重跑兩個產生器，「尚未建立」加註會自動消失
+
+## 2026-10-21 Task 31：課前演練、學生版與 run_all
+
+**需求**
+- 演練 step0～step2（AI 版）：全新暫存資料夾、假家目錄，每步各跑一句話下法與四段式，記錄產出與驗收結果，回寫 prompts.py（bad_result 改「實測：」、新坑）
+- make_package.py --zip：學生版 zip 只放 Prompt 卡、簡報 PDF、google-oauth-setup.html、學生說明.txt；缺 PDF 不產生
+- export_pdf.py：PowerPoint 正在執行就不匯出（exit 2）；沒執行才自己開 instance、ReadOnly 開檔、SaveAs PDF、只 Quit 自己那個
+- run_all.py：verify_all --quick → build_cards → build_deck → export_pdf → make_package，產生 logs/run_all-*.html；README 加「重建教材」
+
+**做法**
+- 演練先試 `claude -p "<Prompt>" --model sonnet --max-turns 15 --permission-mode acceptEdits`（HOME、USERPROFILE 指到 scratchpad 的假家目錄），六次都回 `Not logged in · Please run /login`；依規定不登入，改由實作者扮演學生與 AI，只依卡片文字與資料夾內檔案行事，產出與驗收指令都實際執行（teaching/rehearse.md 寫明這是替身演練與其偏差）
+- 起點用 git archive 取 tag（step0 去掉 CLAUDE.md／DEVLOG.md、step0、step1），各自 git init
+- prompts.py：step0～2 bad_result 改為實測觀察；加 8 條演練新坑（標「演練 2026-10-21」）
+- build_cards／build_deck：新增 bad_result_label()，「實測：」顯示「實測（替身演練）」，其他維持「推測（未實測）」；對照頁副標與備忘稿依此切換
+- export_pdf.py：tasklist、dispatch 可注入，決策邏輯用假物件單元測試；用 DispatchEx，註明 PowerPoint 是單一 instance 的 COM 伺服器，所以必須先檢查
+- run_all.py：重用 tools/verify_all 的 run_cmd、git、CSS；export_pdf 回 2 時停下並在 log 標「未執行」；人工目視清單的頁碼依標題從 pptx 找出（簡報增頁後 Task 30 列的 AI 31、42、47、71、75 變成 33、44、49、73、77，EMBA 9、58 不變），另加 step0～2 改過的 6 頁
+- .gitignore 加 teaching/out/*.pdf（衍生檔，學生版 zip 已被 *.zip 忽略）
+
+**產出**
+- teaching/rehearse.md、teaching/export_pdf.py、teaching/make_package.py、run_all.py
+- tests/test_export_pdf.py（8 項）、tests/test_make_package.py（5 項）、tests/test_run_all.py（4 項）；tests/test_prompts.py 改為 step0～2 要「實測：」、其餘要「推測：」，並新增演練坑檢查
+- 重產 teaching/out/ 的 Prompt 卡與四份簡報（AI 84 → 86 頁，EMBA 61 頁）；README「重建教材」
+
+**驗證**
+- 演練實測：step0 一句話版五段缺四段、規格書的 decimal 照抄；step1 一句話版沒有任何檔案、三條驗收全失敗；step2 一句話版求 N 回 -183.72、未收斂利率回 15.07%；四段式三步的主要驗收通過（細節見 rehearse.md）
+- test_prompts RED：git stash 掉 prompts.py 修改後 2 failed、13 passed；還原後 15 passed
+- test_export_pdf／test_make_package 先寫：import 失敗（collection error）→ 實作後 13 passed
+- python -m pytest：325 passed；flake8 --max-line-length 120 新檔無警告
+- 實際執行：export_pdf.py 印出「PowerPoint 正在執行…」exit 2（使用者的 PowerPoint 開著，沒有匯出、沒有連上它）；make_package.py --zip 印出缺 PDF 清單 exit 1，沒有產生 zip
+
+**問題與修正**
+- claude CLI 在假家目錄下未登入，無法做獨立 AI 工作階段的演練，改替身演練並在紀錄與卡片標示「替身演練」
+- 演練四段式 step2 第一版 I/Y=0 測試失敗（((1+i)^n−1)/i 相消誤差，二分法跑滿 200 次仍回未收斂），改用接近 0 時的一階展開；這也寫成新坑
+- step0 與 step2 演練時 `python -m pytest` 在沒有 pytest.ini 的資料夾直接崩潰（hydra 外掛），寫成新坑
+- 第一次用 python 讀取 /c/... 路徑失敗（Windows Python 不認 MSYS 路徑），改用 cygpath -w
+- make_package 一行縮排 flake8 E128，改寫
+
+**待辦**
+- 使用者關閉 PowerPoint 後跑 `python run_all.py`（或 `python teaching/export_pdf.py` 再 `python teaching/make_package.py --zip`）產生 PDF 與學生版 zip
+- PDF 產生後人工目視 run_all log 清單上的頁面（AI 33、44、49、73、77、16、19、23、26、30、34；EMBA 9、58），本次沒有做
+- 能登入時用真正的 `claude -p` 重跑 step0～2 演練，取代替身結果；step3～step9 尚未演練
+- rehearse.md「建議」三項（驗收指令檔名、step2 介面補 pytest.ini 與 golden_dump）待作者決定

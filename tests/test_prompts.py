@@ -131,14 +131,28 @@ def test_ai_and_emba_prompts_have_four_labels_in_order():
             assert pos == sorted(pos), (s["id"], ver, "標籤順序")
 
 
+MEASURED_STEPS = ("step0", "step1", "step2")  # 2026-10-21 演練過的步驟
+
+
+def test_measured_pitfalls_recorded():
+    # 演練踩到的新坑要寫進 pitfalls，並標出處「演練 2026-10-21」
+    for s in prompts.STEPS:
+        if s["id"] in MEASURED_STEPS:
+            assert any("演練 2026-10-21" in x for x in s["ai"]["pitfalls"]), s["id"]
+
+
 def test_bad_prompt_is_one_line_and_labels_evidence():
     for s in prompts.STEPS:
         ai = s["ai"]
         assert "\n" not in ai["bad_prompt"].strip(), s["id"]
         for lab in FOUR_LABELS:
             assert lab not in ai["bad_prompt"], s["id"]
-        # 一句話版本尚未實測：結果必須標「推測」；佐證必須是本專案實際發生過的事
-        assert ai["bad_result"].startswith("推測："), s["id"]
+        # step0～step2 已演練（teaching/rehearse.md）：結果標「實測：」；其餘尚未實測，必須標「推測：」
+        # 佐證必須是本專案實際發生過的事
+        prefix = "實測：" if s["id"] in MEASURED_STEPS else "推測："
+        assert ai["bad_result"].startswith(prefix), s["id"]
+        if prefix == "實測：":
+            assert "演練" in ai["bad_result"], s["id"]
         assert ai["bad_evidence"].startswith("實際踩過："), s["id"]
 
 

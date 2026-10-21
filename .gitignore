@@ -4,3 +4,4 @@ __pycache__/
 node_modules/
 web/py/
 *.zip
+teaching/out/*.pdf

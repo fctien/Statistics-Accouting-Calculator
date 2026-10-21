@@ -87,6 +87,24 @@ CI 不跑突變測試（太慢），完整驗證請在本機執行。
 | `step8` | 自我驗證 Skill |
 | `step9` | 部署到 GitHub Pages、安裝到手機 |
 
+## 重建教材
+
+```
+python run_all.py
+```
+
+依序執行 `tools/verify_all.py --quick` → `teaching/build_cards.py`（Prompt 卡）→ `teaching/deck/build_deck.py`（簡報 pptx）
+→ `teaching/export_pdf.py`（PDF）→ `teaching/make_package.py --zip`（學生版 zip），產生 `logs/run_all-*.html`（含 commit hash 與人工目視清單）。
+
+- git 工作樹必須乾淨（verify_all 的規則）
+- 簡報依賴 repo 外的 `deck_kit`：預設在上一層資料夾 `../deck_kit/deck_kit.py`，可用環境變數 `DECK_KIT` 指定；
+  上一層資料夾還要有肖像 `Tien 肖像.jpg` 與校徽 `Taipei Tech Logo.png`（可用 `DECK_RES` 指定所在資料夾）；需要 `python-pptx`
+- PDF 用 PowerPoint COM（pywin32）匯出，需要 Windows＋PowerPoint：**PowerPoint 正在執行時不會匯出**（避免影響開著的檔案），
+  `export_pdf.py` 回 2、`run_all.py` 停在這一步；關閉 PowerPoint 後重跑
+- 學生版 zip（`teaching/out/BACalc_AI_student.zip`、`BACalc_EMBA_student.zip`）只放 Prompt 卡、簡報 PDF、
+  `docs/google-oauth-setup.html` 與學生說明，不含 pptx 與講稿；沒有 PDF 就不產生 zip
+- 課前演練紀錄：`teaching/rehearse.md`
+
 ## 文件
 
 - [規格書](docs/spec-2026-10-19.md)

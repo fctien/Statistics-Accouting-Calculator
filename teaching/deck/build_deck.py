@@ -51,7 +51,7 @@ from deck_kit import (  # noqa: E402
     closing, ea_font, NAVY, BRICK, GREEN, SOFT, LINE, INK, MUT, C, MSO_SHAPE,
 )
 from teaching import prompts  # noqa: E402  Model：單一來源
-from teaching.build_cards import tag_note  # noqa: E402  tag 尚未建立時加註
+from teaching.build_cards import bad_result_label, tag_note  # noqa: E402  tag 加註、實測／推測標示
 
 CODE_FONT = "Consolas"
 CODE_SIZE = 14          # Prompt／程式碼框：使用者規則允許的 14 pt 例外
@@ -615,16 +615,18 @@ def slide_step_prompt(b, step):
 
 
 def slide_step_compare(b, step):
-    """AI 版：一句話下法 vs 四段式 Prompt（一句話的結果是推測，不是實測）"""
+    """AI 版：一句話下法 vs 四段式 Prompt（step0～2 為替身演練實測，其餘為推測）"""
     data = step["ai"]
     sl = b.new()
-    header(sl, eyebrow_of(step, b.vname), "一句話下法與四段式對照", "左邊的結果為推測（未實測）；實際發生的同類問題見「實際踩過的坑」第一條")
+    label, guess = bad_result_label(data["bad_result"])
+    measured = label.startswith("實測")
+    sub = ("左邊為課前替身演練的實測結果（teaching/rehearse.md）" if measured
+           else "左邊的結果為推測（未實測）") + "；實際發生的同類問題見「實際踩過的坑」第一條"
+    header(sl, eyebrow_of(step, b.vname), "一句話下法與四段式對照", sub)
     y = 1.84 + 0.15
     colw, gap = 5.97, 0.19
-    bad_result = data["bad_result"]
-    guess = bad_result[3:] if bad_result.startswith("推測：") else bad_result
     left = [("一句話下法", 20, True, NAVY), (data["bad_prompt"], 17, False, INK),
-            ("推測（未實測）", 16, True, BRICK), (guess, 16, False, INK)]
+            (label, 16, True, BRICK), (guess, 16, False, INK)]
     right = [("四段式 Prompt（見前頁原文）", 20, True, NAVY),
              ("預期產出", 16, True, BRICK), (data["expected"], 16, False, INK)]
 
@@ -654,9 +656,15 @@ def slide_step_compare(b, step):
             ea_font(r)
     check_fit(y + h, "%s 對照" % step["id"])
     refline(sl, step_ref(step, "ai.bad_prompt、bad_result、expected"))
-    b.done(sl, "對照組是一句話下法「%s」；左邊寫的是推測的結果，本專案沒有真的用一句話版本跑過，所以不能當成實測；"
-               "右邊是四段式 Prompt 的預期產出；本專案實際踩過的同類問題放在後面「實際踩過的坑」第一條" % data["bad_prompt"],
-           "左右兩張卡片對照一句話下法與四段式 Prompt；左卡「推測（未實測）」標示該結果不是實測")
+    if measured:
+        talk = ("對照組是一句話下法「%s」；左邊是課前演練實際跑出來的結果，由實作者在全新資料夾扮演學生與 AI，"
+                "不是獨立的 AI 工作階段，細節見 teaching/rehearse.md；" % data["bad_prompt"])
+        note = "左右兩張卡片對照一句話下法與四段式 Prompt；左卡「實測（替身演練）」標示該結果來自課前演練"
+    else:
+        talk = ("對照組是一句話下法「%s」；左邊寫的是推測的結果，本專案沒有真的用一句話版本跑過，所以不能當成實測；"
+                % data["bad_prompt"])
+        note = "左右兩張卡片對照一句話下法與四段式 Prompt；左卡「推測（未實測）」標示該結果不是實測"
+    b.done(sl, talk + "右邊是四段式 Prompt 的預期產出；本專案實際踩過的同類問題放在後面「實際踩過的坑」第一條", note)
 
 
 def slide_step_verify(b, step):
