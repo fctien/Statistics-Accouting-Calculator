@@ -1,8 +1,8 @@
 """可攜性檢查：掃描 engine/ 是否使用 MicroPython 不支援的模組或 eval／exec。
 
 本工具在 CPython 執行，因此可用 ast；被檢查的程式則須符合可攜子集。
-用法：python tools/check_portable.py [目錄，預設 engine]
-有違規時 exit code 為 1。
+用法：python tools/check_portable.py [目錄 ...，預設 engine]
+有違規、或指定的目錄不存在（避免什麼都沒掃到就通過 vacuous pass）時 exit code 為 1。
 """
 import ast
 import os
@@ -67,13 +67,20 @@ def scan(root):
 
 
 def main(argv):
-    root = argv[1] if len(argv) > 1 else "engine"
-    problems = scan(root)
+    roots = argv[1:] or ["engine"]
+    missing = [r for r in roots if not os.path.isdir(r)]
+    if missing:
+        for r in missing:
+            print("目錄不存在，無法檢查：%s" % r)
+        return 1
+    problems = []
+    for root in roots:
+        problems.extend(scan(root))
     for p in problems:
         print(p)
     if problems:
         return 1
-    print("可攜性檢查通過：%s" % root)
+    print("可攜性檢查通過：%s" % " ".join(roots))
     return 0
 
 

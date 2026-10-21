@@ -22,3 +22,10 @@ def run_node(args, stdin=None, timeout=120):
     return subprocess.run([NODE, *args], cwd=ROOT, input=stdin,
                           capture_output=True, text=True, encoding="utf-8",
                           timeout=timeout)
+
+
+def tap_test_count(stdout):
+    """由 node --test 的 TAP 摘要讀出「# tests N」；沒有摘要回傳 None。"""
+    import re
+    m = re.search(r"^# tests (\d+)\s*$", stdout or "", re.MULTILINE)
+    return int(m.group(1)) if m else None

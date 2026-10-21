@@ -56,11 +56,11 @@ def build_steps(node, quick):
     py = sys.executable
     js_tests = sorted(glob.glob(os.path.join(ROOT, "tests", "js", "*.test.mjs")))
     steps = [
-        ("check_portable（engine 可攜性）", [py, "tools/check_portable.py", "engine"]),
+        ("check_portable（engine／golden 可攜性）", [py, "tools/check_portable.py", "engine", "golden"]),
         ("pytest（含 golden）", [py, "-m", "pytest"]),
         ("build_web --check", [py, "tools/build_web.py", "--check"]),
         ("check_shell（PWA 殼）", [py, "tools/check_shell.py"]),
-        ("JS 單元測試（node --test）", [node, "--test"] + js_tests),
+        (JS_STEP, [node, "--test"] + js_tests),
         ("check_worker（Worker 佇列與 golden）", [node, "tools/check_worker.mjs"]),
         ("test:mpy（MicroPython golden）", [node, "tools/run_mpy_golden.mjs"]),
         ("test:mpy --self-test", [node, "tools/run_mpy_golden.mjs", "--self-test"]),
@@ -68,6 +68,22 @@ def build_steps(node, quick):
     if not quick:
         steps.append(("mutate（突變測試）", [py, "tools/mutate.py"]))
     return steps
+
+
+JS_STEP = "JS 單元測試（node --test）"
+
+
+def node_tap_guard(code, out):
+    """node --test 的結果再把關：exit 0 但 TAP 摘要「# tests N」N 為 0 或找不到摘要，
+    也判為失敗（glob 對不到檔案時 node 會 vacuous pass）。回傳 (結束碼, 附加說明)。"""
+    if code != 0:
+        return code, ""
+    m = re.search(r"^# tests (\d+)\s*$", out or "", re.MULTILINE)
+    if not m:
+        return 1, "node --test 輸出沒有「# tests N」摘要，視為失敗"
+    if int(m.group(1)) == 0:
+        return 1, "node --test 沒有跑到任何測試（# tests 0），視為失敗"
+    return 0, ""
 
 
 def mpy_version():
@@ -161,6 +177,10 @@ def main(argv=None):
         print("==> %s" % name, flush=True)
         t0 = time.time()
         code, out = run_cmd(cmd)
+        if name == JS_STEP:
+            code, note = node_tap_guard(code, out)
+            if note:
+                out += "\n" + note
         secs = time.time() - t0
         print("    %s（%.1f 秒）" % ("PASS" if code == 0 else "FAIL", secs),
               flush=True)

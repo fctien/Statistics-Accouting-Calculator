@@ -48,3 +48,24 @@ def test_portable_allows_super_init(tmp_path):
         "class E(Exception):\n    def __init__(self, m):\n"
         "        super().__init__(m)\n        self.m = m\n", encoding="utf-8")
     assert scan(str(tmp_path)) == []
+
+
+def test_portable_cli_missing_dir_fails(tmp_path, capsys):
+    # 目錄不存在時不可「什麼都沒掃到就通過」（vacuous pass），必須 exit 1 並說明
+    from tools.check_portable import main
+    missing = str(tmp_path / "no_such_dir")
+    assert main(["check_portable.py", missing]) == 1
+    assert "不存在" in capsys.readouterr().out
+
+
+def test_portable_cli_multiple_dirs(tmp_path):
+    # 可一次檢查多個目錄（engine golden）；任一目錄有違規即 exit 1
+    from tools.check_portable import main
+    good = tmp_path / "good"
+    bad = tmp_path / "bad"
+    good.mkdir()
+    bad.mkdir()
+    (good / "ok.py").write_text("import math\n", encoding="utf-8")
+    (bad / "x.py").write_text("import decimal\n", encoding="utf-8")
+    assert main(["check_portable.py", str(good)]) == 0
+    assert main(["check_portable.py", str(good), str(bad)]) == 1
