@@ -19,9 +19,31 @@ export function isValidClientId(id) {
   return typeof id === "string" && id.length <= 200 && /^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(id);
 }
 
-/** 組 multipart/related 請求本體：第一段 JSON 中繼資料（metadata），第二段檔案內容。 */
-export function buildMultipartBody(metadata, content, boundary = "bacalc_boundary_7d2f9a") {
-  const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`
+/** 隨機 multipart 邊界（boundary）：bacalc_ 加 16 個隨機位元組（crypto.getRandomValues）的十六進位。 */
+export function randomBoundary() {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return "bacalc_" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * 組 multipart/related 請求本體：第一段 JSON 中繼資料（metadata），第二段檔案內容。
+ * 沒指定 boundary 時每次隨機產生，且保證不出現在中繼資料與內容裡（出現就重抽）；
+ * 呼叫端指定的 boundary 出現在內容裡則丟例外（不送出會被切壞的請求）。makeBoundary 供測試注入。
+ */
+export function buildMultipartBody(metadata, content, boundary, makeBoundary = randomBoundary) {
+  const meta = JSON.stringify(metadata);
+  const clash = (b) => meta.includes(b) || String(content).includes(b);
+  if (boundary === undefined) {
+    let tries = 0;
+    do {
+      boundary = makeBoundary();
+      if (++tries > 20) throw new Error("無法產生不與內容衝突的 multipart 邊界");
+    } while (clash(boundary));
+  } else if (clash(boundary)) {
+    throw new Error("multipart 邊界出現在上傳內容中");
+  }
+  const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`
     + `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${content}\r\n--${boundary}--`;
   return { body, contentType: `multipart/related; boundary=${boundary}` };
 }

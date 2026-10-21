@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  FILE_NAME, SCOPE, GIS_URL, isValidClientId, buildMultipartBody, parseFileList, decideConflict,
+  FILE_NAME, SCOPE, GIS_URL, isValidClientId, buildMultipartBody, randomBoundary, parseFileList, decideConflict,
   localUpdatedAt, stripLocalOnly, stableStringify, hashData, isLocalEmpty, isLocalChanged, overwriteSummary, mergeOverwriteMessage, describeHttpError, createDrive, GDriveError, currentToken, isConnected,
 } from "../../web/js/storage/gdrive.js";
 
@@ -285,4 +285,23 @@ test("mergeOverwriteMessage：合併匯入（檔案或雲端）會覆蓋記憶�
   const { readFile } = await import("node:fs/promises");
   const src = await readFile(new URL("../../web/js/views/settings.js", import.meta.url), "utf8");
   assert.equal((src.match(/mergeOverwriteMessage\(/g) || []).length, 2, "settings.js 兩條匯入路徑都要呼叫");
+});
+
+test("buildMultipartBody：每次上傳隨機邊界（crypto.getRandomValues），且不出現在內容裡", () => {
+  // 以前是固定字串 bacalc_boundary_7d2f9a：備份內容（例：情境名稱）含這串字就會切壞請求
+  const a = buildMultipartBody({ name: FILE_NAME }, '{"a":1}');
+  const b = buildMultipartBody({ name: FILE_NAME }, '{"a":1}');
+  const ba = a.contentType.split("boundary=")[1];
+  const bb = b.contentType.split("boundary=")[1];
+  assert.notEqual(ba, bb);
+  assert.notEqual(ba, "bacalc_boundary_7d2f9a");
+  assert.match(ba, /^bacalc_[0-9a-f]{32}$/);
+  assert.match(randomBoundary(), /^bacalc_[0-9a-f]{32}$/);
+  // 產生器第一次給出內容裡已有的字串 → 必須重抽
+  const seq = ["bacalc_dup", "bacalc_fresh"];
+  const content = '{"name":"--bacalc_dup"}';
+  const c = buildMultipartBody({ name: FILE_NAME }, content, undefined, () => seq.shift());
+  assert.equal(c.contentType, "multipart/related; boundary=bacalc_fresh");
+  // 呼叫端指定的邊界出現在內容裡：拒絕（不可送出切壞的請求）
+  assert.throws(() => buildMultipartBody({ name: FILE_NAME }, "x BND y", "BND"));
 });
