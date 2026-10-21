@@ -1143,3 +1143,33 @@
 **待辦**
 - 使用者設定 Settings → Pages → Source = GitHub Actions；controller 推送、確認線上網址與 selftest.html 全綠
 - 手機安裝與飛航模式測試後打 tag step9
+
+## 2026-10-21 Task 29 教學單一來源 teaching/prompts.py
+
+**需求**
+- 建立 AI Agent 版與 EMBA 版共用的教學單一來源：STEPS（step0～step9）、USER_CLAUDE_MD、PROJECT_CLAUDE_MD，供 Task 30 產生 Prompt 卡與簡報
+
+**做法**
+- 依控制者裁示：每步 AI 版 Prompt 用四段式【任務】【介面】【限制】【驗收】（使用者 Lab 7 v5 風格），【介面】只寫別人依賴的檔名、bridge 格式、元素 id、指令
+- 每步加一句話下法 bad_prompt；bad_result 開頭「推測：」（一句話版本未實測），bad_evidence 開頭「實際踩過：」並附 DEVLOG／progress ledger 出處；pitfalls 只放本專案實際發生過的坑
+- EMBA 版：白話四段式、verify 用 Excel 公式與 BA II Plus 按鍵對答案（數值取自 tests/golden/excel.json）；start_tag 為上一步完成的 tag（step0 用 step0、step8 用 step6，因 step7 無 tag）
+- step7 標 optional、tag None、「選用，作者未實測」；step9 tag 名稱預定為 step9（尚未打）
+- 測試先寫（RED：ModuleNotFoundError: No module named 'teaching'），再寫內容
+
+**產出**
+- teaching/__init__.py、teaching/prompts.py、tests/test_prompts.py（13 項）
+
+**驗證**
+- python -m pytest tests/test_prompts.py -q：13 passed；全套 288 passed
+- 驗收指令引用的 32 個路徑／npm script 以 git ls-tree 與 git show <tag>:package.json 在對應 tag 上確認存在；step7／step9 改查工作樹
+- 無全形句點、四段標籤順序、兩層 CLAUDE.md 結構皆由測試鎖住
+
+**問題與修正**
+- 失敗的嘗試：第一次 GREEN 時 step0 的 `claude -p "engine/ 可以 import decimal 嗎"` 被路徑檢查當成 engine/ 路徑（step0 尚無 engine/）而失敗 → 測試對 claude 指令略過引號內文字
+- CI（GitHub Actions 淺層 clone）沒有 step* tag：tag 相關測試在無 tag 時 skip 並說明原因，只在本機檢查
+- flake8 有 76 處 E501（多為 Prompt 原文與中文字串），內容字串未折行
+- 一句話下法的結果尚未實測，全部標「推測」；Task 31 演練後應以實測結果更新
+
+**待辦**
+- Task 30 依本檔產生 Prompt 卡與簡報；Task 31 演練後回寫 pitfalls 與 bad_result
+- step9 打 tag 後，test_prompts 會自動改用 tag 檢查 step9 的驗收指令
