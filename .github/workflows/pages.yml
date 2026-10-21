@@ -1,0 +1,75 @@
+# 測試並部署 web/ 到 GitHub Pages（需在 Settings → Pages → Source 選 GitHub Actions）
+# 網址：https://fctien.github.io/Statistics-Accouting-Calculator/（路徑區分大小寫）
+# 注意：突變測試 tools/mutate.py 太慢（約 100 秒以上），CI 不跑；本機用 tools/verify_all.py 完整驗證。
+name: Test and deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同一時間只允許一次部署；進行中的部署不取消，避免半途中斷
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: 安裝 Node 相依套件（MicroPython WebAssembly）
+        run: npm ci
+      - name: 安裝 pytest（引擎本身無相依套件）
+        run: pip install pytest
+      - name: pytest（含 golden）
+        run: python -m pytest -q
+      - name: 引擎可攜性檢查
+        run: python tools/check_portable.py engine golden
+      - name: 建置 web/py（git 忽略，須在 CI 產生）
+        run: python tools/build_web.py
+      - name: 殼檔案與快取清單檢查
+        run: python tools/check_shell.py
+      - name: MicroPython golden
+        run: node tools/run_mpy_golden.mjs
+      - name: JS 單元測試
+        run: node --test "tests/js/*.test.mjs"
+      - name: Web Worker 檢查
+        run: node tools/check_worker.mjs
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: 建置 web/py 與 vendor
+        run: python tools/build_web.py
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -1115,3 +1115,31 @@
 **待辦**
 - 使用者若同意安裝 Playwright，再把 e2e/checklist.md 自動化為 e2e/test_ui.py
 - 跑一次檢查表 A～F 並實測毛利／稅額等顯示格式
+
+## 2026-10-21 Task 28 GitHub Pages 部署與 README（程式部分，未打 step9）
+
+**需求**
+- 用 GitHub Actions 測試並部署 web/ 到 GitHub Pages；README；補 Task 27 遺留的 e2e/checklist.md CALC 預期值
+
+**做法**
+- `.github/workflows/pages.yml`：push main＋workflow_dispatch；job test（pytest、check_portable engine golden、build_web、check_shell、run_mpy_golden、node --test、check_worker），job deploy（needs test，重新 build_web 後 configure-pages → upload-pages-artifact path web → deploy-pages）；permissions、concurrency group pages（不取消進行中）、environment github-pages
+- action 版本經查 GitHub releases 頁：checkout v7、setup-python v7、setup-node v7、configure-pages v6、upload-pages-artifact v5、deploy-pages v5（比指示的 v4/v5/v3 等新，故採用最新大版本）
+- CI 不跑 mutate.py（太慢），README 與 workflow 註解都有註明
+- README.md 繁中：簡介、網址、功能、手機安裝（Android／iOS、離線、iOS 儲存可能被清除）、本機開發、測試、MVC 結構、step0–step9、文件連結、授權未選定
+- e2e/checklist.md CALC 預期值改 14.00
+
+**產出**
+- .github/workflows/pages.yml、README.md、e2e/checklist.md（修正）
+
+**驗證**
+- 以 `git checkout-index`（autocrlf=false，模擬 Linux LF）匯出暫存區到乾淨目錄，`npm ci` 後依序跑 workflow 全部指令：pytest 全過且 0 skip、check_portable exit 0、build_web、check_shell 通過、MicroPython golden 51/51 與 24/24、node --test 137 pass 0 fail、check_worker PASS；暫存目錄已刪
+- YAML 以 PyYAML 解析 OK；`pytest -p no:不存在的外掛` 不會報錯，hydra 旗標在無該外掛的 CI 無害
+- tests/ 不呼叫 tools/make_golden_excel.py（Excel COM），無 Windows 限定測試
+
+**問題與修正**
+- 無法在本機執行真正的 GitHub Actions（沒有 runner），也未驗證 Linux 大小寫敏感路徑；首次線上執行才是最終驗證
+- 版本號依 WebFetch 讀 releases 頁，非本機可驗證
+
+**待辦**
+- 使用者設定 Settings → Pages → Source = GitHub Actions；controller 推送、確認線上網址與 selftest.html 全綠
+- 手機安裝與飛航模式測試後打 tag step9
