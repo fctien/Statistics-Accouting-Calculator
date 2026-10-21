@@ -1300,3 +1300,35 @@
 
 **待辦**
 - 關閉 PowerPoint 後重跑 run_all，取得 PDF、學生版 zip 與完整 PASS 的 log，並做人工目視
+
+## 2026-10-21 Task 31 修正輪 1：run_all 可重跑、export_pdf fail-safe
+
+**需求**
+- 審查指出：run_all 停在 exit 2 後，build_deck 重寫的 pptx（只差 zip 時間戳）與未 commit 的 logs 讓下一次被 verify_all 擋下；export_pdf 在 tasklist 結束碼非 0 時會被當成「沒在執行」而繼續 DispatchEx
+- 順便：step1 bad_result 用字、make_package 拒絕比 pptx 舊的 PDF、export_pdf 失敗時刪除 PDF、rehearse.md 註明每格只跑一次
+
+**做法**
+- build_deck：存檔後 normalize_zip() 重寫 zip（項目時間固定 2026-01-01、屬性固定、[Content_Types].xml 在前，其餘依名稱排序），不改任何 XML 或圖片；build() 加 out_dir 參數以便測試
+- run_all：status ≠ 0 時印出並在 log 寫「重跑前：先 commit logs/…再執行」（RECOVERY_HINT）
+- export_pdf：改用 tasklist /FO CSV /NH 列出全部行程，每列必須 ≥ 5 欄且 PID 為數字，否則回 None（無法判斷）；結束碼非 0、例外、None 一律 exit 2 不匯出；export() 失敗時刪除本次全部 PDF（含寫到一半的）
+- make_package：PDF mtime 早於對應 pptx 就擲 PackageError
+- README「重建教材」補上重跑前 commit logs、可重現輸出、fail-safe、舊 PDF 規則
+
+**產出**
+- teaching/deck/build_deck.py、run_all.py、teaching/export_pdf.py、teaching/make_package.py、teaching/prompts.py、teaching/rehearse.md、README.md
+- tests/test_deck_deterministic.py（新，2 項）、tests/test_export_pdf.py（18 項）、tests/test_make_package.py（6 項）、tests/test_run_all.py（6 項）
+- logs/run_all-20261021-1221.html、verify-20261021-1221.html（第一次）、run_all-20261021-1222.html、verify-20261021-1222.html（第二次）
+
+**驗證**
+- RED：把 normalize_zip 換成空函式，隔 2.1 秒建兩次 EMBA 簡報 → 位元組不同；export_pdf 新測試對舊版 15 failed、3 passed；make_package 新測試對舊版 1 failed
+- GREEN：python -m pytest 340 passed；flake8 無警告
+- 實機 tasklist：結束碼 0、解析為 True（PowerPoint 開著）→ export_pdf exit 2，沒有連上
+- 711e767 上第一次 run_all：exit 2，git status 只多兩個 log（pptx 與卡片逐位元組相同）；commit log（53f692d）後第二次 run_all：verify_all --quick PASS，停在 export_pdf exit 2，同樣只多兩個 log
+
+**問題與修正**
+- 第一次用 bash heredoc 產生的 Python 修補腳本，字串裡的 \n 被展開成真的換行，make_package.py 出現 SyntaxError；改用 Edit 修好
+- 另一個修補腳本整段因 shell 引號錯誤沒有套用（git diff 確認沒有半套用），改用 Write 重寫 export_pdf.py 與測試
+
+**待辦**
+- 使用者關閉 PowerPoint 後跑 python run_all.py，取得 PDF、學生版 zip，並目視清單頁面
+- 記憶（BACalc 位置與重現指令）仍未更新，留給 controller
