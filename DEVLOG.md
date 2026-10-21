@@ -1368,3 +1368,28 @@
 - 檔案匯入時若備份檔內含不同的 gdriveClientId，合併會覆蓋本機 Client ID 而不詢問（overwriteSummary 忽略本機專屬鍵；Drive 路徑有另外還原）——未在本輪處理
 - 預覽瀏覽器（localhost:8765）的 IndexedDB 留有測試情境 sep-test-us、legacy-no-sep、cf-us（僅測試資料）
 - 使用者關閉 PowerPoint 後跑 python run_all.py（本輪依指示未跑 run_all.py／export_pdf.py）
+
+---
+
+## 2026-10-21　整體完成摘要（controller）
+
+**需求**
+- 依實作計畫以 Subagent-Driven 方式完成 Task 0～31，並做最終整體審查
+
+**做法**
+- 每個 Task：子代理實作 → 子代理審查（規格＋品質）→ 修正輪 → 範圍限定再審；所有裁定記在 `.superpowers/sdd/plan-2026-10-20/progress.md`（48 條 Ruling）
+- 使用者決定：合併 impl 到 main 並以 GitHub Actions 部署、移除上層誤裝 npm 套件、不裝 Playwright、Google Drive 暫不實測（step7 不打 tag）
+
+**產出**
+- 引擎、PWA、儲存與 Drive 同步、verify_all、部署 workflow、教材（Prompt 卡 ×2、簡報 ×4、演練紀錄、run_all）；tag step0～step6、step8
+
+**驗證**
+- pytest 348 passed、node 151 passed、MicroPython golden 51/51＋錯誤路徑 24/24、verify_all --quick PASS；GitHub Actions test job 在 Linux 通過
+
+**問題與修正**
+- 最終審查找出 5 個必修問題（打入負號被反轉、STAT 預測用舊係數、情境跨千分位設定被誤讀、檔案合併未確認、驗證空過），已修正並各補回歸測試
+- 修正 2 引入新問題（選擇性 clearStale 讓過期標記卡住並擋住帶入攤還），依流程不做第二輪修正，列為殘留待辦
+
+**待辦**
+- 使用者：GitHub Pages Source 設為 GitHub Actions；關閉 PowerPoint 後 `python run_all.py` 產 PDF 與學生版；實機核對 BA II Plus 按鍵
+- 修正 clearStale 回歸、檔案匯出入去除 gdrive 本機鍵；部署後手機實測再打 step9
