@@ -116,6 +116,24 @@ export function overwriteSummary(localData, next) {
   };
 }
 
+const MERGE_SOURCE = {
+  file: { name: "備份檔", label: "備份檔", verb: "匯入" },
+  drive: { name: "雲端", label: "雲端備份", verb: "下載" },
+};
+
+/**
+ * 「合併」匯入時的確認訊息：合併後記憶與設定仍以匯入內容為準、會蓋掉本機的，
+ * 有差異時回傳要 confirm 的中文訊息，沒有差異回傳 null（不用問）。
+ * localNorm：本機資料（經 normalizeData）；next：合併後的資料；source："file"（檔案匯入）或 "drive"（雲端下載）。
+ */
+export function mergeOverwriteMessage(localNorm, next, summary, source) {
+  const o = overwriteSummary(localNorm, next);
+  if (!o.memory && !o.settings) return null;
+  const s = MERGE_SOURCE[source] || MERGE_SOURCE.file;
+  const what = [o.memory ? "記憶" : "", o.settings ? "設定" : ""].filter(Boolean).join("與");
+  return `${s.name}的${what}會覆蓋本機的（${s.label}：${summary}）。情境與紙帶則是合併。確定要${s.verb}嗎？`;
+}
+
 /** 本機資料的最後更新時間（情境 updated_at 與紙帶 ts 的最大值）；沒有任何帶時間的資料回傳 null。 */
 export function localUpdatedAt(data) {
   let best = null;

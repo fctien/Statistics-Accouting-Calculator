@@ -171,7 +171,8 @@ export function mount(container, ctx = {}) {
       return;
     }
     try {
-      const r = importBackup(obj, await localData(), mode);
+      const local = await localData();
+      const r = importBackup(obj, local, mode);
       if (!r.ok) {
         showDataError("無法匯入：" + r.error);
         return;
@@ -182,6 +183,15 @@ export function mount(container, ctx = {}) {
           && !globalThis.confirm(`取代會刪除這台裝置目前的全部資料，改成備份檔的內容（${summary}）。確定要取代嗎？`)) {
         showDataOk("已取消，資料沒有改變");
         return;
+      }
+      if (mode === "merge") {
+        // 合併時記憶與設定仍以備份檔為準，會蓋掉本機的；有差異時先問（與雲端下載相同）
+        const ask = gdrive.mergeOverwriteMessage(
+          normalizeData({ ...emptyData(), ...local }), r.data, summary, "file");
+        if (ask && !globalThis.confirm(ask)) {
+          showDataOk("已取消，資料沒有改變");
+          return;
+        }
       }
       await applyData(r.data);
       showDataOk(`已匯入（${mode === "merge" ? "合併" : "取代"}）：${summary}`);
@@ -332,9 +342,9 @@ export function mount(container, ctx = {}) {
       }
     } else {
       // 合併時，記憶與設定仍是以雲端為準，會蓋掉本機的；有差異時先問
-      const o = gdrive.overwriteSummary(normalizeData({ ...emptyData(), ...gdrive.stripLocalOnly(local) }), r.data);
-      if ((o.memory || o.settings)
-          && !globalThis.confirm(`雲端的${[o.memory ? "記憶" : "", o.settings ? "設定" : ""].filter(Boolean).join("與")}會覆蓋本機的（雲端備份：${summary}）。情境與紙帶則是合併。確定要下載嗎？`)) {
+      const ask = gdrive.mergeOverwriteMessage(
+        normalizeData({ ...emptyData(), ...gdrive.stripLocalOnly(local) }), r.data, summary, "drive");
+      if (ask && !globalThis.confirm(ask)) {
         showGdOk("已取消，資料沒有改變");
         return;
       }

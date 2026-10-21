@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import {
   FILE_NAME, SCOPE, GIS_URL, isValidClientId, buildMultipartBody, parseFileList, decideConflict,
-  localUpdatedAt, stripLocalOnly, stableStringify, hashData, isLocalEmpty, isLocalChanged, overwriteSummary, describeHttpError, createDrive, GDriveError, currentToken, isConnected,
+  localUpdatedAt, stripLocalOnly, stableStringify, hashData, isLocalEmpty, isLocalChanged, overwriteSummary, mergeOverwriteMessage, describeHttpError, createDrive, GDriveError, currentToken, isConnected,
 } from "../../web/js/storage/gdrive.js";
 
 const resp = (status, body, text) => ({
@@ -261,4 +261,28 @@ test("上傳在 find 階段失敗時不會送出寫入請求", async () => {
 test("權杖只放記憶體：載入模組後預設未連結，且沒有任何儲存呼叫", () => {
   assert.equal(currentToken(), null);
   assert.equal(isConnected(), false);
+});
+
+test("mergeOverwriteMessage：合併匯入（檔案或雲端）會覆蓋記憶／設定時才需要確認", async () => {
+  // 以前只有「取代」與 Drive 合併會問；檔案匯入「合併」直接覆蓋記憶與設定
+  const a = DATA();
+  assert.equal(mergeOverwriteMessage(a, DATA(), "情境 1 個", "file"), null);
+  const b = DATA();
+  b.memory.M1 = 1;
+  const msg = mergeOverwriteMessage(a, b, "情境 1 個", "file");
+  assert.match(msg, /備份檔的記憶會覆蓋本機的/);
+  assert.match(msg, /情境與紙帶則是合併/);
+  assert.match(msg, /確定要匯入嗎/);
+  const c = DATA();
+  c.memory.M1 = 1;
+  c.settings.mode = "CHAIN";
+  assert.match(mergeOverwriteMessage(a, c, "x", "drive"), /^雲端的記憶與設定會覆蓋本機的（雲端備份：x）.*確定要下載嗎？$/);
+  // 只差在本機專屬設定（Client ID）：不用問
+  const e = DATA();
+  e.settings.gdriveClientId = "other.apps.googleusercontent.com";
+  assert.equal(mergeOverwriteMessage(a, e, "x", "file"), null);
+  // 設定頁的檔案匯入與雲端下載兩條路徑都必須經過這個確認
+  const { readFile } = await import("node:fs/promises");
+  const src = await readFile(new URL("../../web/js/views/settings.js", import.meta.url), "utf8");
+  assert.equal((src.match(/mergeOverwriteMessage\(/g) || []).length, 2, "settings.js 兩條匯入路徑都要呼叫");
 });
