@@ -1332,3 +1332,39 @@
 **待辦**
 - 使用者關閉 PowerPoint 後跑 python run_all.py，取得 PDF、學生版 zip，並目視清單頁面
 - 記憶（BACalc 位置與重現指令）仍未更新，留給 controller
+
+## 2026-10-21 最終全分支審查修正（final whole-branch review fixes）
+
+**需求**
+- 審查在瀏覽器重現 5 項必修：(1) 方向欄位打「-100000」按 Enter 被翻成收到；(2) STAT 改模型後預測仍用 LIN 的 a、b，且 a、b 又變綠；(3) 情境原始文字在不同千分位設定（US／EU）下被重新解讀（100,000 → 100，表格 1,000 → 1）；(4) 檔案匯入「合併」不確認就覆蓋記憶與設定；(5) check_portable 對不存在目錄、node --test 對 0 個測試都 vacuous pass
+- 小修：(6) IRR／I/Y／YLD 真實解為 0 時顯示 -1.266E-15、0.000000001；(7) Drive multipart 固定邊界
+
+**做法**
+- (1) input.js splitSign；collect 的 direction 欄位以文字開頭正負號優先並回傳 directions，「-」「--5」一律格式錯誤；form.js readInputs 送出前 applyTypedSign 把正負號轉成方向鈕（Enter 會 preventDefault，change 來不及）
+- (2) sheets.js 動作可宣告 fresh 欄位；staleBlock 擋下 predict（a、b 過期 →「請先重新計算迴歸」）；run.js 成功後只解除這次求出／填入欄位的過期標記（staleAfterSuccess）
+- (3) 情境存 sep；backup.prepareScenarioForLoad 依情境 sep 改寫成目前設定的標準寫法（有 exact 用 exact），解不出或沒有 sep 且 US／EU 解析不同 → 欄位標紅「待確認」（form.js pendingText／pendingError，改動前送出一律當錯誤、也不可存成新情境）；表格同樣換算，無法確定不載入並說明；normalizeData 保留合法 sep
+- (4) gdrive.mergeOverwriteMessage 共用措辭；設定頁檔案匯入合併與雲端下載都經過它
+- (5) check_portable 接受多個目錄、任一不存在 exit 1；tests/_node.tap_test_count；verify_all node_tap_guard（# tests 0 或無摘要判失敗），check_portable 步驟改查 engine golden
+- (6) engine/solver.snap_zero_pct（|x| < 1e-9 個百分點 → 0.0）套在 cashflow.irr、tvm I/Y、bond.yield_
+- (7) gdrive.randomBoundary（crypto.getRandomValues）；buildMultipartBody 衝突重抽、指定邊界衝突丟例外
+
+**產出**
+- 程式：web/js/input.js、sheets.js、views/form.js、views/run.js、views/scenarios.js、views/grid.js、views/settings.js、storage/backup.js、storage/gdrive.js、web/sw.js；engine/solver.py、cashflow.py、tvm.py、bond.py；tools/check_portable.py、tools/verify_all.py
+- 測試：tests/js/scenario_sep.test.mjs（新，8 項）、input／sheets／gdrive.test.mjs 增補；tests/test_portable.py、test_web_js.py、test_solver.py、test_cashflow.py、test_tvm.py、test_bond.py 增補；tests/_node.py
+- commits：151ac88、285bdb2、457cd2a、bfc1373、0ed8e19、49d9464、369054b、622dcf7；logs/verify-20261021-1254.html
+
+**驗證**
+- RED（修正前）：check_portable 新測試 2 failed（不存在目錄 exit 0）；test_web_js ImportError（tap_test_count 不存在）；snap 4 項 failed（IRR -1.266e-15、I/Y -1.33e-13 與 7.46e-10、YLD 8.79e-15）；collect({PV:{text:"-500",direction:"in"}}) 舊版得 PV 500；sheets／scenario_sep／gdrive 新測試因匯出不存在而失敗，另以舊版 collect 重現 EU 下 "100,000" → -100
+- GREEN：python -m pytest 348 passed；node --test 151 pass／0 fail；run_mpy_golden 51/51、24/24；check_portable engine golden 通過、不存在目錄 exit 1；build_web＋check_shell 通過；verify_all --quick PASS（622dcf7，乾淨樹）
+- 瀏覽器（python -m http.server 8765 -d web，內建 Browser pane）：TVM 實際打字 N=360、I/Y=6、FV=0、PV「-100000」按 Enter → PV 顯示 100000 付出、PMT = 599.55（收到）；STAT 迴歸 a=2.20 b=0.60 → 改 EXP → X'=6 按預測 → 被擋「截距 a、斜率 b 是舊的計算結果，請先重新計算迴歸（按「迴歸」）再預測」，a、b 仍為過期；重算迴歸後預測 Y'=6.60 且 a、b 解除過期；US 存的情境（PV 100,000、FV 1,234.5、I/Y 6.5）在 EU 載入 → 100000、1234,5、6,5；無 sep 的舊情境 PV「100,000」標紅並拒絕計算，改成 100000 後算出 PMT 599,55；CF 表格 US「1,000」在 EU 載入為 1000
+
+**問題與修正**
+- 第一次在 verify_all.py 用 Python 修補時 "\n" 被展開成真的換行造成 SyntaxError，改用 Edit 修好
+- gdrive.js 為 CRLF，含 \r\n 字面的 Python 字串比對失敗（整段未套用、無半套用），改用 Edit
+- scenario_sep 表格測試的資料第 2 列沒填 Y、後來又填了次數，readStatTable 在 two_var 下正確報錯——是測試資料錯，不是程式錯，修正測試資料
+- 瀏覽器第一次用縮圖座標點擊點錯欄位，改用 find 的 ref 點擊
+
+**待辦**
+- 檔案匯入時若備份檔內含不同的 gdriveClientId，合併會覆蓋本機 Client ID 而不詢問（overwriteSummary 忽略本機專屬鍵；Drive 路徑有另外還原）——未在本輪處理
+- 預覽瀏覽器（localhost:8765）的 IndexedDB 留有測試情境 sep-test-us、legacy-no-sep、cf-us（僅測試資料）
+- 使用者關閉 PowerPoint 後跑 python run_all.py（本輪依指示未跑 run_all.py／export_pdf.py）
