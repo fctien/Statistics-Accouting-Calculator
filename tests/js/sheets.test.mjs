@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   SHEETS, SHEET_ORDER, PRIMARY_SHEETS, KINDS, fieldMap, sendFields, fieldForKey,
+  staleBlock, staleAfterSuccess,
 } from "../../web/js/sheets.js";
 
 const REQUIRED_SHEETS = [
@@ -108,4 +109,26 @@ test("fieldForKey：先在剛執行的動作欄位中找，再全域找", () => 
   assert.equal(id("tvm", "PMT", "solve"), "PMT");
   assert.equal(id("tvm", "nope", "solve"), null);
   assert.equal(id("tvm", null, "solve"), null);
+});
+
+test("STAT 預測：a、b 是過期（stale）的迴歸係數時拒絕計算，訊息要求重新計算迴歸", () => {
+  // 重現：LIN 迴歸 a=2.2 b=0.6 → 改模型為 EXP（a、b 標過期）→ 預測會用 LIN 係數算出 Y'
+  const block = staleBlock("stats", "predict", ["A", "B"]);
+  assert.ok(block, "a、b 過期必須擋下");
+  assert.match(block.message, /請先重新計算迴歸/);
+  assert.deepEqual(block.fields, ["A", "B"]);
+  assert.ok(staleBlock("stats", "predict", ["B"]), "只有 b 過期也要擋");
+  assert.equal(staleBlock("stats", "predict", []), null);
+  assert.equal(staleBlock("stats", "predict", ["XP"]), null, "X' 過期不影響：它會被重新求出");
+  // 其他動作不受影響（迴歸本身就是重新計算 a、b）
+  assert.equal(staleBlock("stats", "two_var", ["A", "B"]), null);
+  assert.equal(staleBlock("tvm", "solve", ["PMT"]), null);
+});
+
+test("成功計算後只解除這次回應求出／填入欄位的過期標記", () => {
+  // 以前 clearStale 把全部過期欄位都變回綠色：預測成功後 a、b 也被「洗白」
+  assert.deepEqual(staleAfterSuccess(["A", "B", "YP"], ["YP"]), ["A", "B"]);
+  assert.deepEqual(staleAfterSuccess(["PMT"], ["PMT"]), []);
+  assert.deepEqual(staleAfterSuccess(["A"], []), ["A"]);
+  assert.deepEqual(staleAfterSuccess([], ["A"]), []);
 });

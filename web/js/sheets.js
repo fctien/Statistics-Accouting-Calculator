@@ -239,7 +239,11 @@ export const SHEETS = {
     actions: [
       { id: "one_var", label: "單變數 1-V", primary: true, send: ["X", "F"] },
       { id: "two_var", label: "迴歸", send: ["X", "Y", "model"] },
-      { id: "predict", label: "預測", send: ["model", "A", "B", "XP", "YP"], solve: ["X", "Y"] },
+      {
+        id: "predict", label: "預測", send: ["model", "A", "B", "XP", "YP"], solve: ["X", "Y"],
+        // a、b 是迴歸求出的係數：過期（改了模型或資料）時不可拿來預測
+        fresh: ["A", "B"], freshHint: "請先重新計算迴歸（按「迴歸」）再預測",
+      },
     ],
   },
 
@@ -460,6 +464,26 @@ export function sendFields(sheetId, actionId) {
     return action.send.map((id) => fm[id]);
   }
   return sheet.fields.filter((f) => !f.output);
+}
+
+/**
+ * 過期（stale）把關：動作的 fresh 欄位中有過期的（舊的計算結果）就回傳
+ * {message, fields}，呼叫端不送出計算；沒有問題回傳 null。staleIds 為目前過期的欄位 id。
+ */
+export function staleBlock(sheetId, actionId, staleIds) {
+  const action = (SHEETS[sheetId]?.actions || []).find((a) => a.id === actionId);
+  if (!action || !action.fresh) return null;
+  const bad = action.fresh.filter((id) => (staleIds || []).includes(id));
+  if (bad.length === 0) return null;
+  const fm = fieldMap(sheetId);
+  const names = bad.map((id) => `${fm[id].label} ${fm[id].abbr}`).join("、");
+  return { message: `${names} 是舊的計算結果，${action.freshHint}`, fields: bad };
+}
+
+/** 成功計算後仍維持過期的欄位：只有這次回應求出／填入的欄位（filledIds）解除過期。 */
+export function staleAfterSuccess(staleIds, filledIds) {
+  const filled = new Set(filledIds || []);
+  return (staleIds || []).filter((id) => !filled.has(id));
 }
 
 /** 主要動作（Enter 觸發）。 */

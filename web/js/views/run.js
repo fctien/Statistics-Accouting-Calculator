@@ -4,7 +4,7 @@
 // - watchStale：使用者改了任何輸入，就清掉輸出欄位與結果列、把已求出的欄位標為過期；
 //   下一次成功計算才解除。專屬畫面（tvm.js、amort.js …）都經由這裡，不各自重寫。
 import { callEngine } from "../py-client.js";
-import { SHEETS } from "../sheets.js";
+import { SHEETS, staleBlock, staleAfterSuccess } from "../sheets.js";
 import * as settingsStore from "../settings.js";
 import { createGuard } from "../generation.js";
 import { readInputs, showErrors, showResult, setBusy, showFormMessage, getOnAction } from "./form.js";
@@ -17,11 +17,21 @@ function formOf(sheetId) {
   return document.querySelector(`form.sheet-form[data-sheet="${CSS.escape(sheetId)}"]`);
 }
 
-/** 清掉所有過期標記（成功計算後呼叫）。 */
-export function clearStale(sheetId) {
+/** 目前標為過期的欄位 id。 */
+function staleIds(form) {
+  return form ? [...form.querySelectorAll(".field.stale")].map((w) => w.dataset.field) : [];
+}
+
+/**
+ * 解除過期標記（成功計算後呼叫）。onlyIds 指定時只解除這些欄位（這次回應求出／填入的），
+ * 其餘過期欄位保持過期（例：STAT 預測成功不代表 a、b 已依新模型重算）；省略時全部解除。
+ */
+export function clearStale(sheetId, onlyIds = null) {
   const form = formOf(sheetId);
   if (!form) return;
+  const keep = new Set(onlyIds ? staleAfterSuccess(staleIds(form), onlyIds) : []);
   for (const wrap of form.querySelectorAll(".field.stale")) {
+    if (keep.has(wrap.dataset.field)) continue;
     wrap.classList.remove("stale");
     wrap.querySelector(".control")?.removeAttribute("title");
   }
@@ -100,6 +110,15 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
   const restore = () => {
     if (active && active.isConnected && document.activeElement !== active) active.focus();
   };
+  // 要用到的係數是過期的（例：STAT 預測的 a、b）：不送出，不讓舊係數算出看似正常的數字
+  const blocked = staleBlock(sheetId, actionId, staleIds(formOf(sheetId)));
+  if (blocked) {
+    showErrors(sheetId, {});
+    showFormMessage(sheetId, blocked.message);
+    onFail?.();
+    restore();
+    return null;
+  }
   const { inputs, errors } = readInputs(sheetId, actionId);
   const more = extra ? extra() : null;
   const extraError = more && more.error ? more.error : null;
@@ -129,12 +148,12 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
     if (!live) setBusy(sheetId, false);
   }
   if (!isCurrent() || !guard.isCurrent(sheetId, token)) return null; // 請求期間輸入已改：丟棄舊回應
-  if (response.ok === true) {
-    clearStale(sheetId);
-    lastOk.set(sheetId, { form: formOf(sheetId), actionId });
-  }
   const toShow = response.ok !== true && mapError ? (mapError(response) || response) : response;
   const shown = showResult(toShow, sheetId, actionId);
+  if (response.ok === true) {
+    clearStale(sheetId, shown.filled); // 只解除這次求出／填入的欄位
+    lastOk.set(sheetId, { form: formOf(sheetId), actionId });
+  }
   if (response.ok !== true) {
     markStale(sheetId);
     onFail?.();
