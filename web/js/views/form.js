@@ -93,6 +93,7 @@ function updateTiSign(wrap) {
  */
 function applyTypedSign(wrap) {
   const ctrl = wrap.querySelector(".control");
+  if (ctrl.dataset.pendingText !== undefined) return; // 待確認的情境值：原樣保留，送出時當錯誤
   const sp = splitSign(ctrl.value);
   if (!sp.direction || /^[+-]/.test(sp.text)) return;
   ctrl.value = sp.text;
@@ -106,6 +107,20 @@ function forgetSolved(ctrl) {
   delete ctrl.dataset.shown;
 }
 
+/**
+ * 「待確認」標記（pending error）：載入的情境值無法確定千分位寫法（scenarios.js），
+ * 欄位保留原始文字但在使用者改動之前一律當格式錯誤，不可用目前設定重新解讀後送出。
+ */
+function forgetPending(ctrl) {
+  delete ctrl.dataset.pendingText;
+  delete ctrl.dataset.pendingError;
+}
+
+function pendingError(ctrl) {
+  return ctrl.dataset.pendingText !== undefined && ctrl.value === ctrl.dataset.pendingText
+    ? ctrl.dataset.pendingError : null;
+}
+
 /** 欄位值是上次引擎求出、且使用者沒有改動。 */
 function isEngineValue(ctrl) {
   return ctrl.dataset.solved === "1" && ctrl.value === ctrl.dataset.shown;
@@ -115,6 +130,7 @@ function isEngineValue(ctrl) {
 function onEdited(wrap) {
   wrap.classList.remove("solved");
   forgetSolved(wrap.querySelector(".control"));
+  forgetPending(wrap.querySelector(".control"));
   updateResolveHint(wrap.closest("form"));
   clearFieldError(wrap);
   updateTiSign(wrap);
@@ -301,6 +317,7 @@ function resetValues(form, sheetId) {
     } else ctrl.value = f.initial ?? "";
     wrap.classList.remove("solved");
     forgetSolved(ctrl);
+    forgetPending(ctrl);
     if (f.kind === "direction" && !f.output) setDirection(wrap, f.initialDirection || "in");
     clearFieldError(wrap);
   }
@@ -355,6 +372,13 @@ export function readInputs(sheetId, actionId) {
     if (f.kind === "direction" && !f.output) applyTypedSign(fieldWrap(form, f.id));
   }
   const { inputs, errors } = collect(rawValues(form, sheetId, fields), kinds, settings.get().sep);
+  for (const f of fields) {
+    const msg = pendingError(control(form, sheetId, f.id));
+    if (msg) {
+      errors[f.id] = msg;
+      inputs[f.key || f.id] = null;
+    }
+  }
   const solvedKeys = [];
   for (const f of fields) {
     const ctrl = control(form, sheetId, f.id);
@@ -559,7 +583,8 @@ export function showInfo(sheetId, text) {
 
 /**
  * 讀出欄位目前的狀態（給「帶入攤還」這類跨工作表搬值用）：
- * {text, direction?, exact?, stale}；bool 欄位為 {checked}。exact 只在值仍是引擎求出且未改動時才有。
+ * {text, direction?, exact?, stale, error?}；bool 欄位為 {checked}。exact 只在值仍是引擎求出且未改動時才有；
+ * error：欄位仍是「待確認」的情境值（千分位寫法無法確定），呼叫端不可當成一般值存起來。
  */
 export function getFieldState(sheetId, fieldId) {
   const form = getForm(sheetId);
@@ -573,10 +598,15 @@ export function getFieldState(sheetId, fieldId) {
   if (ctrl.dataset.exact !== undefined && ctrl.value === ctrl.dataset.shown) {
     state.exact = Number(ctrl.dataset.exact);
   }
+  const pend = pendingError(ctrl);
+  if (pend) state.error = pend;
   return state;
 }
 
-/** 把 getFieldState 的結果寫進另一張工作表的同名欄位（成為使用者值，但保留完整精度 exact）。 */
+/**
+ * 把 getFieldState 的結果寫進另一張工作表的同名欄位（成為使用者值，但保留完整精度 exact）。
+ * state.error：值無法確定（例：情境的千分位寫法），欄位標紅並在改動前一律視為格式錯誤。
+ */
 export function setFieldState(sheetId, fieldId, state) {
   const form = getForm(sheetId);
   const f = fieldMap(sheetId)[fieldId];
@@ -584,6 +614,8 @@ export function setFieldState(sheetId, fieldId, state) {
   if (!ctrl || !state) return;
   const wrap = fieldWrap(form, fieldId);
   forgetSolved(ctrl);
+  forgetPending(ctrl);
+  clearFieldError(wrap);
   wrap.classList.remove("solved");
   if (f.kind === "bool") {
     ctrl.checked = Boolean(state.checked);
@@ -594,6 +626,11 @@ export function setFieldState(sheetId, fieldId, state) {
   if (state.exact !== undefined && Number.isFinite(state.exact)) {
     ctrl.dataset.exact = String(state.exact);
     ctrl.dataset.shown = ctrl.value;
+  }
+  if (typeof state.error === "string" && state.error) {
+    ctrl.dataset.pendingText = ctrl.value;
+    ctrl.dataset.pendingError = state.error;
+    setFieldError(wrap, state.error);
   }
   updateTiSign(wrap);
 }

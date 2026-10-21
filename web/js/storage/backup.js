@@ -5,7 +5,8 @@
 import { fromJSON as memFromJSON } from "../memstore.js";
 import { createTape, MAX_ENTRIES } from "../tape.js";
 import { sanitize as sanitizeSettings } from "../settings.js";
-import { SHEETS } from "../sheets.js";
+import { SHEETS, fieldMap } from "../sheets.js";
+import { SEP_KINDS, canonicalText, convertSepText, sameUnderBothSeps } from "../input.js";
 
 export const APP_NAME = "BACalc";
 export const SCHEMA = 1;
@@ -141,6 +142,7 @@ export function normalizeData(data) {
       .map((s) => ({
         id: s.id, worksheet: s.worksheet, name: s.name.slice(0, MAX_NAME),
         inputs: sanitizeScenarioInputs(s.worksheet, s.inputs), updated_at: s.updated_at,
+        ...(s.sep === "us" || s.sep === "eu" ? { sep: s.sep } : {}), // 儲存時的千分位設定
       })),
     tape: normalizeTape(data.tape),
     memory: memFromJSON(data.memory).toJSON(),
@@ -220,4 +222,75 @@ export function importBackup(obj, local, mode) {
       memory: memCells + (m.ACC && m.ACC.count > 0 ? 1 : 0),
     },
   };
+}
+
+const SEP_NAME = { us: "1,234.5（US）", eu: "1.234,5（EU）" };
+
+/**
+ * 載入情境前的千分位（sep）換算（純函式）：情境存的是使用者打的原始文字，
+ * 以「情境記錄的 sep」解析後改寫成目前設定（currentSep）的標準寫法，數值不變。
+ * - 情境 sep 與目前相同：原樣
+ * - 有引擎完整精度 exact：直接用 exact 改寫（不需要猜）
+ * - 情境 sep 下解不出：該欄位列入 errors（中文訊息），呼叫端標紅、不可當成數字送出
+ * - 情境沒有 sep（舊資料、匯入）：只有在 US 與 EU 下解析結果相同時才接受，否則列入 errors
+ * 表格（__grid）每格同樣處理；任一格無法確定 → gridError（呼叫端不載入表格）。
+ * 回傳 {inputs, errors: {欄位 id: 訊息}, gridError: 訊息 | null}。
+ */
+export function prepareScenarioForLoad(scenario, currentSep) {
+  const from = scenario.sep === "us" || scenario.sep === "eu" ? scenario.sep : null;
+  const fm = SHEETS[scenario.worksheet] ? fieldMap(scenario.worksheet) : {};
+  const inputs = {};
+  const errors = {};
+  let gridError = null;
+  const why = (text) => (from
+    ? `情境中的「${text}」無法用儲存時的千分位格式 ${SEP_NAME[from]} 解讀，請重新輸入`
+    : `情境沒有記錄千分位格式，「${text}」在 1,234.5 與 1.234,5 兩種寫法下數值不同，請重新輸入`);
+  for (const [id, st] of Object.entries(scenario.inputs || {})) {
+    if (id === GRID_KEY) continue;
+    const f = fm[id];
+    if (!f || !isObj(st) || typeof st.text !== "string" || !SEP_KINDS.has(f.kind) || from === currentSep) {
+      inputs[id] = st;
+      continue;
+    }
+    if (typeof st.exact === "number" && Number.isFinite(st.exact) && f.kind !== "list") {
+      const v = f.kind === "direction" ? Math.abs(st.exact) : st.exact;
+      inputs[id] = { ...st, text: canonicalText(v, currentSep) };
+      continue;
+    }
+    if (from) {
+      const r = convertSepText(st.text, f, from, currentSep);
+      if (r.error) errors[id] = why(st.text);
+      inputs[id] = r.error ? st : { ...st, text: r.text };
+    } else {
+      if (!sameUnderBothSeps(st.text, f)) errors[id] = why(st.text);
+      inputs[id] = st;
+    }
+  }
+  const g = scenario.inputs ? scenario.inputs[GRID_KEY] : undefined;
+  if (g !== undefined) {
+    if (!Array.isArray(g) || from === currentSep) {
+      inputs[GRID_KEY] = g;
+    } else {
+      const num = { kind: "number" };
+      const out = [];
+      for (const row of g) {
+        const cells = [];
+        for (const cell of Array.isArray(row) ? row : []) {
+          if (typeof cell !== "string" || cell.trim() === "") {
+            cells.push(cell);
+            continue;
+          }
+          const r = from ? convertSepText(cell, num, from, currentSep)
+            : (sameUnderBothSeps(cell, num) ? { text: cell } : { error: true });
+          if (r.error && !gridError) {
+            gridError = `表格${why(cell).replace(/^情境/, "")}；表格沒有載入`;
+          }
+          cells.push(r.error ? cell : r.text);
+        }
+        out.push(cells);
+      }
+      inputs[GRID_KEY] = gridError ? null : out;
+    }
+  }
+  return { inputs, errors, gridError };
 }

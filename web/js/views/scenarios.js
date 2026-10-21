@@ -3,14 +3,17 @@
 //    名稱由使用者輸入，空白時用「工作表標題＋本機時間」
 //  - 載入：用 setFieldState 還原欄位，並把結果標為過期（stale），要重新按「計算」才有結果
 //  - 重新命名、刪除（刪除前 confirm）
-// 情境存在 IndexedDB（storage/persist.js），欄位 {id, worksheet, name, inputs, updated_at}。
+// 情境存在 IndexedDB（storage/persist.js），欄位 {id, worksheet, name, inputs, updated_at, sep}。
+// sep：儲存當時的千分位設定（us／eu）。原始文字只在這個設定下有意義，載入時經
+// backup.prepareScenarioForLoad 換成目前設定的寫法；無法確定的欄位標紅，絕不默默重新解讀。
 // 這一列放在 #sheet 外面（由 app.js 掛載），用 MutationObserver 跟著 #sheet 內目前的表單
 // （例：商業工作表切換子分頁時，worksheet 會跟著變）。
 import { SHEETS } from "../sheets.js";
 import { getFieldState, setFieldState } from "./form.js";
 import { markStale } from "./run.js";
 import * as persist from "../storage/persist.js";
-import { isoTaipei, localStamp } from "../storage/backup.js";
+import { isoTaipei, localStamp, prepareScenarioForLoad } from "../storage/backup.js";
+import * as settingsStore from "../settings.js";
 
 const NO_BAR = new Set(["calc", "settings"]);
 
@@ -43,17 +46,23 @@ export function currentWorksheet(root = document) {
   return id && SHEETS[id] && !NO_BAR.has(id) ? id : null;
 }
 
-/** 讀出目前表單所有輸入欄位的狀態 {欄位id: getFieldState}。 */
+/**
+ * 讀出目前表單所有輸入欄位的狀態 {欄位id: getFieldState}。
+ * 仍有「待確認」欄位（載入時千分位寫法無法確定）時回傳 {pending: [欄位 label]}，不可儲存。
+ */
 export function captureInputs(worksheet) {
   const inputs = {};
+  const pending = [];
   for (const f of SHEETS[worksheet].fields) {
     if (f.output) continue;
     const st = getFieldState(worksheet, f.id);
     if (st) {
-      const { stale, ...rest } = st; // stale 只是畫面標記，不存
+      const { stale, error, ...rest } = st; // stale 只是畫面標記，不存
+      if (error) pending.push(f.label);
       inputs[f.id] = rest;
     }
   }
+  if (pending.length) return { pending };
   // 表格（CF、STAT）透過 "scenario-capture" 事件把內容放進 __grid
   const detail = {};
   formOf(worksheet)?.dispatchEvent(new CustomEvent("scenario-capture", { detail }));
@@ -65,18 +74,25 @@ function formOf(worksheet) {
   return document.querySelector(`#sheet form.sheet-form[data-sheet="${CSS.escape(worksheet)}"]`);
 }
 
-/** 把情境還原到表單，並讓結果失效（要重新計算）。 */
+/**
+ * 把情境還原到表單，並讓結果失效（要重新計算）。
+ * 先依情境的 sep 換算成目前千分位設定的寫法；回傳 {errors: 待確認欄位數, gridError}。
+ */
 export function applyScenario(worksheet, scenario) {
-  for (const [id, state] of Object.entries(scenario.inputs)) {
-    if (id !== "__grid" && state && typeof state === "object") setFieldState(worksheet, id, state);
+  const prep = prepareScenarioForLoad(scenario, settingsStore.get().sep);
+  for (const [id, state] of Object.entries(prep.inputs)) {
+    if (id !== "__grid" && state && typeof state === "object") {
+      setFieldState(worksheet, id, prep.errors[id] ? { ...state, error: prep.errors[id] } : state);
+    }
   }
-  // 表格：有存就還原，沒存就重設為空白（舊內容不可混進新情境）
-  const detail = { __grid: scenario.inputs.__grid };
+  // 表格：有存就還原，沒存就重設為空白（舊內容不可混進新情境）；寫法無法確定時不載入並說明
+  const detail = { __grid: prep.inputs.__grid, __gridError: prep.gridError };
   formOf(worksheet)?.dispatchEvent(new CustomEvent("scenario-apply", { detail }));
   markStale(worksheet);
   // 通知專屬畫面（例：攤還表、表格）清除自己的輸出
   document.querySelector(`#sheet form.sheet-form[data-sheet="${CSS.escape(worksheet)}"]`)
     ?.dispatchEvent(new Event("change", { bubbles: true }));
+  return { errors: Object.keys(prep.errors).length, gridError: prep.gridError };
 }
 
 /** 掛載情境列到 container。回傳 {refresh}。 */
@@ -133,7 +149,14 @@ export function mount(container) {
     const ws = currentWorksheet();
     if (!ws) return;
     const name = nameInput.value.trim() || defaultName(ws);
-    const scenario = { id: newId(), worksheet: ws, name, inputs: captureInputs(ws), updated_at: isoTaipei() };
+    const inputs = captureInputs(ws);
+    if (inputs.pending) {
+      say(`無法儲存：${inputs.pending.join("、")} 的值待確認（紅色），請先重新輸入`);
+      return;
+    }
+    const scenario = {
+      id: newId(), worksheet: ws, name, inputs, updated_at: isoTaipei(), sep: settingsStore.get().sep,
+    };
     try {
       await persist.saveScenario(scenario);
     } catch (e) {
@@ -149,8 +172,12 @@ export function mount(container) {
     const s = selected();
     const ws = currentWorksheet();
     if (!s || !ws || s.worksheet !== ws) return;
-    applyScenario(ws, s);
-    say(`已載入情境「${s.name}」；結果已清除，請按「計算」重新求出`);
+    const r = applyScenario(ws, s);
+    const warn = [
+      r.errors ? `${r.errors} 個欄位的千分位寫法無法確定（紅色），請重新輸入` : "",
+      r.gridError || "",
+    ].filter(Boolean).join("；");
+    say(`已載入情境「${s.name}」；結果已清除，請按「計算」重新求出${warn ? "。注意：" + warn : ""}`);
   });
 
   renameBtn.addEventListener("click", async () => {

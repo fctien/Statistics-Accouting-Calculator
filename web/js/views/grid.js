@@ -213,7 +213,8 @@ export function createGrid(opts) {
 
 /**
  * 讓表格參與具名情境（scenarios.js）：form 上的 "scenario-capture" 事件把表格內容放進 detail.__grid；
- * "scenario-apply" 事件有 detail.__grid（欄數相符、列數不超過上限）就還原，沒有就把表格重設為空白起始狀態，
+ * "scenario-apply" 事件有 detail.__grid（欄數相符、列數不超過上限）就還原，沒有就把表格重設為空白起始狀態
+ * （detail.__gridError 有值時另顯示原因），
  * 避免新情境的 CF0／I 與舊表格內容混在一起。
  */
 export function attachScenarioHooks(form, grid) {
@@ -225,5 +226,7 @@ export function attachScenarioHooks(form, grid) {
     grid.clearError();
     if (ok) grid.setCells(g);
     else grid.reset();
+    // 千分位寫法無法確定（scenarios.js 經 prepareScenarioForLoad）：表格不載入，說明原因
+    if (e.detail.__gridError) grid.markError({ message: e.detail.__gridError, row: null });
   });
 }

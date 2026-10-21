@@ -288,3 +288,79 @@ export function resolveBlanks(inputs, solveKeys, solvedKeys) {
   for (const k of again) out[k] = null;
   return out;
 }
+
+// ---- 千分位設定（sep）換算：具名情境存的是原始文字，換了 US／EU 設定後要換寫法，不可重新解讀 ----
+
+/** 會受 sep 影響的欄位種類（kind）。 */
+export const SEP_KINDS = new Set(["number", "percent", "direction", "list"]);
+
+/** 數值的標準寫法（canonical）：不加千分位；EU 的小數點用逗號（與 tables.numToText 相同）。 */
+export function canonicalText(v, sep = "us") {
+  const s = String(v);
+  return sep === "eu" ? s.replace(".", ",") : s;
+}
+
+/**
+ * 依欄位種類以 sep 解析文字；回傳數值（清單為陣列）或 null（無法解析）。
+ * direction：開頭正負號照 TI 慣例（- 為負）。空白回傳 undefined。
+ */
+export function parseForSep(text, spec, sep) {
+  if (typeof text !== "string" || text.trim() === "") return undefined;
+  switch (spec.kind) {
+    case "percent":
+      return parsePercent(text, sep);
+    case "list":
+      return parseList(text, sep, Boolean(spec.pairs));
+    case "direction": {
+      const sp = splitSign(text);
+      if (/^[+-]/.test(sp.text)) return null;
+      const v = parseNumber(sp.text, sep);
+      return v === null ? null : (sp.direction === "out" ? -v : v);
+    }
+    default:
+      return parseNumber(text, sep);
+  }
+}
+
+/**
+ * 把 fromSep 寫的文字改寫成 toSep 的標準寫法；回傳 {text} 或 {error: true}（fromSep 下就解不出）。
+ * 百分比保留 %、方向欄位保留開頭正負號、清單以空白（成對清單以換行與「x」）分隔。
+ */
+export function convertSepText(text, spec, fromSep, toSep) {
+  if (typeof text !== "string" || text.trim() === "" || fromSep === toSep || !SEP_KINDS.has(spec.kind)) {
+    return { text };
+  }
+  const c = (v) => canonicalText(v, toSep);
+  switch (spec.kind) {
+    case "percent": {
+      const v = parsePercent(text, fromSep);
+      if (v === null) return { error: true };
+      return { text: c(v) + (/[%％]\s*$/.test(text) ? "%" : "") };
+    }
+    case "list": {
+      const v = parseList(text, fromSep, Boolean(spec.pairs));
+      if (v === null) return { error: true };
+      if (spec.pairs) return { text: v.map(([a, n]) => (n === 1 ? c(a) : `${c(a)} x ${c(n)}`)).join("\n") };
+      return { text: v.map(c).join(" ") };
+    }
+    case "direction": {
+      const sp = splitSign(text);
+      if (/^[+-]/.test(sp.text)) return { error: true };
+      const v = parseNumber(sp.text, fromSep);
+      if (v === null) return { error: true };
+      const sign = sp.direction === "out" ? "-" : sp.direction === "in" ? "+" : "";
+      return { text: sign + c(v) };
+    }
+    default: {
+      const v = parseNumber(text, fromSep);
+      return v === null ? { error: true } : { text: c(v) };
+    }
+  }
+}
+
+/** 文字在 US 與 EU 下解析結果是否相同（兩者都解不出也算相同：照樣是格式錯誤）。 */
+export function sameUnderBothSeps(text, spec) {
+  if (!SEP_KINDS.has(spec.kind)) return true;
+  return JSON.stringify(parseForSep(text, spec, "us") ?? null)
+    === JSON.stringify(parseForSep(text, spec, "eu") ?? null);
+}
