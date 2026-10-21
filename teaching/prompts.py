@@ -213,7 +213,7 @@ STEPS = [
 - 寫完自我檢查一次，列出你不確定的地方""",
             "bad_prompt": "幫我做一個 BA II Plus 計算機的網頁 App",
             "bad_result": "實測：AI 只在對話裡給三行計畫就問要不要開始寫（使用者層級規則要求先給計畫），"
-                          "docs/ 沒有計畫檔、沒比較執行環境大小，三條驗收指令都找不到檔案"
+                          "docs/ 沒有計畫檔、沒比較執行環境大小；兩條驗收指令找不到檔案、一條（claude -p）無法執行"
                           "（2026-10-21 替身演練）",
             "bad_evidence": "實際踩過：規格第一版用 Pyodide，修訂時實測 jsDelivr 傳輸大小，"
                             "Pyodide 約 5.3 MB、MicroPython 約 0.23 MB，才改成 MicroPython"

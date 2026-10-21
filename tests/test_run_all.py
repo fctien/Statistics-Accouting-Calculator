@@ -34,6 +34,20 @@ def test_stops_when_powerpoint_running(tmp_path):
     assert "make_package.py" not in calls
     text = next(tmp_path.glob("run_all-*.html")).read_text(encoding="utf-8")
     assert "停在 export_pdf" in text and "未執行" in text
+    assert "git add logs/" in text  # log 也寫出復原方式
+
+
+def test_stop_prints_recovery_hint(tmp_path, capsys):
+    run, _ = _runner({"export_pdf.py": 2})
+    run_all.main(log_dir=str(tmp_path), runner=run, out_dir=str(tmp_path))
+    out = capsys.readouterr().out
+    assert run_all.RECOVERY_HINT in out and "git add logs/" in out
+
+
+def test_pass_has_no_recovery_hint(tmp_path, capsys):
+    run, _ = _runner({})
+    run_all.main(log_dir=str(tmp_path), runner=run, out_dir=str(tmp_path))
+    assert "重跑前" not in capsys.readouterr().out
 
 
 def test_failure_exit_1(tmp_path):

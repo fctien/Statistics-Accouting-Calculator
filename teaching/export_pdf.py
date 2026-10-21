@@ -3,15 +3,18 @@
 用法：python teaching/export_pdf.py
 
 安全規則（使用者規定：要關閉或影響使用者開著的程式前必須先問）
-- 先用 tasklist 檢查 POWERPNT.EXE 是否在執行
+- 先用 tasklist（CSV 格式、列出全部行程）檢查 POWERPNT.EXE 是否在執行
 - 正在執行：不匯出、不連上（attach）它，印出說明並 exit 2
   （PowerPoint 是單一 instance 的 COM 伺服器，DispatchEx 也會拿到使用者那一個，所以一定要先檢查）
-- 沒有執行：自己開一個 instance，每份簡報以 ReadOnly、WithWindow=False 開啟，
+- 無法判斷（tasklist 無法執行、結束碼非 0、輸出無法解析）：一律當成「可能在執行」，不匯出、exit 2（fail-safe）
+- 確定沒有執行：自己開一個 instance，每份簡報以 ReadOnly、WithWindow=False 開啟，
   SaveAs PDF（ppSaveAsPDF = 32）後關閉，最後只 Quit 自己開的那一個
+- 匯出途中失敗：刪掉本次要寫的 PDF（含寫到一半的），避免留下不完整或新舊混雜的檔案
 
 只匯出一般版（BACalc_AI.pptx、BACalc_EMBA.pptx），不匯出講稿版（學生版不含講稿）
-結束碼：0 成功；1 錯誤（找不到簡報、COM 失敗、無法檢查 tasklist）；2 PowerPoint 正在執行，未匯出
+結束碼：0 成功；1 錯誤（找不到簡報、COM 失敗）；2 PowerPoint 正在執行或無法確定，未匯出
 """
+import csv
 import os
 import subprocess
 import sys
@@ -22,6 +25,8 @@ DECKS = ["BACalc_AI.pptx", "BACalc_EMBA.pptx"]
 PP_SAVE_AS_PDF = 32  # ppSaveAsPDF
 RUNNING_MESSAGE = ("PowerPoint 正在執行，為避免影響使用者開啟的檔案，未匯出 PDF；"
                    "請關閉 PowerPoint 後重跑，或由使用者同意後再執行")
+UNKNOWN_MESSAGE = ("無法確定 PowerPoint 是否正在執行（%s），為避免影響使用者開啟的檔案，未匯出 PDF；"
+                   "請確認 PowerPoint 已關閉後重跑")
 
 
 def pdf_name(deck):
@@ -30,15 +35,25 @@ def pdf_name(deck):
 
 
 def tasklist_output():
-    """回傳 tasklist 對 POWERPNT.EXE 的查詢輸出（文字）"""
-    p = subprocess.run(["tasklist", "/FI", "IMAGENAME eq POWERPNT.EXE", "/NH"],
+    """回傳 (結束碼, 輸出文字)：tasklist /FO CSV /NH 列出全部行程（CSV 格式與語系無關）"""
+    p = subprocess.run(["tasklist", "/FO", "CSV", "/NH"],
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
-    return p.stdout.decode("mbcs" if os.name == "nt" else "utf-8", errors="replace")
+    return p.returncode, p.stdout.decode("mbcs" if os.name == "nt" else "utf-8", errors="replace")
 
 
 def is_powerpoint_running(text):
-    """tasklist 輸出中有 POWERPNT.EXE 就視為正在執行（大小寫不敏感）"""
-    return "powerpnt.exe" in (text or "").lower()
+    """解析 tasklist CSV：True 正在執行、False 確定沒有、None 無法判斷
+
+    每一列都必須是「"映像名稱","PID",…」至少 5 欄且 PID 為數字；任何一列不符，
+    或一列都沒有（錯誤訊息、空輸出），就回 None，呼叫端不可匯出
+    """
+    rows = [r for r in csv.reader((text or "").splitlines()) if r]
+    if not rows:
+        return None
+    for r in rows:
+        if len(r) < 5 or not r[1].strip().isdigit():
+            return None
+    return any(r[0].strip().lower() == "powerpnt.exe" for r in rows)
 
 
 def new_powerpoint():
@@ -47,28 +62,48 @@ def new_powerpoint():
     return win32com.client.DispatchEx("PowerPoint.Application")
 
 
-def export(app, decks, out_dir):
-    """Model 之外的實際動作：逐份開啟、另存 PDF、關閉；回傳 PDF 路徑清單"""
-    pdfs = []
-    for deck in decks:
-        src = os.path.abspath(os.path.join(out_dir, deck))
-        dst = os.path.abspath(os.path.join(out_dir, pdf_name(deck)))
-        pres = app.Presentations.Open(src, ReadOnly=True, Untitled=False, WithWindow=False)
+def remove_quietly(paths):
+    """刪除本次的 PDF（不存在就略過）"""
+    for p in paths:
         try:
-            pres.SaveAs(dst, PP_SAVE_AS_PDF)
-        finally:
-            pres.Close()
-        pdfs.append(dst)
+            os.remove(p)
+        except OSError:
+            pass
+
+
+def export(app, decks, out_dir):
+    """逐份開啟、另存 PDF、關閉；任何一份失敗就刪掉本次全部的 PDF 再擲出例外；回傳 PDF 路徑清單"""
+    pdfs = []
+    try:
+        for deck in decks:
+            src = os.path.abspath(os.path.join(out_dir, deck))
+            dst = os.path.abspath(os.path.join(out_dir, pdf_name(deck)))
+            pdfs.append(dst)  # 先記下，失敗時寫到一半的也一起刪
+            pres = app.Presentations.Open(src, ReadOnly=True, Untitled=False, WithWindow=False)
+            try:
+                pres.SaveAs(dst, PP_SAVE_AS_PDF)
+            finally:
+                pres.Close()
+    except Exception:
+        remove_quietly(pdfs)
+        raise
     return pdfs
 
 
 def main(out_dir=OUT_DIR, tasklist=tasklist_output, dispatch=new_powerpoint):
     """Controller：檢查 → 匯出；參數可注入假物件以便測試"""
     try:
-        running = is_powerpoint_running(tasklist())
+        code, text = tasklist()
     except OSError as e:
-        print("無法檢查 PowerPoint 是否在執行（%s），為安全起見不匯出" % e)
-        return 1
+        print(UNKNOWN_MESSAGE % ("tasklist 無法執行：%s" % e))
+        return 2
+    if code != 0:
+        print(UNKNOWN_MESSAGE % ("tasklist 結束碼 %d" % code))
+        return 2
+    running = is_powerpoint_running(text)
+    if running is None:
+        print(UNKNOWN_MESSAGE % "tasklist 輸出無法解析")
+        return 2
     if running:
         print(RUNNING_MESSAGE)
         return 2
@@ -84,7 +119,7 @@ def main(out_dir=OUT_DIR, tasklist=tasklist_output, dispatch=new_powerpoint):
     try:
         pdfs = export(app, DECKS, out_dir)
     except Exception as e:
-        print("匯出 PDF 失敗：%s" % e)
+        print("匯出 PDF 失敗（已刪除本次的 PDF）：%s" % e)
         return 1
     finally:
         app.Quit()  # 只關自己開的 instance

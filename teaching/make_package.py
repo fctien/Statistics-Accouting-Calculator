@@ -10,7 +10,7 @@
 - google-oauth-setup.html（docs/）
 - 學生說明.txt：怎麼 clone、怎麼切換 tag、卡片在哪裡
 
-缺 PDF 時不產生任何 zip，回報錯誤（exit 1）
+缺 PDF，或 PDF 比對應的 pptx 舊（mtime）時，不產生任何 zip，回報錯誤（exit 1）
 """
 import argparse
 import os
@@ -108,6 +108,15 @@ def check(out_dir=OUT_DIR, docs_dir=DOCS_DIR):
             msg += ("\n簡報 PDF 不存在：請關閉 PowerPoint 後執行 python teaching/export_pdf.py"
                     "（學生版只放 PDF，不放 pptx）")
         raise PackageError(msg)
+    stale = []
+    for v in VERSIONS.values():
+        pdf = os.path.join(out_dir, "BACalc_%s.pdf" % v)
+        pptx = os.path.join(out_dir, "BACalc_%s.pptx" % v)
+        if os.path.exists(pptx) and os.path.getmtime(pdf) < os.path.getmtime(pptx):
+            stale.append(pdf)
+    if stale:
+        raise PackageError("PDF 比對應的 pptx 舊，可能不是最新內容，不產生 zip：\n  " + "\n  ".join(stale)
+                           + "\n請關閉 PowerPoint 後重跑 python teaching/export_pdf.py")
 
 
 def build_all(out_dir=OUT_DIR, docs_dir=DOCS_DIR):

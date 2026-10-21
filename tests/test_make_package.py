@@ -2,8 +2,9 @@
 
 - 每版 zip 含：對應 Prompt 卡 HTML、簡報 PDF、docs/google-oauth-setup.html、學生說明.txt
 - 絕不含 pptx、絕不含講稿版
-- 缺 PDF 時不產生 zip，回傳錯誤並說明
+- 缺 PDF 或 PDF 比 pptx 舊時不產生 zip，回傳錯誤並說明
 """
+import os
 import zipfile
 
 import pytest
@@ -72,4 +73,16 @@ def test_main_without_zip_flag_only_checks(tmp_path, capsys):
     out, docs = _setup(tmp_path)
     code = make_package.main([], out_dir=str(out), docs_dir=str(docs))
     assert code == 0
+    assert not list(out.glob("*.zip"))
+
+
+def test_stale_pdf_no_zip(tmp_path):
+    out, docs = _setup(tmp_path)
+    pptx = out / "BACalc_EMBA.pptx"
+    pdf = out / "BACalc_EMBA.pdf"
+    os.utime(pdf, (1_000_000, 1_000_000))
+    os.utime(pptx, (2_000_000, 2_000_000))  # pptx 在 PDF 之後才重建
+    with pytest.raises(make_package.PackageError) as e:
+        make_package.build_all(out_dir=str(out), docs_dir=str(docs))
+    assert "比對應的 pptx 舊" in str(e.value)
     assert not list(out.glob("*.zip"))

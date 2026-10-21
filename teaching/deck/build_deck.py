@@ -27,6 +27,7 @@ import math
 import os
 import re
 import sys
+import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEACHING = os.path.dirname(HERE)
@@ -263,7 +264,32 @@ class Builder:
         if self.with_notes:
             for sl, speech, desc in self.notes:
                 set_notes(sl, speech, desc)
-        return self.dk.save(path)
+        result = self.dk.save(path)
+        normalize_zip(path)
+        return (os.path.getsize(path),) + tuple(result[1:])  # 大小以重寫後為準
+
+
+ZIP_DATE = (2026, 1, 1, 0, 0, 0)  # 固定的 zip 項目時間（內容不變時重產結果逐位元組相同）
+
+
+def normalize_zip(path):
+    """把 pptx（zip）重寫成可重現的位元組：固定時間戳與屬性、項目順序固定（[Content_Types].xml 在前）
+
+    python-pptx 存檔時 zip 項目帶當下時間，內容相同也會讓 git 工作樹變髒（run_all 第二次就被
+    verify_all 的乾淨檢查擋下）；這裡只改 zip 外殼，不動任何 XML 或圖片內容
+    """
+    with zipfile.ZipFile(path) as z:
+        items = [(i.filename, z.read(i.filename)) for i in z.infolist()]
+    items.sort(key=lambda x: (x[0] != "[Content_Types].xml", x[0]))
+    tmp = path + ".tmp"
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in items:
+            info = zipfile.ZipInfo(name, date_time=ZIP_DATE)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            info.create_system = 0
+            z.writestr(info, data, compresslevel=6)
+    os.replace(tmp, path)
 
 
 def no_period(text):
@@ -878,8 +904,8 @@ def slide_closing(b):
 # Controller
 # ---------------------------------------------------------------------------
 
-def build(version, with_notes):
-    """建置一份簡報，回傳 (路徑, 大小, 頁數, 清除句點數)"""
+def build(version, with_notes, out_dir=None):
+    """建置一份簡報，回傳 (路徑, 大小, 頁數, 清除句點數)；out_dir 預設 teaching/out"""
     b = Builder(version, with_notes)
     slide_cover(b)
     slide_agenda(b)
@@ -894,7 +920,7 @@ def build(version, with_notes):
         slides_for_step(b, step)
     slide_closing(b)
     name = VERSIONS[version]["out"] + ("_講稿" if with_notes else "") + ".pptx"
-    path = os.path.join(OUT_DIR, name)
+    path = os.path.join(out_dir or OUT_DIR, name)
     size, total, n_strip = b.save(path)
     return path, size, total, n_strip
 

@@ -20,6 +20,7 @@ claude -p "<bad_prompt 或 prompt 原文>" --model sonnet --max-turns 15 --permi
 - AI 只依卡片的 Prompt 文字與資料夾內的檔案行事，產生的檔案與 【驗收】 指令都**真的執行**並記錄輸出
 - **偏差**：扮演 AI 的實作者看過 BACalc 原始碼，一句話版本的行為（例如會不會先讀規格書）是替身的判斷，不代表 Claude 每次都這樣做；可重現的是「產出了什麼、驗收指令跑出什麼」
 - `claude -p` 類的驗收指令因未登入無法執行，改為人工依產出的檔案判斷
+- **每一格都只是單次替身執行**（每步每種 Prompt 各跑一次），沒有重複取樣；真正的 AI 每次結果可能不同，表中的「失敗／通過」只代表這一次
 
 起點：step0 用 `step0` tag 刪掉 CLAUDE.md 與 DEVLOG.md（只剩規格書與 `tools/md2html.py`）；step1 用 `step0` tag；step2 用 `step1` tag
 

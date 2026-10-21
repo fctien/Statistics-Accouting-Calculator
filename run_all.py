@@ -25,6 +25,11 @@ sys.path.insert(0, ROOT)
 from tools.verify_all import CSS, TZ, git, run_cmd  # noqa: E402  共用執行與 log 樣式
 
 TAIL = 15
+# 停下或失敗後的復原方式：verify_all 要求 git 乾淨，本次產生的 logs/ 檔案未 commit 前，下一次會被擋下
+# （build_cards、build_deck 的輸出可重現，內容不變時與 commit 逐位元組相同，不會弄髒工作樹）
+RECOVERY_HINT = ("重跑前：先 commit 本次新增的 logs/ 檔案（git add logs/ && git commit -m \"log: run_all 紀錄\"），"
+                 "git status 確認乾淨後再執行 python run_all.py；"
+                 "若停在 export_pdf，先關閉 PowerPoint")
 EXPORT_STEP = "export_pdf（簡報 → PDF）"
 
 # 需要轉成 PDF 後逐頁目視的投影片：(簡報, eyebrow 開頭, 頁標題, 原因)
@@ -139,7 +144,7 @@ def main(log_dir=None, runner=run_cmd, out_dir=None):
             break
     summary = {0: "總結：PASS（%d 步全過）" % len(results),
                1: "總結：FAIL（%s 失敗）" % results[-1][0],
-               2: "總結：停在 export_pdf（PowerPoint 正在執行，未匯出 PDF，學生版 zip 未產生）"}[status]
+               2: "總結：停在 export_pdf（PowerPoint 正在執行或無法確定，未匯出 PDF，學生版 zip 未產生）"}[status]
     meta = [
         ("時間", started.strftime("%Y-%m-%d %H:%M:%S +08:00")),
         ("commit", "%s（短碼 %s）" % (head, head[:7])),
@@ -148,6 +153,8 @@ def main(log_dir=None, runner=run_cmd, out_dir=None):
         ("Python", sys.version.split()[0]),
         ("結果", summary),
     ]
+    if status != 0:
+        meta.insert(-1, ("重跑前", RECOVERY_HINT))
     out_dir = out_dir or os.path.join(ROOT, "teaching", "out")
     page = render(meta, results, not_run, status, find_visual_pages(out_dir))
     log_dir = log_dir or os.path.join(ROOT, "logs")
@@ -157,6 +164,8 @@ def main(log_dir=None, runner=run_cmd, out_dir=None):
         f.write(page)
     print("log：%s" % path)
     print(summary)
+    if status != 0:
+        print(RECOVERY_HINT)
     return status
 
 
