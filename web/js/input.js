@@ -148,6 +148,18 @@ export function fromSigned(value) {
   return { value: Math.abs(value), direction: value < 0 ? "out" : "in" };
 }
 
+/**
+ * 拆出開頭的正負號（sign）：回傳 {text: 其餘文字, direction: "out"|"in"|null}。
+ * 「-」（含全形「－」）→ 付出 out、「+」→ 收到 in；沒有正負號時 direction 為 null。
+ * direction 欄位用：使用者打入的正負號優先於方向鈕（TI 正負號慣例）。
+ */
+export function splitSign(text) {
+  const s = normalize(String(text ?? "")).trim();
+  const m = /^([+-])\s*/.exec(s);
+  if (!m) return { text: s, direction: null };
+  return { text: s.slice(m[0].length), direction: m[1] === "-" ? "out" : "in" };
+}
+
 /** 欄位規格正規化：接受 "number" 這種字串，或 {kind, label, options, ...} 物件。 */
 function specOf(id, k) {
   const spec = typeof k === "string" ? { kind: k } : { ...(k || {}) };
@@ -198,12 +210,17 @@ function parseOne(raw, spec, sep) {
     case "text":
       return { value: isBlank(raw) ? null : String(raw).trim() };
     case "direction": {
-      // {text, direction}：輸入框是絕對值，方向鈕決定正負；純字串則照 TI 正負號解讀
+      // {text, direction}：輸入框是絕對值，方向鈕決定正負；純字串則照 TI 正負號解讀。
+      // 文字開頭打了正負號時，正負號優先（- → 付出、+ → 收到），並回報 direction 讓畫面更新方向鈕
       if (raw && typeof raw === "object") {
         if (isBlank(raw.text)) return { value: null };
-        const v = parseNumber(String(raw.text), sep);
-        if (v === null) return { error: `${L}格式錯誤：請輸入數字，例如 ${example(sep)}` };
-        return { value: toSigned(v, raw.direction === "out" ? "out" : "in") };
+        const sp = splitSign(raw.text);
+        const bad = { error: `${L}格式錯誤：請輸入數字，例如 ${example(sep)}` };
+        if (/^[+-]/.test(sp.text)) return bad; // 「--5」「-+5」：不猜
+        const v = parseNumber(sp.text, sep);
+        if (v === null) return bad;
+        const dir = sp.direction || (raw.direction === "out" ? "out" : "in");
+        return sp.direction ? { value: toSigned(v, dir), direction: dir } : { value: toSigned(v, dir) };
       }
       if (isBlank(raw)) return { value: null };
       const v = parseNumber(String(raw), sep);
@@ -235,10 +252,12 @@ function checkLimits(v, spec) {
  * 收集輸入（collect）：values 為 {欄位 id: 原始值}，kinds 為 {欄位 id: kind 字串或欄位定義}。
  * 回傳 {inputs, errors}：inputs 以引擎鍵（spec.key 或 id）為鍵、空白為 null、
  * 錯誤欄位亦為 null；errors 以欄位 id 為鍵、值為中文訊息。只處理 kinds 中列出的欄位。
+ * directions：direction 欄位文字開頭打了正負號時 {欄位 id: "in"|"out"}（畫面據此更新方向鈕）。
  */
 export function collect(values, kinds, sep = "us") {
   const inputs = {};
   const errors = {};
+  const directions = {};
   for (const id of Object.keys(kinds)) {
     const spec = specOf(id, kinds[id]);
     const key = spec.key || id;
@@ -249,9 +268,10 @@ export function collect(values, kinds, sep = "us") {
       inputs[key] = null;
     } else {
       inputs[key] = r.value;
+      if (r.direction) directions[id] = r.direction;
     }
   }
-  return { inputs, errors };
+  return { inputs, errors, directions };
 }
 
 /**

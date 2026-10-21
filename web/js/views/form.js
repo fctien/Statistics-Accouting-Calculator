@@ -4,7 +4,7 @@
 // 鍵盤：Enter＝主要動作（計算）、Esc＝清除表單、Tab 依畫面順序換欄；
 // 多行清單（textarea）內 Enter 換行，Ctrl／⌘+Enter 計算；中文輸入法組字中的 Enter 不觸發。
 import { SHEETS, fieldMap, fieldForKey, sendFields, primaryAction } from "../sheets.js";
-import { collect, parseNumber, resolveBlanks, toSigned } from "../input.js";
+import { collect, parseNumber, resolveBlanks, toSigned, splitSign } from "../input.js";
 import * as settings from "../settings.js";
 
 const DIR_TEXT = { in: "收到 ↓", out: "付出 ↑" };
@@ -76,14 +76,27 @@ function updateTiSign(wrap) {
   const out = wrap.querySelector(".ti-sign");
   if (!out) return;
   const input = wrap.querySelector(".control");
-  const v = parseNumber(input.value, settings.get().sep);
+  const sp = splitSign(input.value); // 打入的正負號優先於方向鈕（與 input.js collect 相同）
+  const v = /^[+-]/.test(sp.text) ? null : parseNumber(sp.text, settings.get().sep);
   if (v === null) {
     out.textContent = "";
     return;
   }
-  const dir = wrap.querySelector(".dir").dataset.direction;
+  const dir = sp.direction || wrap.querySelector(".dir").dataset.direction;
   const signed = toSigned(v, dir);
-  out.textContent = `TI 正負號：${signed < 0 ? "−" : "+"}${input.value.trim().replace(/^[+-]/, "")}`;
+  out.textContent = `TI 正負號：${signed < 0 ? "−" : "+"}${sp.text}`;
+}
+
+/**
+ * 打入的正負號轉成方向鈕（輸入框保持絕對值）：失焦（change）與送出（Enter／計算）前都呼叫，
+ * 讓畫面與送給引擎的值一致。「--5」這種無法解讀的文字不動，交給 collect 標成格式錯誤。
+ */
+function applyTypedSign(wrap) {
+  const ctrl = wrap.querySelector(".control");
+  const sp = splitSign(ctrl.value);
+  if (!sp.direction || /^[+-]/.test(sp.text)) return;
+  ctrl.value = sp.text;
+  setDirection(wrap, sp.direction);
 }
 
 /** 忘掉「引擎求出」狀態（solved／exact／shown）。 */
@@ -209,12 +222,7 @@ function buildField(sheetId, f) {
   }
   if (f.kind === "direction" && !f.output) {
     // 打入正負號：轉成方向鈕，輸入框保持絕對值（與 TI 正負號慣例一致）
-    ctrl.addEventListener("change", () => {
-      const m = /^\s*([+\-－])\s*/.exec(ctrl.value);
-      if (!m) return;
-      ctrl.value = ctrl.value.slice(m[0].length);
-      setDirection(wrap, m[1] === "+" ? "in" : "out");
-    });
+    ctrl.addEventListener("change", () => applyTypedSign(wrap));
   }
   updateDescribedBy(wrap);
   return wrap;
@@ -342,6 +350,10 @@ export function readInputs(sheetId, actionId) {
   const fields = (actionId ? sendFields(sheetId, actionId) : SHEETS[sheetId].fields.filter((f) => !f.output))
     .filter((f) => control(form, sheetId, f.id));
   const kinds = Object.fromEntries(fields.map((f) => [f.id, f]));
+  // Enter 會 preventDefault 直接送出，change 事件來不及把正負號轉成方向鈕：送出前先正規化
+  for (const f of fields) {
+    if (f.kind === "direction" && !f.output) applyTypedSign(fieldWrap(form, f.id));
+  }
   const { inputs, errors } = collect(rawValues(form, sheetId, fields), kinds, settings.get().sep);
   const solvedKeys = [];
   for (const f of fields) {

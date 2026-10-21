@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  collect, parseNumber, parsePercent, parseDate, parseList, toSigned, fromSigned,
+  collect, parseNumber, parsePercent, parseDate, parseList, toSigned, fromSigned, splitSign,
   resolveBlanks,
 } from "../../web/js/input.js";
 
@@ -177,4 +177,36 @@ test("resolveBlanks：沒有空白時，上次求出且未改動的欄位再次�
   const p = { CST: 80, SEL: 100, MAR: 20, MU: 25 };
   assert.deepEqual(resolveBlanks(p, ["CST", "SEL", "MAR", "MU"], ["SEL", "MAR"]),
     { CST: 80, SEL: null, MAR: null, MU: 25 });
+});
+
+test("collect：direction 欄位打入的正負號優先於方向鈕（Enter 直接送出也一樣）", () => {
+  // 重現：PV 打「-100000」按 Enter，方向鈕仍是「收到」→ 以前被 Math.abs 翻成 +100000
+  const kinds = { PV: "direction", FV: "direction", PMT: "direction" };
+  const { inputs, errors, directions } = collect({
+    PV: { text: "-500", direction: "in" },
+    FV: { text: "+250", direction: "out" },
+    PMT: { text: "－1,000", direction: "in" }, // 全形負號
+  }, kinds);
+  assert.deepEqual(errors, {});
+  assert.equal(inputs.PV, -500);
+  assert.equal(inputs.FV, 250);
+  assert.equal(inputs.PMT, -1000);
+  assert.deepEqual(directions, { PV: "out", FV: "in", PMT: "out" });
+  // 沒有打正負號：仍由方向鈕決定，directions 不列出
+  const r2 = collect({ PV: { text: "500", direction: "out" } }, { PV: "direction" });
+  assert.equal(r2.inputs.PV, -500);
+  assert.deepEqual(r2.directions, {});
+  // 只有符號或兩個符號：格式錯誤，不可默默變成某個數字
+  for (const text of ["-", "--5", "-+5", "+ -5"]) {
+    const r = collect({ PV: { text, direction: "in" } }, { PV: "direction" });
+    assert.ok(r.errors.PV, text);
+    assert.equal(r.inputs.PV, null, text);
+  }
+});
+
+test("splitSign：拆出開頭的正負號（含全形）與其後空白", () => {
+  assert.deepEqual(splitSign("-100000"), { text: "100000", direction: "out" });
+  assert.deepEqual(splitSign("  + 5"), { text: "5", direction: "in" });
+  assert.deepEqual(splitSign("－3"), { text: "3", direction: "out" });
+  assert.deepEqual(splitSign("42"), { text: "42", direction: null });
 });
