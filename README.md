@@ -109,6 +109,20 @@ python run_all.py
   `docs/google-oauth-setup.html` 與學生說明，不含 pptx 與講稿；沒有 PDF，或 PDF 比 pptx 舊，就不產生 zip
 - 課前演練紀錄：`teaching/rehearse.md`
 
+### 使用說明影片（實際操作錄影＋中文旁白＋字幕）
+
+```
+python teaching/video/run_video.py
+```
+
+`build_web` → 旁白合成（`narrate.py`，Windows OneCore 語音 Microsoft Yating，pywin32 SAPI）→ 錄影（`record.mjs`，Playwright，
+1280×720，本機伺服器 port 8765 由程式啟動與關閉）→ 合成（`build_video.py`，imageio_ffmpeg）→ 印出長度／解析度／音軌並抽 5 張影格。
+
+- 單一來源 `teaching/video/script.py`：每段旁白、操作步驟與預期畫面；`tests/test_video_script.py` 以引擎實算核對每個數值
+- 錄影時每段都核對 expect，不符就失敗、不產生影片
+- 輸出 `teaching/video/out/BACalc_使用說明.mp4`（燒入字幕，不進 git）與 `BACalc_使用說明.srt`（外掛字幕）
+- 需要上一層資料夾的 `node_modules/playwright`（含 Chromium）、`imageio_ffmpeg`、`pywin32`；`--skip-record` 沿用既有錄影
+
 ## 文件
 
 - [變更紀錄 CHANGELOG](docs/CHANGELOG.md)

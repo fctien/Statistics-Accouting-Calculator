@@ -5,3 +5,9 @@ node_modules/
 web/py/
 *.zip
 teaching/out/*.pdf
+# 使用說明影片：大型二進位與中間檔不進 git（腳本與 srt 進 git）
+teaching/video/build/
+teaching/video/out/*.mp4
+teaching/video/out/frames/
+*.webm
+*.wav
