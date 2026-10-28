@@ -15,7 +15,7 @@ Python 計算引擎透過 MicroPython（WebAssembly，在 Web Worker 中）於�
 - 算式用自寫遞迴下降剖析器（recursive descent parser），不使用 `eval`
 - 金額以「分」整數計算，日期用序數日（ordinal day），不依賴 decimal、datetime
 
-## 功能（三大頁面，v0.2.0）
+## 功能（三大頁面，v0.2.1）
 
 頂端（手機為底部）三個頁籤：工程 ENG｜統計 STAT｜會計 ACCT，另有共用的設定。網址格式 `#<頁>/<項目>`，例：`#acct/tvm`；舊網址自動導向。
 
@@ -30,7 +30,7 @@ Python 計算引擎透過 MicroPython（WebAssembly，在 Web Worker 中）於�
 | | 信賴區間與檢定 INFER | z／t／比例信賴區間、單樣本／兩樣本／成對 t 檢定、卡方適合度與獨立性 |
 | 會計 ACCT | TVM、AMORT、CF、ICONV、BOND、DEPR | 貨幣時間價值、攤還、現金流 NPV／IRR、利率換算、債券、折舊 |
 | | PROFIT、BRKEVN、Δ%、TAX、DATE | 毛利與加成、損益兩平、百分比變動、稅額、日期 |
-| 設定 FORMAT | | 小數位數、千分位、日期格式、運算順序、深色模式 |
+| 設定 FORMAT | | 小數位數、千分位、日期格式、運算順序 AOS／Chain、角度 DEG／RAD、深色模式 |
 
 另有情境儲存、JSON 匯出入、選用的 Google Drive 同步。
 
@@ -39,8 +39,8 @@ Python 計算引擎透過 MicroPython（WebAssembly，在 Web Worker 中）於�
 先在手機瀏覽器開啟上面的線上網址，**第一次需連網**，等畫面顯示 Python 就緒後即可離線使用。
 
 - **Android（Chrome）**：右上角選單 ⋮ → 「安裝應用程式」或「加到主畫面」
-- **iPhone／iPad（Safari）**：下方分享鈕 → 「加入主畫面」（必須用 Safari，其他瀏覽器不行）
-- **離線**：安裝並載入一次後，開飛航模式也能操作
+- **iPhone／iPad（Safari）**：下方分享鈕 → 「加入主畫面」（建議用 Safari；其他 iOS 瀏覽器未測試）
+- **離線**：已在電腦版瀏覽器驗證載入一次後斷網仍可計算；手機實機（含飛航模式）尚未驗證，請自行確認
 - **注意**：iOS 在一段時間沒開啟 App 或儲存空間不足時，可能清除本機資料（IndexedDB）。重要資料請定期用「JSON 匯出」備份
 
 ## 本機開發
@@ -116,7 +116,12 @@ python teaching/video/run_video.py
 ```
 
 `build_web` → 旁白合成（`narrate.py`，Windows OneCore 語音 Microsoft Yating，pywin32 SAPI）→ 錄影（`record.mjs`，Playwright，
-1280×720，本機伺服器 port 8765 由程式啟動與關閉）→ 合成（`build_video.py`，imageio_ffmpeg）→ 印出長度／解析度／音軌並抽 5 張影格。
+App 畫面 1280×640）→ 合成（`build_video.py`，imageio_ffmpeg：下方加 80px 字幕帶，輸出 1280×720，字幕不蓋住 UI）
+→ 印出長度／解析度／音軌並抽 5 張影格到 `teaching/video/out/frames/`。
+
+- 本機伺服器（`python -m http.server`，根目錄 `web/`）由程式啟動、結束時一定關閉；port 8765 被占用時不動它，改用系統給的空 port
+- 全程約 10 分鐘以上（錄影本身約 9 分鐘）；`record.mjs` 可用 `--only <段落id,…>` 只重錄部分段落（與既有 `build/record.json` 合併），
+  再以 `--skip-record` 只重做旁白與合成
 
 - 單一來源 `teaching/video/script.py`：每段旁白、操作步驟與預期畫面；`tests/test_video_script.py` 以引擎實算核對每個數值
 - 錄影時每段都核對 expect，不符就失敗、不產生影片

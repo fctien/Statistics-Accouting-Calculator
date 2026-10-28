@@ -4,8 +4,8 @@
 // SHELL_HASH 由 tools/build_web.py 依 APP_SHELL 檔案內容計算：任何殼檔案改變 → sw.js 改變
 // → 瀏覽器安裝新 SW、換新快取（不必每次手動 --bump）。
 // 全部是相對於 sw.js 的網址，部署在 GitHub Pages 子路徑下也正確。
-const CACHE_VERSION = "bacalc-v0.2.0";
-const SHELL_HASH = "7b1f8e6a9541fbc1";
+const CACHE_VERSION = "bacalc-v0.2.1";
+const SHELL_HASH = "ad64ab4241e77b28";
 const CACHE_NAME = `${CACHE_VERSION}-${SHELL_HASH}`;
 const CACHE_PREFIX = "bacalc-"; // 同一 origin（github.io）可能有其他 App 的快取，只清自己的
 

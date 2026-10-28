@@ -27,7 +27,7 @@ import * as unitsView from "./views/units.js";
 import * as baseView from "./views/base.js";
 import * as settingsView from "./views/settings.js";
 
-export const APP_VERSION = "0.2.0";
+export const APP_VERSION = "0.2.1";
 
 const LABEL = { loading: "載入中", ready: "就緒", error: "錯誤" };
 
