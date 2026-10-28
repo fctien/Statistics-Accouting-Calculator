@@ -63,6 +63,10 @@ async function runChecks() {
       if ((a ?? null) !== b || b === null) bad.push(`${id}: MicroPython=${a} CPython=${b}（無數值）`);
       continue;
     }
+    if (typeof a === "string" || typeof b === "string") {  // 字串值（base）：完全相等
+      if (a !== b) bad.push(`${id}: MicroPython=${JSON.stringify(a)} CPython=${JSON.stringify(b)}（字串不相等）`);
+      continue;
+    }
     if (!isNum(a) || !isNum(b)) { bad.push(`${id}: 非有限數值 MicroPython=${a} CPython=${b}`); continue; }
     const d = Math.abs(a - b) / Math.max(1, Math.abs(b));
     if (d > maxDiff) { maxDiff = d; maxId = id; }
@@ -125,6 +129,10 @@ function selfTest() {
     const g2 = structuredClone(g); g2[0].expected = g2[0].expected * 1.5 + 1;
     const e2 = structuredClone(e); e2[0].expected.error += "X";
     const g3 = structuredClone(g); g3[0].expected = "abc";
+    // 字串案例：把第一個 base 案例的期望字串弄壞，必須被擋下
+    const g4 = structuredClone(g); const bi = g4.findIndex((c) => typeof c.expected === "string");
+    g4[bi].expected += "0";
+    const r6 = run(g4, e);
     const r1 = run(g2, e), r2 = run(g, e2), r3 = run([], e), r4 = run(g3, e), r5 = run(g, []);
     const res = [
       ["未損壞副本", base.status === 0],
@@ -133,6 +141,7 @@ function selfTest() {
       ["空 golden", r3.status === 1],
       ["golden expected 為字串", r4.status === 1],
       ["空 error 集合", r5.status === 1],
+      ["壞字串 golden", r6.status === 1 && r6.stdout.includes("FAIL golden")],
     ];
     res.forEach(([n, ok]) => console.log(`${ok ? "OK  " : "FAIL"} self-test: ${n}`));
     return res.every(([, ok]) => ok);

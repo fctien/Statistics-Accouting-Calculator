@@ -288,3 +288,90 @@ CASES += [
     _unit("units_def_time_week_day", 2, "week", "day", "=2*7"),
     _unit("units_def_time_yr_day", 1, "yr", "day", "=1*365"),
 ]
+
+
+# ---- base（進位轉換／位元運算；expected 為字串）----
+# Excel 的 DEC2BIN 等不補零，故以 RIGHT(REPT("0",n)&...,n) 補到本 App 的位寬格式；
+# 負數與 64 位元邊界 Excel 的位寬規則不同（負數固定 10 位元／40 位元），
+# 一律用「定義值」案例（id 含 base_def_，公式以字面定義值寫成）。
+def _base_conv(cid, text, frm, width, signed, key, formula):
+    """進位轉換案例：bridge base/convert，輸出鍵 key（BIN／OCT／DEC／HEX）。"""
+    extra = {"string": True}
+    if "base_def_" in cid:
+        extra["defined"] = True
+    return _case(cid, "base", "convert",
+                 {"TEXT": text, "FROM": frm, "WIDTH": width, "SIGNED": signed},
+                 formula, key, tol=0, **extra)
+
+
+def _base_bw(cid, op, a, b, frm, width, signed, key, formula):
+    """位元運算案例：bridge base/bitwise。"""
+    extra = {"string": True}
+    if "base_def_" in cid:
+        extra["defined"] = True
+    return _case(cid, "base", "bitwise",
+                 {"OP": op, "A": a, "B": b, "FROM": frm, "WIDTH": width,
+                  "SIGNED": signed}, formula, key, tol=0, **extra)
+
+
+CASES += [
+    _base_conv("base_dec2bin_10", "10", 10, 8, False, "BIN",
+               '=RIGHT("00000000"&DEC2BIN(10),8)'),
+    _base_conv("base_dec2hex_255", "255", 10, 16, False, "HEX",
+               '=RIGHT("0000"&DEC2HEX(255),4)'),
+    _base_conv("base_dec2oct_64", "64", 10, 16, False, "OCT",
+               '=RIGHT("000000"&DEC2OCT(64),6)'),
+    _base_conv("base_hex2dec_ff", "FF", 16, 16, False, "DEC",
+               '=TEXT(HEX2DEC("FF"),"0")'),
+    _base_conv("base_hex2dec_lower", "1a2b", 16, 16, False, "DEC",
+               '=TEXT(HEX2DEC("1A2B"),"0")'),
+    _base_conv("base_oct2dec_777", "777", 8, 16, False, "DEC",
+               '=TEXT(OCT2DEC("777"),"0")'),
+    _base_conv("base_bin2hex_ff", "11111111", 2, 8, False, "HEX",
+               '=RIGHT("00"&BIN2HEX("11111111"),2)'),
+    _base_conv("base_bin2dec_1011", "1011", 2, 8, False, "DEC",
+               '=TEXT(BIN2DEC("1011"),"0")'),
+    _base_conv("base_def_m1_bin8", "-1", 10, 8, True, "BIN",
+               '="11111111"'),
+    _base_conv("base_def_m1_hex8", "-1", 10, 8, True, "HEX", '="FF"'),
+    _base_conv("base_def_m128_hex8", "-128", 10, 8, True, "HEX", '="80"'),
+    _base_conv("base_def_hex80_dec_signed", "80", 16, 8, True, "DEC",
+               '="-128"'),
+    _base_conv("base_def_m2_bin16", "-2", 10, 16, True, "BIN",
+               '="1111111111111110"'),
+    _base_conv("base_def_i63max_hex", str(2 ** 63 - 1), 10, 64, True, "HEX",
+               '="7FFFFFFFFFFFFFFF"'),
+    _base_conv("base_def_u64max_dec", "FFFFFFFFFFFFFFFF", 16, 64, False,
+               "DEC", '="18446744073709551615"'),
+    _base_conv("base_def_i64min_dec", "8000000000000000", 16, 64, True,
+               "DEC", '="-9223372036854775808"'),
+    _base_conv("base_def_i64min_oct", "-9223372036854775808", 10, 64, True,
+               "OCT", '="1000000000000000000000"'),
+    _base_bw("base_and_12_10", "AND", "12", "10", 10, 8, False, "DEC",
+             '=TEXT(BITAND(12,10),"0")'),
+    _base_bw("base_or_12_10", "OR", "12", "10", 10, 8, False, "DEC",
+             '=TEXT(BITOR(12,10),"0")'),
+    _base_bw("base_xor_12_10", "XOR", "12", "10", 10, 8, False, "DEC",
+             '=TEXT(BITXOR(12,10),"0")'),
+    _base_bw("base_xor_hex", "XOR", "F0F0", "0FF0", 16, 16, False, "HEX",
+             '=RIGHT("0000"&DEC2HEX(BITXOR(HEX2DEC("F0F0"),HEX2DEC("0FF0"))),4)'),
+    _base_bw("base_shl_1_4", "SHL", "1", "4", 10, 8, False, "DEC",
+             '=TEXT(BITLSHIFT(1,4),"0")'),
+    _base_bw("base_shr_256_4", "SHR", "256", "4", 10, 16, False, "DEC",
+             '=TEXT(BITRSHIFT(256,4),"0")'),
+    _base_bw("base_def_shl_masked", "SHL", "129", "1", 10, 8, False, "DEC",
+             '=TEXT(MOD(129*2,256),"0")'),
+    _base_bw("base_def_not_u8", "NOT", "12", None, 10, 8, False, "DEC",
+             '=TEXT(255-12,"0")'),
+    _base_bw("base_def_not_s8", "NOT", "12", None, 10, 8, True, "DEC",
+             '=TEXT(-12-1,"0")'),
+    _base_bw("base_def_sar_m16_2", "SAR", "-16", "2", 10, 8, True, "DEC",
+             '=TEXT(-16/4,"0")'),
+    _base_bw("base_def_shr_logical_m16", "SHR", "-16", "2", 10, 8, True,
+             "DEC", '=TEXT(INT(240/4),"0")'),
+    _base_bw("base_def_shl_1_63_u64", "SHL", "1", "63", 10, 64, False, "HEX",
+             '="8000000000000000"'),
+    _base_bw("base_def_and_64", "AND", "FFFFFFFFFFFFFFFF",
+             "0F0F0F0F0F0F0F0F", 16, 64, False, "HEX",
+             '="0F0F0F0F0F0F0F0F"'),
+]

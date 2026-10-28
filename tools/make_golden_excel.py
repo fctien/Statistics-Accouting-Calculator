@@ -17,10 +17,15 @@ from golden.cases import CASES  # noqa: E402
 OUT = os.path.join(ROOT, "tests", "golden", "excel.json")
 
 
-def _evaluate(xl, formula):
-    """以 Application.Evaluate 求值（可處理陣列常數）；錯誤值視為失敗。"""
+def _evaluate(xl, formula, string=False):
+    """以 Application.Evaluate 求值（可處理陣列常數）；錯誤值視為失敗。
+    string=True 時結果必須是字串（base 案例），否則必須是數值。"""
     v = xl.Evaluate(formula.lstrip("="))
-    if isinstance(v, (int, float)):
+    if string:
+        if isinstance(v, str):
+            return v
+        raise RuntimeError("Excel 回傳非字串 %r（公式 %s）" % (v, formula))
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
         return float(v)
     raise RuntimeError("Excel 回傳非數值 %r（公式 %s）" % (v, formula))
 
@@ -38,7 +43,8 @@ def build(xl):
         out.append({
             "id": case["id"], "sheet": case["sheet"], "call": call,
             "expect_key": case["expect_key"],
-            "expected": _evaluate(xl, formula),
+            "expected": _evaluate(xl, formula,
+                                  case["excel"].get("string", False)),
             "source": ("定義值：" if case["excel"].get("defined")
                        else "Excel 16: ") + formula,
             "tol": case["tol"],

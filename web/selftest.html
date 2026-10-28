@@ -85,6 +85,10 @@
         const got = r && r.ok ? (r.values || {})[c.expect_key] : undefined;
         let diff = null, pass = false, why = "";
         if (!r || !r.ok) why = "引擎回報失敗：" + (r && r.error);
+        else if (typeof c.expected === "string") {  // 字串案例（base）：完全相等
+          pass = got === c.expected;
+          if (!pass) why = "字串不相等：" + JSON.stringify(got);
+        }
         else if (!isNum(got)) why = "非有限數值：" + JSON.stringify(got);
         else if (!isNum(c.expected)) why = "期望值不是有限數值";
         else {

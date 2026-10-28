@@ -88,6 +88,20 @@ CASES = [
     ("units_missing_to", None, _req("units", "convert", {
         "VALUE": 1, "FROM": "m"})),
     ("units_list_shape", None, _req("units", "list", {})),  # 成功案例：結構比對
+    ("base_unsigned_256_w8", None, _req("base", "convert", {"TEXT": "256", "FROM": 10, "WIDTH": 8, "SIGNED": False})),
+    ("base_signed_128_w8", None, _req("base", "convert", {"TEXT": "128", "FROM": 10, "WIDTH": 8, "SIGNED": True})),
+    ("base_signed_m129_w8", None, _req("base", "convert", {"TEXT": "-129", "FROM": 10, "WIDTH": 8, "SIGNED": True})),
+    ("base_hex_pattern_too_wide", None, _req("base", "convert", {"TEXT": "1FF", "FROM": 16, "WIDTH": 8, "SIGNED": False})),
+    ("base_non_integer", None, _req("base", "convert", {"TEXT": "1.5", "FROM": 10, "WIDTH": 16, "SIGNED": False})),
+    ("base_illegal_char_position", None, _req("base", "convert", {"TEXT": "12G4", "FROM": 16, "WIDTH": 16, "SIGNED": False})),
+    ("base_prefix_mismatch", None, _req("base", "convert", {"TEXT": "0xFF", "FROM": 10, "WIDTH": 16, "SIGNED": False})),
+    ("base_bad_width", None, _req("base", "convert", {"TEXT": "1", "FROM": 10, "WIDTH": 12, "SIGNED": False})),
+    ("base_shift_out_of_range", None, _req("base", "bitwise", {"OP": "SHL", "A": "1", "B": "9", "FROM": 10, "WIDTH": 8, "SIGNED": False})),
+    ("base_sar_unsigned", None, _req("base", "bitwise", {"OP": "SAR", "A": "240", "B": "2", "FROM": 10, "WIDTH": 8, "SIGNED": False})),
+    ("base_unknown_op", None, _req("base", "bitwise", {"OP": "NAND", "A": "1", "B": "1", "FROM": 10, "WIDTH": 8, "SIGNED": False})),
+    ("base_missing_b", None, _req("base", "bitwise", {"OP": "AND", "A": "1", "B": None, "FROM": 10, "WIDTH": 8, "SIGNED": False})),
+    ("base_and_ok_shape", None, _req("base", "bitwise", {"OP": "AND", "A": "F0", "B": "3C", "FROM": 16, "WIDTH": 8, "SIGNED": False})),
+    ("base_convert_ok_64", None, _req("base", "convert", {"TEXT": "8000000000000000", "FROM": 16, "WIDTH": 64, "SIGNED": True})),
     ("settings_bad_decimals", None, _req("tvm", "solve", _TVM, {"decimals": 12})),
 ]
 

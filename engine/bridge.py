@@ -37,6 +37,10 @@ settings（皆可省略）：
                            函式 sin cos tan asin acos atan log cbrt，常數 pi（或 π）、e
     units / convert        VALUE, FROM, TO（單位 id，如 km、degC、psi；跨類別報錯）
     units / list           （無輸入）回傳 categories（含各類別的單位 id、中英文名）
+    base / convert         TEXT(字串), FROM(2|8|10|16), WIDTH(8|16|32|64), SIGNED(bool)
+                           回傳 BIN、OCT、DEC、HEX 四個字串；display 即字串本身（無千分位）
+    base / bitwise         OP(AND|OR|XOR|NOT|SHL|SHR|SAR), A, B（皆為 FROM 進位的字串；
+                           NOT 不需 B；移位的 B 為位移量 0..WIDTH）, FROM, WIDTH, SIGNED
 
 留一格空白規則（leave-one-blank）：
     tvm、date、breakeven、pct_change：可求解欄位中恰有一格 null 才求解，否則報錯。
@@ -50,7 +54,7 @@ settings（皆可省略）：
 """
 import json
 
-from engine import (amort, bond, business, calc, cashflow, dates, depr,
+from engine import (amort, base, bond, business, calc, cashflow, dates, depr,
                     iconv, stats, tvm, units)
 from engine.fmt import format_number
 from engine.result import _all_finite, err, is_finite
@@ -362,6 +366,47 @@ def _r_units_list(inp, st):
     return units.list_units()
 
 
+def _text(inp, key, required=True):
+    """取字串欄位（進位文字）；空字串視為空白。"""
+    v = inp.get(key)
+    if v is None or v == "":
+        if required:
+            raise _InputError("請輸入 %s" % key, key)
+        return None
+    if not isinstance(v, str):
+        raise _InputError("%s 必須是文字" % key, key)
+    return v
+
+
+def _base_params(inp):
+    """base 路由共用：FROM、WIDTH、SIGNED。"""
+    return (_int(inp, "FROM", required=True), _int(inp, "WIDTH", required=True),
+            _bool(inp, "SIGNED"))
+
+
+def _r_base_convert(inp, st):
+    text = _text(inp, "TEXT")
+    frm, width, signed = _base_params(inp)
+    return base.convert_base(text, frm, width, signed)
+
+
+def _parse_operand(inp, key, frm, width, signed):
+    """把 A／B 字串依 FROM 解析為整數；錯誤標上欄位名。"""
+    r = base.parse_int(_text(inp, key), frm, width, signed)
+    if not r["ok"]:
+        raise _InputError("%s：%s" % (key, r["error"]),
+                          key if r["field"] in (None, "TEXT") else r["field"])
+    return r["values"]["value"]
+
+
+def _r_base_bitwise(inp, st):
+    op = _str(inp, "OP", required=True)
+    frm, width, signed = _base_params(inp)
+    a = _parse_operand(inp, "A", frm, width, signed)
+    b = 0 if op == "NOT" else _parse_operand(inp, "B", frm, width, signed)
+    return base.bitwise(op, a, b, width, signed)
+
+
 ROUTES = {
     ("tvm", "solve"): _r_tvm,
     ("amort", "range"): _r_amort_range,
@@ -389,7 +434,12 @@ ROUTES = {
     ("calc", "eval"): _r_calc,
     ("units", "convert"): _r_units_convert,
     ("units", "list"): _r_units_list,
+    ("base", "convert"): _r_base_convert,
+    ("base", "bitwise"): _r_base_bitwise,
 }
+
+# 值為字串、display 直接等於字串本身的路由（不經 format_number 加千分位）
+_STRING_DISPLAY = (("base", "convert"), ("base", "bitwise"))
 
 
 # ---------------------------------------------------------------- 設定與顯示
@@ -466,7 +516,10 @@ def _handle(request_json):
         return err(e.message, e.field)
     if result.get("ok"):
         result = dict(result)
-        result["display"] = _display(result.get("values") or {}, st)
+        if (sheet, action) in _STRING_DISPLAY:
+            result["display"] = dict(result["values"])
+        else:
+            result["display"] = _display(result.get("values") or {}, st)
     return result
 
 

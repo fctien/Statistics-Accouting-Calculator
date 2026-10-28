@@ -1119,6 +1119,304 @@
  },
  {
   "expected": {
+   "error": "數值超出 8 位無號範圍（0～255）",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_unsigned_256_w8",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 10,
+    "SIGNED": false,
+    "TEXT": "256",
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "數值超出 8 位有號範圍（-128～127）",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_signed_128_w8",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 10,
+    "SIGNED": true,
+    "TEXT": "128",
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "數值超出 8 位有號範圍（-128～127）",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_signed_m129_w8",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 10,
+    "SIGNED": true,
+    "TEXT": "-129",
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "數值超出 8 位範圍（位元型樣最大 FF）",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_hex_pattern_too_wide",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 16,
+    "SIGNED": false,
+    "TEXT": "1FF",
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "第 2 個字元 '.' 不合法：只接受整數",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_non_integer",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 10,
+    "SIGNED": false,
+    "TEXT": "1.5",
+    "WIDTH": 16
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "第 3 個字元 'G' 不是 16 進位的合法數字",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_illegal_char_position",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 16,
+    "SIGNED": false,
+    "TEXT": "12G4",
+    "WIDTH": 16
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "第 2 個字元 'x' 不是 10 進位的合法數字",
+   "field": "TEXT",
+   "ok": false
+  },
+  "id": "base_prefix_mismatch",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 10,
+    "SIGNED": false,
+    "TEXT": "0xFF",
+    "WIDTH": 16
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "位寬必須是 8、16、32 或 64",
+   "field": "WIDTH",
+   "ok": false
+  },
+  "id": "base_bad_width",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 10,
+    "SIGNED": false,
+    "TEXT": "1",
+    "WIDTH": 12
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "位移量必須在 0～8",
+   "field": "B",
+   "ok": false
+  },
+  "id": "base_shift_out_of_range",
+  "request": {
+   "action": "bitwise",
+   "inputs": {
+    "A": "1",
+    "B": "9",
+    "FROM": 10,
+    "OP": "SHL",
+    "SIGNED": false,
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "SAR（算術右移）只適用於有號數",
+   "field": "OP",
+   "ok": false
+  },
+  "id": "base_sar_unsigned",
+  "request": {
+   "action": "bitwise",
+   "inputs": {
+    "A": "240",
+    "B": "2",
+    "FROM": 10,
+    "OP": "SAR",
+    "SIGNED": false,
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "運算必須是 AND、OR、XOR、NOT、SHL、SHR、SAR",
+   "field": "OP",
+   "ok": false
+  },
+  "id": "base_unknown_op",
+  "request": {
+   "action": "bitwise",
+   "inputs": {
+    "A": "1",
+    "B": "1",
+    "FROM": 10,
+    "OP": "NAND",
+    "SIGNED": false,
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "error": "請輸入 B",
+   "field": "B",
+   "ok": false
+  },
+  "id": "base_missing_b",
+  "request": {
+   "action": "bitwise",
+   "inputs": {
+    "A": "1",
+    "B": null,
+    "FROM": 10,
+    "OP": "AND",
+    "SIGNED": false,
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "display": {
+    "BIN": "00110000",
+    "DEC": "48",
+    "HEX": "30",
+    "OCT": "060"
+   },
+   "ok": true,
+   "values": {
+    "BIN": "00110000",
+    "DEC": "48",
+    "HEX": "30",
+    "OCT": "060"
+   },
+   "warnings": []
+  },
+  "id": "base_and_ok_shape",
+  "request": {
+   "action": "bitwise",
+   "inputs": {
+    "A": "F0",
+    "B": "3C",
+    "FROM": 16,
+    "OP": "AND",
+    "SIGNED": false,
+    "WIDTH": 8
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
+   "display": {
+    "BIN": "1000000000000000000000000000000000000000000000000000000000000000",
+    "DEC": "-9223372036854775808",
+    "HEX": "8000000000000000",
+    "OCT": "1000000000000000000000"
+   },
+   "ok": true,
+   "values": {
+    "BIN": "1000000000000000000000000000000000000000000000000000000000000000",
+    "DEC": "-9223372036854775808",
+    "HEX": "8000000000000000",
+    "OCT": "1000000000000000000000"
+   },
+   "warnings": []
+  },
+  "id": "base_convert_ok_64",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": 16,
+    "SIGNED": true,
+    "TEXT": "8000000000000000",
+    "WIDTH": 64
+   },
+   "settings": {},
+   "sheet": "base"
+  }
+ },
+ {
+  "expected": {
    "error": "decimals 必須是 0～9 的整數或 null",
    "field": "decimals",
    "ok": false

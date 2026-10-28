@@ -66,8 +66,10 @@ if (BROKEN) {
     const r = resps[i];
     const got = r.ok ? (r.values || {})[c.expect_key] : undefined;
     const tol = isNum(c.tol) ? c.tol : 1e-9;
-    const ok = r.ok && isNum(got) && isNum(c.expected) &&
-      Math.abs(got - c.expected) / Math.max(1, Math.abs(c.expected)) <= tol;
+    const ok = typeof c.expected === "string"
+      ? r.ok && got === c.expected  // 字串案例（base）：完全相等
+      : r.ok && isNum(got) && isNum(c.expected) &&
+        Math.abs(got - c.expected) / Math.max(1, Math.abs(c.expected)) <= tol;
     if (!ok) fails.push(`golden ${c.id}: ${JSON.stringify(r)}`);
   });
   for (const c of errors) {

@@ -30,7 +30,7 @@ def _value(case, call_fn):
 
 
 def run(cases, call_fn):
-    """逐案比對，回傳失敗訊息清單（空 list 表示全部通過）。"""
+    """逐案比對（expected 為字串時完全相等，否則數值相對誤差），回傳失敗訊息清單（空 list 表示全部通過）。"""
     fails = []
     for case in cases:
         got, msg = _value(case, call_fn)
@@ -39,6 +39,11 @@ def run(cases, call_fn):
             continue
         exp = case["expected"]
         tol = case.get("tol", 1e-9)
+        if isinstance(exp, str):  # 字串案例：完全相等（不容許型別轉換）
+            if not isinstance(got, str) or got != exp:
+                fails.append("%s: %s 期望 %r 實得 %r" % (
+                    case["id"], case["expect_key"], exp, got))
+            continue
         if not isinstance(got, (int, float)) or not rel_close(got, exp, tol):
             fails.append("%s: %s 期望 %r 實得 %r" % (
                 case["id"], case["expect_key"], exp, got))

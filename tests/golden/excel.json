@@ -2444,5 +2444,601 @@
   "expected": 365.0,
   "source": "定義值：=1*365",
   "tol": 1e-09
+ },
+ {
+  "id": "base_dec2bin_10",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "10",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "BIN",
+  "expected": "00001010",
+  "source": "Excel 16: =RIGHT(\"00000000\"&DEC2BIN(10),8)",
+  "tol": 0
+ },
+ {
+  "id": "base_dec2hex_255",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "255",
+    "FROM": 10,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "00FF",
+  "source": "Excel 16: =RIGHT(\"0000\"&DEC2HEX(255),4)",
+  "tol": 0
+ },
+ {
+  "id": "base_dec2oct_64",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "64",
+    "FROM": 10,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "OCT",
+  "expected": "000100",
+  "source": "Excel 16: =RIGHT(\"000000\"&DEC2OCT(64),6)",
+  "tol": 0
+ },
+ {
+  "id": "base_hex2dec_ff",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "FF",
+    "FROM": 16,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "255",
+  "source": "Excel 16: =TEXT(HEX2DEC(\"FF\"),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_hex2dec_lower",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "1a2b",
+    "FROM": 16,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "6699",
+  "source": "Excel 16: =TEXT(HEX2DEC(\"1A2B\"),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_oct2dec_777",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "777",
+    "FROM": 8,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "511",
+  "source": "Excel 16: =TEXT(OCT2DEC(\"777\"),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_bin2hex_ff",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "11111111",
+    "FROM": 2,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "FF",
+  "source": "Excel 16: =RIGHT(\"00\"&BIN2HEX(\"11111111\"),2)",
+  "tol": 0
+ },
+ {
+  "id": "base_bin2dec_1011",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "1011",
+    "FROM": 2,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "11",
+  "source": "Excel 16: =TEXT(BIN2DEC(\"1011\"),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_m1_bin8",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "-1",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "BIN",
+  "expected": "11111111",
+  "source": "定義值：=\"11111111\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_m1_hex8",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "-1",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "FF",
+  "source": "定義值：=\"FF\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_m128_hex8",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "-128",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "80",
+  "source": "定義值：=\"80\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_hex80_dec_signed",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "80",
+    "FROM": 16,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "-128",
+  "source": "定義值：=\"-128\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_m2_bin16",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "-2",
+    "FROM": 10,
+    "WIDTH": 16,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "BIN",
+  "expected": "1111111111111110",
+  "source": "定義值：=\"1111111111111110\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_i63max_hex",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "9223372036854775807",
+    "FROM": 10,
+    "WIDTH": 64,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "7FFFFFFFFFFFFFFF",
+  "source": "定義值：=\"7FFFFFFFFFFFFFFF\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_u64max_dec",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "FFFFFFFFFFFFFFFF",
+    "FROM": 16,
+    "WIDTH": 64,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "18446744073709551615",
+  "source": "定義值：=\"18446744073709551615\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_i64min_dec",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "8000000000000000",
+    "FROM": 16,
+    "WIDTH": 64,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "-9223372036854775808",
+  "source": "定義值：=\"-9223372036854775808\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_i64min_oct",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "convert",
+   "inputs": {
+    "TEXT": "-9223372036854775808",
+    "FROM": 10,
+    "WIDTH": 64,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "OCT",
+  "expected": "1000000000000000000000",
+  "source": "定義值：=\"1000000000000000000000\"",
+  "tol": 0
+ },
+ {
+  "id": "base_and_12_10",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "AND",
+    "A": "12",
+    "B": "10",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "8",
+  "source": "Excel 16: =TEXT(BITAND(12,10),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_or_12_10",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "OR",
+    "A": "12",
+    "B": "10",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "14",
+  "source": "Excel 16: =TEXT(BITOR(12,10),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_xor_12_10",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "XOR",
+    "A": "12",
+    "B": "10",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "6",
+  "source": "Excel 16: =TEXT(BITXOR(12,10),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_xor_hex",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "XOR",
+    "A": "F0F0",
+    "B": "0FF0",
+    "FROM": 16,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "FF00",
+  "source": "Excel 16: =RIGHT(\"0000\"&DEC2HEX(BITXOR(HEX2DEC(\"F0F0\"),HEX2DEC(\"0FF0\"))),4)",
+  "tol": 0
+ },
+ {
+  "id": "base_shl_1_4",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "SHL",
+    "A": "1",
+    "B": "4",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "16",
+  "source": "Excel 16: =TEXT(BITLSHIFT(1,4),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_shr_256_4",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "SHR",
+    "A": "256",
+    "B": "4",
+    "FROM": 10,
+    "WIDTH": 16,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "16",
+  "source": "Excel 16: =TEXT(BITRSHIFT(256,4),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_shl_masked",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "SHL",
+    "A": "129",
+    "B": "1",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "2",
+  "source": "定義值：=TEXT(MOD(129*2,256),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_not_u8",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "NOT",
+    "A": "12",
+    "B": null,
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "243",
+  "source": "定義值：=TEXT(255-12,\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_not_s8",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "NOT",
+    "A": "12",
+    "B": null,
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "-13",
+  "source": "定義值：=TEXT(-12-1,\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_sar_m16_2",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "SAR",
+    "A": "-16",
+    "B": "2",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "-4",
+  "source": "定義值：=TEXT(-16/4,\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_shr_logical_m16",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "SHR",
+    "A": "-16",
+    "B": "2",
+    "FROM": 10,
+    "WIDTH": 8,
+    "SIGNED": true
+   },
+   "settings": {}
+  },
+  "expect_key": "DEC",
+  "expected": "60",
+  "source": "定義值：=TEXT(INT(240/4),\"0\")",
+  "tol": 0
+ },
+ {
+  "id": "base_def_shl_1_63_u64",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "SHL",
+    "A": "1",
+    "B": "63",
+    "FROM": 10,
+    "WIDTH": 64,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "8000000000000000",
+  "source": "定義值：=\"8000000000000000\"",
+  "tol": 0
+ },
+ {
+  "id": "base_def_and_64",
+  "sheet": "base",
+  "call": {
+   "sheet": "base",
+   "action": "bitwise",
+   "inputs": {
+    "OP": "AND",
+    "A": "FFFFFFFFFFFFFFFF",
+    "B": "0F0F0F0F0F0F0F0F",
+    "FROM": 16,
+    "WIDTH": 64,
+    "SIGNED": false
+   },
+   "settings": {}
+  },
+  "expect_key": "HEX",
+  "expected": "0F0F0F0F0F0F0F0F",
+  "source": "定義值：=\"0F0F0F0F0F0F0F0F\"",
+  "tol": 0
  }
 ]

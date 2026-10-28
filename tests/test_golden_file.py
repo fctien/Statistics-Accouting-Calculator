@@ -20,7 +20,8 @@ def test_every_case_has_source_and_value():
     assert len(data) >= 30
     for c in data:
         assert c["source"].startswith(("Excel 16:", "TI Guidebook", "定義值："))
-        assert isinstance(c["expected"], float)
+        # base 工作表的 expected 為字串，其餘為數值
+        assert isinstance(c["expected"], str if c["sheet"] == "base" else float)
 
 
 def test_each_sheet_has_three_cases():
@@ -61,3 +62,34 @@ def test_runner_passes_and_fails():
     assert runner.dump([c], _echo(c)) == {c["id"]: c["expected"]}
     assert runner.dump([c], lambda r: {"ok": False}) == {c["id"]: None}
     assert by_id
+
+
+def test_runner_string_cases_exact_match():
+    """expected 為字串：完全相等才通過；數值比對行為不變。"""
+    case = {"id": "s", "expect_key": "HEX", "expected": "00FF", "tol": 0,
+            "call": {}}
+
+    def ret(v):
+        return lambda req: {"ok": True, "values": {"HEX": v}}
+    assert runner.run([case], ret("00FF")) == []
+    assert len(runner.run([case], ret("00ff"))) == 1      # 大小寫須相同
+    assert len(runner.run([case], ret("FF"))) == 1        # 不補零差異
+    assert len(runner.run([case], ret(255))) == 1         # 數值不等於字串
+    assert len(runner.run([case], ret(None))) == 1
+    assert len(runner.run([case], lambda r: {"ok": False, "error": "x"})) == 1
+
+
+def test_runner_numeric_behaviour_unchanged():
+    num = {"id": "n", "expect_key": "v", "expected": 100.0, "tol": 1e-9,
+           "call": {}}
+
+    def ret(v):
+        return lambda req: {"ok": True, "values": {"v": v}}
+    assert runner.run([num], ret(100.0)) == []
+    assert runner.run([num], ret(100.0 + 5e-8)) == []     # 相對 5e-10 內
+    assert len(runner.run([num], ret(100.0 + 5e-6))) == 1
+    assert len(runner.run([num], ret("100"))) == 1        # 字串不等於數值
+    assert len(runner.run([num], ret(None))) == 1
+    num0 = dict(num, expected=0.0)
+    assert runner.run([num0], ret(5e-10)) == []           # 底數 max(1, |b|)
+    assert len(runner.run([num0], ret(5e-8))) == 1
