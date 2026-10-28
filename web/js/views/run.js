@@ -4,7 +4,7 @@
 // - watchStale：使用者改了任何輸入，就清掉輸出欄位與結果列、把已求出的欄位標為過期；
 //   下一次成功計算才解除。專屬畫面（tvm.js、amort.js …）都經由這裡，不各自重寫。
 import { callEngine } from "../py-client.js";
-import { SHEETS, staleBlock, staleAfterSuccess } from "../sheets.js";
+import { SHEETS, staleBlock, staleAfterSuccess, staleAfterEdit, sendFields } from "../sheets.js";
 import * as settingsStore from "../settings.js";
 import { createGuard } from "../generation.js";
 import { readInputs, showErrors, showResult, setBusy, showFormMessage, getOnAction } from "./form.js";
@@ -24,12 +24,12 @@ function staleIds(form) {
 
 /**
  * 解除過期標記（成功計算後呼叫）。onlyIds 指定時只解除這些欄位（這次回應求出／填入的），
- * 其餘過期欄位保持過期（例：STAT 預測成功不代表 a、b 已依新模型重算）；省略時全部解除。
+ * sentIds 為這次動作送出的欄位（也解除）；其餘過期欄位保持過期（例：STAT 預測成功不代表 a、b 已依新模型重算）；省略時全部解除。
  */
-export function clearStale(sheetId, onlyIds = null) {
+export function clearStale(sheetId, onlyIds = null, sentIds = []) {
   const form = formOf(sheetId);
   if (!form) return;
-  const keep = new Set(onlyIds ? staleAfterSuccess(staleIds(form), onlyIds) : []);
+  const keep = new Set(onlyIds ? staleAfterSuccess(staleIds(form), onlyIds, sentIds) : []);
   for (const wrap of form.querySelectorAll(".field.stale")) {
     if (keep.has(wrap.dataset.field)) continue;
     wrap.classList.remove("stale");
@@ -54,6 +54,13 @@ export function markStale(sheetId, exceptWrap = null) {
     } else if (wrap.classList.contains("solved") && wrap !== exceptWrap) {
       wrap.classList.add("stale");
       ctrl.title = STALE_TITLE;
+    }
+  }
+  if (exceptWrap) { // 使用者自己編輯的欄位：值是使用者的，移除過期標記
+    const keep = new Set(staleAfterEdit(staleIds(form), exceptWrap.dataset.field));
+    if (!keep.has(exceptWrap.dataset.field)) {
+      exceptWrap.classList.remove("stale");
+      exceptWrap.querySelector(".control")?.removeAttribute("title");
     }
   }
   form.querySelector(".form-status")?.replaceChildren();
@@ -151,7 +158,7 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
   const toShow = response.ok !== true && mapError ? (mapError(response) || response) : response;
   const shown = showResult(toShow, sheetId, actionId);
   if (response.ok === true) {
-    clearStale(sheetId, shown.filled); // 只解除這次求出／填入的欄位
+    clearStale(sheetId, shown.filled, sendFields(sheetId, actionId).map((f) => f.id)); // 解除送出∪填入的欄位
     lastOk.set(sheetId, { form: formOf(sheetId), actionId });
   }
   if (response.ok !== true) {

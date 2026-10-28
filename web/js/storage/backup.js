@@ -5,6 +5,7 @@
 import { fromJSON as memFromJSON } from "../memstore.js";
 import { createTape, MAX_ENTRIES } from "../tape.js";
 import { sanitize as sanitizeSettings } from "../settings.js";
+import { LOCAL_ONLY_KEYS } from "./gdrive.js";
 import { SHEETS, fieldMap } from "../sheets.js";
 import { SEP_KINDS, canonicalText, convertSepText, sameUnderBothSeps } from "../input.js";
 
@@ -43,12 +44,14 @@ export function emptyData() {
 
 /** 組出匯出物件。 */
 export function makeExport(data, now = Date.now()) {
+  const settings = { ...(data.settings || {}) };
+  for (const k of LOCAL_ONLY_KEYS) delete settings[k]; // 只屬於本機的 gdrive 鍵不進檔案
   return {
     app: APP_NAME,
     schema: SCHEMA,
     exported_at: isoTaipei(now),
     data: {
-      settings: data.settings,
+      settings,
       scenarios: data.scenarios,
       tape: data.tape,
       memory: data.memory,
@@ -210,6 +213,11 @@ export function importBackup(obj, local, mode) {
   const incoming = normalizeData(obj.data);
   const base = normalizeData({ ...emptyData(), ...local });
   const data = mergeData(base, incoming, mode);
+  // 合併與取代都保留本機的 gdrive 鍵（Client ID、上次同步時間／雜湊），不被備份檔覆蓋
+  for (const k of LOCAL_ONLY_KEYS) {
+    if (base.settings && k in base.settings) data.settings[k] = base.settings[k];
+    else delete data.settings[k];
+  }
   const m = incoming.memory;
   const memCells = Object.keys(m).filter((k) => /^M\d$/.test(k) && m[k] !== 0).length;
   return {

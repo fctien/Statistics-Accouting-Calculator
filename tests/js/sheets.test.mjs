@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   SHEETS, SHEET_ORDER, PRIMARY_SHEETS, KINDS, fieldMap, sendFields, fieldForKey,
-  staleBlock, staleAfterSuccess,
+  staleBlock, staleAfterSuccess, staleAfterEdit,
 } from "../../web/js/sheets.js";
 
 const REQUIRED_SHEETS = [
@@ -131,4 +131,30 @@ test("成功計算後只解除這次回應求出／填入欄位的過期標記",
   assert.deepEqual(staleAfterSuccess(["PMT"], ["PMT"]), []);
   assert.deepEqual(staleAfterSuccess(["A"], []), ["A"]);
   assert.deepEqual(staleAfterSuccess([], ["A"]), []);
+});
+
+test("A0：成功計算後清除「送出欄位 ∪ 填入欄位」的過期標記（TVM 6 步驟）", () => {
+  // 步驟 4～5：PMT 曾為過期，使用者手改後（onEdited 已移除標記）；
+  // 即使殘留，PMT 在 solve 的送出欄位中，成功計算後必須解除
+  const sent = sendFields("tvm", "solve").map((f) => f.id);
+  assert.ok(sent.includes("PMT"));
+  assert.deepEqual(staleAfterSuccess(["PMT"], ["FV"], sent), []);
+  assert.deepEqual(staleAfterSuccess(["PMT", "N"], ["FV"], sent), []);
+});
+
+test("A0：STAT 防護不受影響——預測被擋，one_var 不洗白 A、B", () => {
+  // 改 EXP 後 A、B 過期：預測仍被擋
+  assert.ok(staleBlock("stats", "predict", ["A", "B"]));
+  // one_var 只送出 X、F：A、B 不在送出欄位，成功後仍維持過期
+  const sent = sendFields("stats", "one_var").map((f) => f.id);
+  assert.deepEqual(staleAfterSuccess(["A", "B"], ["MEAN"], sent), ["A", "B"]);
+  // two_var 送出 X、Y、model，A、B 由此次填入而解除
+  const sent2 = sendFields("stats", "two_var").map((f) => f.id);
+  assert.deepEqual(staleAfterSuccess(["A", "B"], ["A", "B"], sent2), []);
+});
+
+test("A0：使用者編輯欄位後，該欄位的過期標記移除，其他不動", () => {
+  assert.deepEqual(staleAfterEdit(["PMT", "N"], "PMT"), ["N"]);
+  assert.deepEqual(staleAfterEdit(["A", "B"], "XP"), ["A", "B"], "編輯別的欄位不洗白 A、B");
+  assert.deepEqual(staleAfterEdit([], "PMT"), []);
 });

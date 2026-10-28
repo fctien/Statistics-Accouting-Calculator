@@ -616,7 +616,8 @@ export function setFieldState(sheetId, fieldId, state) {
   forgetSolved(ctrl);
   forgetPending(ctrl);
   clearFieldError(wrap);
-  wrap.classList.remove("solved");
+  wrap.classList.remove("solved", "stale"); // 載入的是使用者的值，不是舊結果
+  ctrl.removeAttribute("title");
   if (f.kind === "bool") {
     ctrl.checked = Boolean(state.checked);
     return;

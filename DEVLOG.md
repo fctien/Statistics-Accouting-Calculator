@@ -1393,3 +1393,30 @@
 **待辦**
 - 使用者：GitHub Pages Source 設為 GitHub Actions；關閉 PowerPoint 後 `python run_all.py` 產 PDF 與學生版；實機核對 BA II Plus 按鍵
 - 修正 clearStale 回歸、檔案匯出入去除 gdrive 本機鍵；部署後手機實測再打 step9
+
+---
+
+## 2026-10-28　Task A0：修 v0.1 殘留問題（過期標記卡住、檔案匯出入夾帶 gdrive 鍵）
+
+**需求**
+- 修正選擇性 clearStale 造成的過期標記（stale）卡住；檔案匯出入不得帶 gdriveClientId／gdriveLastSync／gdriveLastSyncHash
+
+**做法**
+- sheets.js：`staleAfterSuccess(staleIds, filledIds, sentIds)` 改為清除「送出欄位 ∪ 填入欄位」；新增純函式 `staleAfterEdit`
+- run.js：成功後傳入 `sendFields` 的欄位 id；markStale 對使用者編輯的欄位移除 stale；form.js `setFieldState` 載入時移除 stale 與 title
+- STAT 的 `staleBlock` 不動；one_var 只送 X、F，不會洗白 A、B
+- backup.js：makeExport 去掉三個 LOCAL_ONLY_KEYS；importBackup 合併／取代都保留本機三鍵（本機沒有則不帶入）
+
+**產出**
+- 上述 JS 修改與 tests/js/sheets.test.mjs、backup.test.mjs 新測試；web/sw.js 因 build 更新 SHELL_HASH
+
+**驗證**
+- 新測試先 RED（sheets 1 個、backup 2 個失敗）後 GREEN；pytest、node --test、build_web、check_shell、check_portable 通過
+- 瀏覽器（localhost:8765，先解除 SW 註冊並清快取）照 6 步驟重現：步驟 3 手改 PMT 後不再 stale，步驟 4～5 計算後 PMT=700 為一般值，步驟 6 帶入攤還成功跳到 #amort
+
+**問題與修正**
+- 第一版 backup 測試用了不合 sanitize 格式的 Client ID（"LOCAL"）被丟棄，測試誤失敗；改用合法 `*.apps.googleusercontent.com`
+- DOM 層無法在 Node 測，故抽出純函式測試，DOM 行為以瀏覽器實測補足
+
+**待辦**
+- 瀏覽器未另外實測 STAT 改 EXP 後預測被擋（僅以 staleBlock 單元測試覆蓋）

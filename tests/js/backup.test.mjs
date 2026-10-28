@@ -233,3 +233,27 @@ test("normalizeData：丟棄未知工作表、名稱截到 80 字、情境數上
   const many = Array.from({ length: MAX_SCENARIOS + 50 }, (_, i) => mk("s" + i, "tvm"));
   assert.equal(normalizeData({ settings: {}, tape: [], memory: {}, scenarios: many }).scenarios.length, MAX_SCENARIOS);
 });
+
+// ---- Task A0：檔案匯出入不夾帶 gdrive 本機鍵
+test("A0 makeExport：不匯出 gdriveClientId／gdriveLastSync／gdriveLastSyncHash，且不改原物件", () => {
+  const data = { settings: { decimals: 4, gdriveClientId: "c", gdriveLastSync: "t", gdriveLastSyncHash: "ab" }, scenarios: [], tape: [], memory: {} };
+  const out = makeExport(data, 0);
+  assert.deepEqual(out.data.settings, { decimals: 4 });
+  assert.equal(data.settings.gdriveClientId, "c");
+});
+
+test("A0 importBackup：合併與取代都保留本機三個 gdrive 鍵，不被備份檔覆蓋", () => {
+  const local = { ...emptyData(), settings: { decimals: 2, gdriveClientId: "local.apps.googleusercontent.com", gdriveLastSync: "T1", gdriveLastSyncHash: "aa" } };
+  const file = good();
+  file.data = { ...file.data, settings: { decimals: 5, gdriveClientId: "file.apps.googleusercontent.com", gdriveLastSync: "T9", gdriveLastSyncHash: "ff" } };
+  for (const mode of ["merge", "replace"]) {
+    const r = importBackup(file, local, mode);
+    assert.equal(r.data.settings.decimals, 5, mode);
+    assert.equal(r.data.settings.gdriveClientId, "local.apps.googleusercontent.com", mode);
+    assert.equal(r.data.settings.gdriveLastSync, "T1", mode);
+    assert.equal(r.data.settings.gdriveLastSyncHash, "aa", mode);
+  }
+  // 本機沒有這些鍵：備份檔裡的也不可帶進來
+  const r2 = importBackup(file, emptyData(), "replace");
+  for (const k of ["gdriveClientId", "gdriveLastSync", "gdriveLastSyncHash"]) assert.ok(!(k in r2.data.settings), k);
+});

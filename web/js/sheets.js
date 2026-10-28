@@ -480,10 +480,19 @@ export function staleBlock(sheetId, actionId, staleIds) {
   return { message: `${names} 是舊的計算結果，${action.freshHint}`, fields: bad };
 }
 
-/** 成功計算後仍維持過期的欄位：只有這次回應求出／填入的欄位（filledIds）解除過期。 */
-export function staleAfterSuccess(staleIds, filledIds) {
-  const filled = new Set(filledIds || []);
-  return (staleIds || []).filter((id) => !filled.has(id));
+/**
+ * 成功計算後仍維持過期的欄位：只有「這次動作送出的欄位（sentIds）∪ 這次回應求出／填入的欄位
+ * （filledIds）」解除過期。送出的欄位是這次計算實際用到的值；沒送出也沒填入的（例：one_var
+ * 不送 A、B）維持過期，STAT 預測的 staleBlock 才擋得住舊係數。
+ */
+export function staleAfterSuccess(staleIds, filledIds, sentIds = []) {
+  const clear = new Set([...(filledIds || []), ...(sentIds || [])]);
+  return (staleIds || []).filter((id) => !clear.has(id));
+}
+
+/** 使用者編輯某欄位後仍維持過期的欄位：被編輯的欄位是使用者自己的值，不再是舊結果。 */
+export function staleAfterEdit(staleIds, editedId) {
+  return (staleIds || []).filter((id) => id !== editedId);
 }
 
 /** 主要動作（Enter 觸發）。 */
