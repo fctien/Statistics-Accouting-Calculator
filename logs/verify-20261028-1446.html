@@ -1,0 +1,24 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BACalc 一鍵驗證</title><style>:root{--bg:#fff;--fg:#1d2330;--line:#d9dee7;--ok:#0a7a3d;--ng:#b3261e;--code:#f3f5f9}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--line:#2c323c;--ok:#5fd18f;--ng:#ff8a80;--code:#1d2129}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;margin:0;padding:16px;max-width:1200px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
+code,pre{background:var(--code);font-family:Consolas,monospace}pre{margin:0;white-space:pre-wrap;font-size:12px}
+.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}</style></head><body><h1>BACalc 一鍵驗證</h1><p class=ok>總結：PASS（9 項全過）</p><table><tr><th>時間</th><td>2026-10-28 14:46:50 +08:00</td></tr><tr><th>commit</th><td>219930a63468ffee4328109d2d0a1ccfd06898af（短碼 219930a）</td></tr><tr><th>分支</th><td>impl</td></tr><tr><th>git 狀態</th><td>乾淨（執行前 git status --porcelain 為空）</td></tr><tr><th>Python</th><td>3.11.7</td></tr><tr><th>Node</th><td>v22.15.0</td></tr><tr><th>MicroPython 套件</th><td>1.29.0-6</td></tr><tr><th>SHELL_HASH</th><td>de543782fc986179</td></tr><tr><th>模式</th><td>完整</td></tr></table><h2>各項結果</h2><table><tr><th>項目</th><th>指令</th><th>結果</th><th>耗時</th><th>輸出（通過＝末 3 行；失敗＝末 60 行）</th></tr><tr><td>check_portable（engine／golden 可攜性）</td><td><code>python.exe tools/check_portable.py engine golden</code></td><td class=ok>PASS</td><td>0.2 秒</td><td><pre>可攜性檢查通過：engine golden</pre></td></tr><tr><td>pytest（含 golden）</td><td><code>python.exe -m pytest</code></td><td class=ok>PASS</td><td>48.0 秒</td><td><pre>........................................................................ [ 95%]
+..........................................                               [100%]
+978 passed in 46.39s</pre></td></tr><tr><td>build_web --check</td><td><code>python.exe tools/build_web.py --check</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>web/ 建置檔皆為最新</pre></td></tr><tr><td>check_shell（PWA 殼）</td><td><code>python.exe tools/check_shell.py</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>check_shell：通過</pre></td></tr><tr><td>JS 單元測試（node --test）</td><td><code>node.EXE --test C:\Users\User\Desktop\Tien Research\BACalc\tests\js\backup.test.mjs C:\Users\User\Desktop\Tien Research\ … tests/js/*.test.mjs</code></td><td class=ok>PASS</td><td>0.7 秒</td><td><pre># skipped 0
+# todo 0
+# duration_ms 627.7138</pre></td></tr><tr><td>check_worker（Worker 佇列與 golden）</td><td><code>node.EXE tools/check_worker.mjs</code></td><td class=ok>PASS</td><td>2.5 秒</td><td><pre>statuses loading -&gt; ready；佇列：送出時 loading，EFF=12.682503013196978
+golden 355、錯誤路徑 85 案
+PASS</pre></td></tr><tr><td>test:mpy（MicroPython golden）</td><td><code>node.EXE tools/run_mpy_golden.mjs</code></td><td class=ok>PASS</td><td>1.1 秒</td><td><pre>355/355 passed, max diff vs CPython 2.55e-15 (dist_binom_cdf_3_10)
+85/85 error cases identical</pre></td></tr><tr><td>test:mpy --self-test</td><td><code>node.EXE tools/run_mpy_golden.mjs --self-test</code></td><td class=ok>PASS</td><td>6.7 秒</td><td><pre>OK   self-test: 空 error 集合
+OK   self-test: 壞字串 golden
+OK   self-test: 壞 list golden</pre></td></tr><tr><td>mutate（突變測試）</td><td><code>python.exe tools/mutate.py</code></td><td class=ok>PASS</td><td>222.4 秒</td><td><pre>killed  Welch 自由度分母拿掉 Y 組那一項  [engine/infer.py]
+killed  卡方獨立性 df 誤用 r*c-1  [engine/infer.py]
+28/28 mutants killed</pre></td></tr></table><h2>瀏覽器實測（D4，v0.2.0，Chrome，2026-10-28）</h2><ul>
+<li>SW 更新：先以 v0.1.0 建置供應（快取 bacalc-v0.1.0-6c2229e739b07fd0、SW activated），換成 v0.2.0 建置後 SW Update：updatefound → installed → activating → activated；快取只剩 bacalc-v0.2.0-de543782fc986179，舊快取已刪除；重新整理後 APP_VERSION = 0.2.0</li>
+<li>本機測試陷阱：http.server 以檔案修改時間回 304，新 sw.js 修改時間早於舊版時瀏覽器不更新（touch 後即更新），已寫入 e2e/checklist.md</li>
+<li>離線（停掉伺服器、fetch 失敗確認、重新整理）：引擎「就緒」、19 個路由（18 個子頁＋設定）全部開得起來；科學計算機 sin(30) = 0.50；機率分配 常態 cdf(1.96) = 0.9750021049（右尾 0.02499789515、雙尾 0.0499957903）；TVM（N=360、I/Y=6、PV=100000、FV=0、P/Y=C/Y=12）PMT = 599.55（付出）</li>
+<li>導覽：記住各頁子頁（lastSub、頁籤 href 指向上次子頁、點頁籤回到 #acct/depr）；role=tab／aria-selected 數量 0；手機 375px 頁籤列固定在底部、DOM 移到 body 尾端（Tab 順序 25／28，在內容之後）</li>
+<li>新畫面抽驗與 bridge 一致：敘述統計 2 4 4 4 5 5 7 9（平均 5.00、中位數 4.50、Q1 4.00、Q3 5.50、Sx 2.14、σx 2.00、偏態 0.82、峰度 0.94）；z CI [95.10, 104.90]</li>
+<li>截圖：logs/d4-offline-calc-sin30.jpg、d4-offline-tvm-pmt.jpg、d4-offline-dist-cdf.jpg、d4-mobile-375-tabs-bottom.jpg</li>
+<li>限制：app 內建預覽窗無法註冊 Service Worker（脫離原因不明），故 SW／離線改用 Chrome 驗證；Chrome 擴充的視窗縮放不改變 viewport，手機版用預覽窗的 375px 模擬</li></ul></body></html>

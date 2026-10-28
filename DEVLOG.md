@@ -1850,3 +1850,31 @@
 
 **待辦**
 - 沿用 D3 待辦（卡方 expected 不顯示、離線與 SW 更新需在一般瀏覽器重驗）
+
+## 2026-10-28 D4 整合驗證與 v0.2.0
+
+**需求**
+- 升 v0.2.0、驗證離線與 Service Worker 更新、擴充 e2e 檢查表、D1 延後的導覽小項、README／CHANGELOG、完整 verify_all、本機 tag v0.2.0
+
+**做法**
+- `build_web.py --bump 0.2.0`（CACHE_VERSION、APP_VERSION、SHELL_HASH de543782fc986179）
+- nav.js：各頁上次子頁存 localStorage（bacalc.lastSub，try/catch，只接受屬於該頁的有效路由）、頁籤 href 指向它；頁籤拿掉 role=tab／tablist／presentation／aria-selected，只用 aria-current；matchMedia(max-width: 899px) 時把頁籤列移到 body 尾端（鍵盤順序與底部視覺一致），桌面放回頁首
+- e2e/checklist.md 加 A2（統計新畫面 16 項，數值用 bridge 實算）、A3（導覽）、更新 B／C；README 功能表改三大頁；docs/CHANGELOG.md
+- 瀏覽器：舊版（用 git worktree 建置 HEAD）先供應，再換新版驗證 SW 更新；停伺服器驗證離線
+
+**產出**
+- web/js/views/nav.js、sw.js、app.js；e2e/checklist.md；README.md；docs/CHANGELOG.md；logs/d4-*.jpg；logs/verify-20261028-1446.html（完整 verify_all 含 mutate，28/28 killed）
+
+**驗證**
+- pytest、node、check_shell、build_web --check、mpy golden 全過；verify_all 完整 PASS；瀏覽器結果見 verify log
+- 離線 19 路由皆開、sin(30)=0.50、cdf(1.96)=0.9750、PMT=599.55
+
+**問題與修正**
+- 第一次 SW 更新測試沒有觸發：http.server 用修改時間回 304，新 sw.js 修改時間早於舊 worktree 的 sw.js；touch 後更新成功（已寫進檢查表 C）
+- 內建預覽窗無法註冊 SW（fetch script 失敗），改用 Chrome 驗證
+- 檢查表原寫「有新版本提示」，實際沒有該功能（skipWaiting 直接啟用），已改為如實描述
+- 沒有新增 nav 的 node 測試（nav.js 依賴 DOM），以瀏覽器實測代替
+
+**待辦**
+- 手機真機的離線與 PWA 安裝；是否加「有新版本」提示
+- push／部署與 tag 推送由 controller 處理
