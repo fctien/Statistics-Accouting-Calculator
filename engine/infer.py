@@ -14,9 +14,10 @@ p 值一律由 engine/dist.py 的尾端機率直接取得（左尾 value、右�
 不以 1−cdf 計算（極小 p 值才保有相對精度）；臨界值用 dist 的 inv（雙尾 two）。
 檢定的決策：p ≤ α 時拒絕 H0；結論文字「在 α=0.05 下拒絕 H0」或「在 α=0.05 下不拒絕 H0」。
 樣本不足、變異數為 0（t 統計量未定義）、表格列／行總和為 0 等一律回錯誤，絕不回 inf／nan。
-「變異數為 0」的判定：樣本標準差 ≤ ZERO_SD_REL × max|x_i|（ZERO_SD_REL = 64·機器 epsilon）
-時視為 0。例：前後測恰差 1 的一位小數資料，浮點數相減後差值只有 1e-16 級的雜訊，
-若不視為 0 會得到 t≈1e16、p≈1e-48 的錯誤「拒絕 H0」。
+「變異數為 0」的判定：樣本標準差 ≤ ZERO_SD_REL × 尺度（ZERO_SD_REL = 64·機器 epsilon）
+時視為 0。尺度為原始資料的 max|x_i|；成對檢定的差值 d = x − y 其捨入雜訊與 x、y 的
+ulp 同級（例：x≈1e3 時約 1e-13），故尺度取 max(max|x_i|, max|y_i|)，不是 max|d_i|。
+例：前後測恰差 1 的資料，若不視為 0 會得到 t≈1e13～1e16 的錯誤「拒絕 H0」。
 僅用 math 與 engine 內部匯入；無 I/O。
 """
 import math
@@ -135,11 +136,13 @@ def _run(fn):
 
 # ---------------------------------------------------------------- 共用計算
 
-def _mean_var(xs):
+def _mean_var(xs, scale=None):
     """(n, 平均, 樣本變異數)；兩遍法。
 
-    全部相同，或標準差 ≤ ZERO_SD_REL × max|x_i|（只剩浮點捨入雜訊）時變異數視為 0，
+    全部相同，或標準差 ≤ ZERO_SD_REL × 尺度（只剩浮點捨入雜訊）時變異數視為 0，
     由呼叫端回「標準差為 0、t 統計量未定義」錯誤，不產生假的巨大 t 值。
+    尺度＝max(max|x_i|, scale)；xs 是由其他資料相減而來時（成對差值），
+    scale 須傳入原始資料的最大絕對值。
     """
     n = len(xs)
     mean = _fin(sum(xs) / n)
@@ -150,8 +153,10 @@ def _mean_var(xs):
         d = x - mean
         ss += d * d
     var = _fin(ss / (n - 1))
-    scale = max(abs(min(xs)), abs(max(xs)))
-    if math.sqrt(var) <= ZERO_SD_REL * scale:
+    size = max(abs(min(xs)), abs(max(xs)))
+    if scale is not None and scale > size:
+        size = scale
+    if math.sqrt(var) <= ZERO_SD_REL * size:
         return n, mean, 0.0
     return n, mean, var
 
@@ -339,7 +344,9 @@ def tpaired(xs, ys, tails=None, alt=None, alpha=None):
         side = _side(tails, alt)
         al = _alpha(alpha)
         d = [_fin(x - y) for x, y in zip(a_data, b_data)]
-        n, m, var = _mean_var(d)
+        # 差值的捨入雜訊與 x、y 的 ulp 同級：門檻以原始資料大小為尺度
+        scale = max(max(abs(v) for v in a_data), max(abs(v) for v in b_data))
+        n, m, var = _mean_var(d, scale)
         if var == 0:
             raise _zero_sd(None, "差值的標準差")
         sd = math.sqrt(var)

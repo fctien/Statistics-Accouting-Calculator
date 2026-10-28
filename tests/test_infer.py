@@ -314,6 +314,37 @@ def test_float_noise_variance_is_zero():
     assert _v("t1", X=[1e6, 1e6 + 1e-6, 1e6 + 2e-6], MU0=1e6)["sx"] > 0
 
 
+def test_constant_shift_randomized_always_errors():
+    """前後測恰差 1（一、兩位小數，基數 1e2～1e6）：差值的捨入雜訊與原始資料的
+    ulp 同級，門檻須以原始 X、Y 的大小為尺度；每一組都必須回錯誤（固定種子）。"""
+    import random
+    rng = random.Random(20261028)
+    passed = []
+    for base in (1e2, 1e3, 1e4, 1e5, 1e6):
+        for dec in (1, 2):
+            for _ in range(200):
+                pre = [round(base * (1 + rng.random()), dec)
+                       for _ in range(rng.randint(3, 8))]
+                post = [round(p + 1, dec) for p in pre]
+                r = _r("tpaired", X=post, Y=pre)
+                if r["ok"]:
+                    passed.append((base, dec, pre, r["values"]["t"]))
+                else:
+                    assert "t 統計量未定義" in r["error"], r
+    assert not passed, passed[:3]
+
+
+def test_legitimate_small_variance_still_computes():
+    v = _v("t1", X=[1e9 + 0.5, 1e9 + 0.6, 1e9 + 0.7], MU0=1e9)
+    assert abs(v["sx"] - 0.1) < 1e-5
+    assert abs(v["mean"] - (1e9 + 0.6)) < 1e-5
+    v = _v("tpaired", X=[1e9 + 0.5, 1e9 + 0.6, 1e9 + 0.8],
+           Y=[1e9, 1e9, 1e9])
+    assert v["sd"] > 0.1
+    v = _v("t1", X=[1e6, 1e6 + 1e-6, 1e6 + 2e-6], MU0=1e6)
+    assert abs(v["sx"] - 1e-6) < 1e-9
+
+
 def test_zero_sd_messages_have_no_stray_space():
     for action, inp in (("tpaired", {"X": [2, 3, 4], "Y": [1, 2, 3]}),
                         ("t1", {"X": [3, 3, 3], "MU0": 1}),
