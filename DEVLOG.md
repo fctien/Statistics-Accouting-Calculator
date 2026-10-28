@@ -1643,3 +1643,30 @@
 
 **待辦**
 - D3 統計頁 UI 完成後移除 test_web_sheets 對 infer 的路由豁免
+
+## 2026-10-28 C3 審查修正（第 1 輪）
+
+**需求**
+- 審查發現：差值數學上為常數、但浮點相減後帶 1e-16 雜訊時（tpaired([1.1,2.2,3.3,4.4],[0.1,1.2,2.3,3.4])），min≠max 繞過變異數 0 檢查，得到 t=6.98e15、p=6.5e-48、「拒絕 H0」的錯誤結論；另要求 GOF 的 EXP 總和不符改成錯誤、TAILS=2 給 ALT 報錯、修訊息空格、註明 GOF df
+
+**做法**
+- _mean_var：樣本標準差 ≤ ZERO_SD_REL·max|x_i|（ZERO_SD_REL = 64·eps ≈ 1.42e-14）時變異數視為 0；t1、t2（合併 Sp 為 0；Welch 兩組皆 0）、tpaired、ci_mean_t 都因此回「…為 0（所有值相同或只差浮點捨入誤差），t 統計量未定義」
+- chi_gof：EXP 總和與 OBS 總和相對差 > 1e-9 → 錯誤「期望次數總和必須等於觀察次數總和，或改用機率 PROBS」（field EXP）
+- _side：TAILS=2（含省略預設 2）且給了 ALT → 錯誤（field ALT）
+- _zero_sd 訊息格式改為「%s為 0」，名稱自帶需要的空格（「樣本標準差 Sx 為 0」「差值的標準差為 0」）
+- engine 與 bridge docstring 註明 GOF df = k−1，不做估計參數的自由度調整
+- 測試先寫：以舊程式跑新測試 4 項失敗（RED），修正後全過（GREEN）；回歸資料含審查的資料集與一位小數資料 +1 的前後測
+
+**產出**
+- engine/infer.py、engine/bridge.py、tests/test_infer.py（25 項）、tools/error_dump.py、tests/golden/error_cases.json（新增 3 筆；C3 自己的 2 筆訊息措辭更新；C3 之前的 70 筆不變）、web/sw.js；Excel golden 不變
+
+**驗證**
+- pytest 974 passed；run_mpy_golden 355/355、錯誤案例 85/85 相同
+- mutate 前景一次 28/28 killed，跑完 git 乾淨
+- verify_all --quick PASS：logs/verify-20261028-1309.html
+
+**問題與修正**
+- 門檻選 64·eps 的相對規則：一位小數資料差 1 的雜訊約 1e-16（遠低於門檻）；真實的小變異（例 1e6 附近差 1e-6，相對 1e-12）仍可計算，已加測試確認
+
+**待辦**
+- D3 統計頁 UI 完成後移除 test_web_sheets 對 infer 的路由豁免
