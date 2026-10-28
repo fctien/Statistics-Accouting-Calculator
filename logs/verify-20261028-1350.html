@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BACalc 一鍵驗證</title><style>:root{--bg:#fff;--fg:#1d2330;--line:#d9dee7;--ok:#0a7a3d;--ng:#b3261e;--code:#f3f5f9}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--line:#2c323c;--ok:#5fd18f;--ng:#ff8a80;--code:#1d2129}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;margin:0;padding:16px;max-width:1200px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
+code,pre{background:var(--code);font-family:Consolas,monospace}pre{margin:0;white-space:pre-wrap;font-size:12px}
+.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}</style></head><body><h1>BACalc 一鍵驗證</h1><p class=ok>總結：PASS（8 項全過；mutate 未執行（--quick））</p><table><tr><th>時間</th><td>2026-10-28 13:50:08 +08:00</td></tr><tr><th>commit</th><td>48fa73795f6db9bebe23910bb4cdb25b59b76f4c（短碼 48fa737）</td></tr><tr><th>分支</th><td>impl</td></tr><tr><th>git 狀態</th><td>乾淨（執行前 git status --porcelain 為空）</td></tr><tr><th>Python</th><td>3.11.7</td></tr><tr><th>Node</th><td>v22.15.0</td></tr><tr><th>MicroPython 套件</th><td>1.29.0-6</td></tr><tr><th>SHELL_HASH</th><td>c1170c955cadf845</td></tr><tr><th>模式</th><td>quick（略過 mutate）</td></tr></table><h2>各項結果</h2><table><tr><th>項目</th><th>指令</th><th>結果</th><th>耗時</th><th>輸出（通過＝末 3 行；失敗＝末 60 行）</th></tr><tr><td>check_portable（engine／golden 可攜性）</td><td><code>python.exe tools/check_portable.py engine golden</code></td><td class=ok>PASS</td><td>0.2 秒</td><td><pre>可攜性檢查通過：engine golden</pre></td></tr><tr><td>pytest（含 golden）</td><td><code>python.exe -m pytest</code></td><td class=ok>PASS</td><td>45.4 秒</td><td><pre>........................................................................ [ 95%]
+..........................................                               [100%]
+978 passed in 43.59s</pre></td></tr><tr><td>build_web --check</td><td><code>python.exe tools/build_web.py --check</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>web/ 建置檔皆為最新</pre></td></tr><tr><td>check_shell（PWA 殼）</td><td><code>python.exe tools/check_shell.py</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>check_shell：通過</pre></td></tr><tr><td>JS 單元測試（node --test）</td><td><code>node.EXE --test C:\Users\User\Desktop\Tien Research\BACalc\tests\js\backup.test.mjs C:\Users\User\Desktop\Tien Research\ … tests/js/*.test.mjs</code></td><td class=ok>PASS</td><td>0.7 秒</td><td><pre># skipped 0
+# todo 0
+# duration_ms 590.793</pre></td></tr><tr><td>check_worker（Worker 佇列與 golden）</td><td><code>node.EXE tools/check_worker.mjs</code></td><td class=ok>PASS</td><td>2.5 秒</td><td><pre>statuses loading -&gt; ready；佇列：送出時 loading，EFF=12.682503013196978
+golden 355、錯誤路徑 85 案
+PASS</pre></td></tr><tr><td>test:mpy（MicroPython golden）</td><td><code>node.EXE tools/run_mpy_golden.mjs</code></td><td class=ok>PASS</td><td>1.1 秒</td><td><pre>355/355 passed, max diff vs CPython 2.55e-15 (dist_binom_cdf_3_10)
+85/85 error cases identical</pre></td></tr><tr><td>test:mpy --self-test</td><td><code>node.EXE tools/run_mpy_golden.mjs --self-test</code></td><td class=ok>PASS</td><td>6.7 秒</td><td><pre>OK   self-test: 空 error 集合
+OK   self-test: 壞字串 golden
+OK   self-test: 壞 list golden</pre></td></tr><tr><td>mutate（突變測試）</td><td>—</td><td>未執行</td><td>—</td><td>--quick：略過，不是完整驗證</td></tr></table><h2>D2 瀏覽器實測（手動，in-app 瀏覽器；commit 19b3269 程式＋48fa737 截圖）</h2>
+<p>步驟：<code>python tools/build_web.py</code> → <code>python -m http.server 8765 -d web</code> → 反註冊 Service Worker、清除 caches、以 cache:"reload" 重抓殼檔後重新整理（確認載入新 calc.js：出現 2nd 鍵）。測完已停止伺服器。</p>
+<table>
+<tr><th>項目</th><th>寬度</th><th>操作</th><th>預期</th><th>結果</th></tr>
+<tr><td>科學計算機 DEG</td><td>1280</td><td>sin 3 0 ) ＝</td><td>0.50</td><td class=ok>ANS = 0.50</td></tr>
+<tr><td>切換角度後舊結果</td><td>1280</td><td>按 DEG 鍵 → RAD</td><td>舊結果標過期</td><td class=ok>劃線＋「DEG 模式的結果；目前是 RAD，請按 ＝ 重新計算」</td></tr>
+<tr><td>科學計算機 RAD</td><td>375（實際點擊按鍵）</td><td>sin π ÷ 6 ) ＝</td><td>0.50</td><td class=ok>ANS = 0.50</td></tr>
+<tr><td>2nd</td><td>1280</td><td>2nd → sin⁻¹ 1 ) ＝（RAD）</td><td>asin(1)＝1.57，2nd 自動放開</td><td class=ok>asin(1)、1.57、aria-pressed=false</td></tr>
+<tr><td>CHAIN 提示與 ±</td><td>1280</td><td>CHAIN：2 ± xʸ 2 ＝；AOS 再算</td><td>−2^2 = 4（CHAIN）、−4（AOS），提示顯示</td><td class=ok>4.00／-4.00，提示可見</td></tr>
+<tr><td>其他科學鍵</td><td>1280</td><td>∛ 27 ) + log 100 )；Esc</td><td>5；Esc 清空</td><td class=ok>5.00；清空</td></tr>
+<tr><td>單位換算</td><td>1280</td><td>長度 mi→km、1、小數浮動</td><td>1.609344</td><td class=ok>1 mi = 1.609344 km</td></tr>
+<tr><td>單位換算 溫度</td><td>375</td><td>100 °C → °F</td><td>212</td><td class=ok>100 °C = 212.00 °F；⇄ 後 100 °F = 37.77777778 °C（浮動）</td></tr>
+<tr><td>單位錯誤</td><td>1280</td><td>°F→°C 輸入 -500；輸入 abc</td><td>錯誤在數值欄</td><td class=ok>「溫度低於絕對零度」、「請輸入數字，例如 1.5」，結果清空</td></tr>
+<tr><td>亂序</td><td>375</td><td>60 ms 間隔輸入 1、12、123、2</td><td>只顯示最後的 2</td><td class=ok>2 mi = 3.22 km</td></tr>
+<tr><td>進位 DEC 255 @8 無號</td><td>1280／375</td><td>DEC 欄輸入 255</td><td>FF／11111111／377</td><td class=ok>1111 1111 / 377 / 255 / FF</td></tr>
+<tr><td>DEC -1 @8 有號</td><td>1280</td><td>勾有號、輸入 -1</td><td>FF</td><td class=ok>1111 1111 / 377 / -1 / FF</td></tr>
+<tr><td>256 @8 無號</td><td>1280／375</td><td>輸入 256</td><td>錯誤訊息、不截斷</td><td class=ok>「數值超出 8 位無號範圍（0～255）」，其他三欄清空</td></tr>
+<tr><td>12 AND 10</td><td>1280／375</td><td>A=12、AND、B=10</td><td>8</td><td class=ok>0000 1000 / 010 / 8 / 08</td></tr>
+<tr><td>NOT、SAR</td><td>1280</td><td>NOT；無號選 SAR；有號 SAR -8,1</td><td>B 隱藏；SAR 停用並提示；-4</td><td class=ok>B 隱藏、NOT 12=243；SAR 選項 disabled＋提示；-8 SAR 1 = -4</td></tr>
+<tr><td>BIN 複製去空白</td><td>1280</td><td>對 BIN「1111 1000」觸發 copy</td><td>11111000</td><td class=ok>剪貼簿 11111000</td></tr>
+<tr><td>64 位元無千分位、換行</td><td>1280／375</td><td>HEX FFFFFFFFFFFFFFFF</td><td>DEC 無逗號、BIN 完整可見</td><td class=ok>18446744073709551615；BIN textarea 自動加高（以分組空白換行）</td></tr>
+<tr><td>設定頁 angle</td><td>375</td><td>設定 → 角度單位</td><td>DEG／RAD 選單並生效</td><td class=ok>選 DEG 後 settings.angle = DEG</td></tr>
+<tr><td>無橫向捲動</td><td>375</td><td>calc／units／base</td><td>scrollWidth = clientWidth</td><td class=ok>375/375（三頁）</td></tr>
+</table>
+<p>截圖：logs/d2-desktop-calc-stale.jpg、d2-desktop-units.jpg、d2-desktop-base.jpg、d2-desktop-bitwise.jpg（BIN 改 textarea 前）、d2-desktop-base-64bit.jpg、d2-375-calc-rad.jpg、d2-375-units.jpg、d2-375-base-error.jpg、d2-375-bitwise.jpg</p>
+<p>主控台：測試過程曾出現反註冊 SW 時的 script fetch 錯誤，以及第一次載入時舊快取混用的 PRIMARY_SHEETS 匯入錯誤（目前原始碼已無此名稱，清快取後未再出現）。</p>
+</body></html>

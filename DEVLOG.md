@@ -1724,3 +1724,38 @@
 **待辦**
 - D2 工程畫面（units、base）與 D3 統計畫面（desc、dist、infer）完成後，在 pages.js 填入 sheet 並移除 test_sheet_actions_cover_bridge_routes 豁免
 - 無障礙：目前是手動啟用（方向鍵只移焦點），未做 roving tabindex
+
+## 2026-10-28 D2 工程頁畫面（科學計算機、單位換算、進位轉換）
+
+**需求**
+- 工程頁三個畫面：科學計算機（保留紙帶、記憶、Σ、ANS、AOS/CHAIN；加三角／反三角、log、ln、∛、xʸ、π、e、±、DEG／RAD）、單位換算 #eng/units、進位轉換＋位元運算 #eng/base；不改 engine；angle 進設定與匯出入
+
+**做法**
+- 先寫測試（RED：tests/js/eng.test.mjs 模組不存在、settings 預設值少 angle、pages placeholder、test_web_sheets 路由豁免與 angle 送出 3 項失敗），再實作（GREEN）
+- web/js/eng.js 純函式：evalRequest（settings 原樣送出含 angle）、resultIsStale、unitsRequest（依千分位解析）、baseRequest／baseFieldUpdates（BIN 分組、不加千分位）、bitwiseRequest（NOT 不送 B）、opAllowed（SAR 限有號）、createSeq（序號防亂序，同 ICONV）
+- keypad.js：SCI_ROWS（2nd 切換 sin⁻¹ cos⁻¹ tan⁻¹ 10ˣ eˣ，插入一個第二功能後自動放開）、toggleSign（±，二元減號後加負號）
+- calc.js：科學鍵 5 欄＋數字鍵；ANS 記住算出時的角度，切換角度後結果劃線並註明「DEG 模式的結果」；角度鍵即時 commit settings.angle
+- units.js：units/list 取一次快取；類別→單位（「公里 km」）；debounce 250 ms＋seq；錯誤顯示在對應欄位；設定改變重新換算
+- base.js：四欄同步（來源欄不覆寫、其他三欄先清空）、位寬／有號改變重算；A、B 依最後輸入的進位並標示；NOT 隱藏 B；SAR 在無號時停用＋提示；BIN 複製時去空白；BIN 用自動加高的 textarea
+- settings：angle 加入 DEFAULTS、VALID（匯出入 sanitize 同一張表）、toEngine、設定頁選單；sheets.js 新增 units、base、base-bitwise（embeddedIn: base，不在導覽列出）
+
+**產出**
+- web/js/eng.js、web/js/views/units.js、web/js/views/base.js（新）；web/js/views/calc.js、keypad.js、settings.js、sheets.js、pages.js、app.js、css/app.css、sw.js（APP_SHELL 加 3 檔）
+- tests/js/eng.test.mjs（新，11 項）、settings／pages／sheets 測試更新、tests/test_web_sheets.py（移除 units、base 豁免；新增 test_calc_ui_sends_angle）
+- e2e/checklist.md 加 14～18 項；logs/d2-*.jpg 截圖 9 張
+
+**驗證**
+- pytest 978 passed；node 178/178；build_web --check、check_shell 通過；verify_all --quick PASS：logs/verify-20261028-1350.html（附瀏覽器實測表）
+- 瀏覽器（1280 與 375）：sin(30) DEG = 0.50；RAD 後舊結果標過期；RAD sin(π÷6) = 0.50（手機實際點擊）；1 mi = 1.609344 km（浮動）；100 °C = 212 °F；DEC 255 @8 無號 → FF／1111 1111／377；-1 @8 有號 → FF；256 → 「數值超出 8 位無號範圍（0～255）」；12 AND 10 = 8；快速輸入 1、12、123、2 只顯示 2 的結果；三頁 375px 無橫向捲動
+
+**問題與修正**
+- 第一次重新整理仍是舊畫面（SW／HTTP 快取）：反註冊 SW、清 caches、cache:"reload" 重抓後正常
+- 過期註記被父元素的 line-through 一起劃掉：改成只劃 ANS 數值的 span
+- 64 位元 BIN 在 input 內被截斷看不全：改用自動加高的 textarea；初版 word-break: break-all 會把 4 位一組切開，改 overflow-wrap: break-word（在分組空白換行）
+- 位元運算工作表 base-bitwise 不在導覽中，pages 測試要求每張工作表都出現在頁面：加 embeddedIn 屬性並調整測試
+- 用 bash heredoc 一次貼長 Python 修補 calc.js 時 heredoc 被截斷（語法錯誤、未寫入），改寫成 scratchpad 的 .py 再執行
+
+**待辦**
+- 單位換算的「⇄」在桌面 2 欄格線中位置略偏；位寬範圍說明目前寫成 2^8−1 形式（非實際數字）
+- 千分位設定由 US 改 EU 時，單位換算輸入框的文字不會自動換寫法（會依新設定重新解讀）
+- D3 完成後移除 test_web_sheets 對 dist、infer、stats/describe 的豁免
