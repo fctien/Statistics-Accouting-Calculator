@@ -1962,3 +1962,40 @@
 
 **待辦**
 - 旁白與畫面仍是比例同步，非逐字對齊
+
+## 2026-10-28 最終全分支審查修正（v0.2.1）
+
+**需求**
+- 最終審查四項：(1) 機率分配載入情境後參數欄位未同步，並檢查其他動態欄位畫面；(2) 升版 v0.2.1（CHANGELOG、README、更正 SHELL_HASH 誤記）；(3) 影片旁白不可宣稱未驗證的事（手機飛航模式、iPhone 只能用內建瀏覽器），重錄；(4) 比例 CI x=0／x=n 加 Wald 退化警告
+
+**做法**
+- web/js/stat.js 新增純函式 layoutSyncNeeded(type, target, form, controls)；dist.js 對 change／form-reset／scenario-apply 依它呼叫 sync()（applyScenario 派送的 change 的 target 是 form 本身，原本被忽略）
+- 逐一檢查其他畫面：infer 已處理 scenario-apply；units、base 不是 sheet-form（沒有情境列）；describe、stats 只有表格（grid 已處理）；depr 的 M01 提示、tax 的預設稅率標籤、商業子分頁的情境目標三處有同類問題，一併修正
+  - scenarios.currentWorksheet 只取不在 hidden 容器內的表單，MutationObserver 加觀察 hidden 屬性（原本在稅額分頁存的情境其實存的是隱藏的毛利表單，預設名稱還是「PROFIT 毛利」）
+  - depr：change（target 為 form）、scenario-apply 時 syncM01(false)
+  - business tax：panel 也聽 change，載入的稅率與預設不同時回到「自訂」並隱藏出處
+- engine/infer.py ci_prop：k == 0 或 k == n 時加 warning「Wald 區間退化為單點，請以 Wilson 區間為準」；畫面用通用 warnings 清單顯示
+- 影片 script.py：intro「載入一次之後也可以離線使用」；install 段改說離線只在電腦版瀏覽器驗證、手機請自行確認，Android 建議 Chrome、iPhone 建議 Safari；字卡同步；其他段逐句檢查（未提 Drive；IRR 多解警告、深色模式有程式對應）
+- build_web --bump 0.2.1；CHANGELOG v0.2.1；git log -S SHELL_HASH 顯示 88ddd56／e6fe557（2026-10-20，step8＝v0.1.0 之前）已有，更正 v0.2.0 的誤記並移到 v0.1.0；README 設定列加角度 DEG／RAD、安裝說明去掉未驗證說法、影片重建說明；e2e 檢查表加 v0.2.1 三項
+
+**產出**
+- commits：fc16012（情境同步）、158453c（Wald 警告）、c7f6d5e（影片旁白）、95485dd（升版 v0.2.1）、本次 log／DEVLOG commit；本機 tag v0.2.1（未推送；v0.2.0 未動）
+- tests/js/stat.test.mjs（layoutSyncNeeded）、tests/js/scenario_target.test.mjs（新）、tests/test_infer.py（test_ci_prop_wald_degenerate_warning）
+- teaching/video/out/BACalc_使用說明.mp4：9:13.33、1280×720、AAC 48 kHz 單聲道（不進 git）；.srt 更新
+- logs/verify-20261028-1637.html（完整，含 mutate，commit 95485dd）
+
+**驗證**
+- RED：node layoutSyncNeeded is not a function；scenario_target 2/2 fail（actual 'business-profit'）；pytest test_ci_prop_wald_degenerate_warning AssertionError；瀏覽器修正前：折舊載入 DB 情境提示仍為 SL、稅額分頁存的情境載入後稅率仍 5 且列在毛利分頁
+- GREEN：瀏覽器（Claude Browser，127.0.0.1／[::1] 以避開 localhost 的舊模組快取）t(df=5) 情境載入後顯示 DIST、FUNC、DF、X，計算 0.9490302606；折舊提示正確；稅額情境預設名「稅額 TAX …」、載入後 12、預設回「自訂」、毛利分頁看不到；ci_prop x=0 畫面列出兩則警告
+- pytest 1002 passed；node 231/231；MicroPython golden 355/355、error 85/85 相同；build_web --check、check_shell PASS；verify_all 完整 PASS（mutate 223.8 秒，跑完 git 乾淨）
+- 影片 5 張影格目視：安裝字卡為新文字、字幕只在字幕帶
+
+**問題與修正**
+- 第一次 run_video.py 在 Bash 工具 10 分鐘上限被終止（record 步驟 exit 143，錄影本身約 9 分鐘）；改用暫存區的包裝程式（沿用 run_video.start_server，record.mjs --only 分兩批，各自啟停伺服器），再 run_video.py --skip-record 合成；未留下任何伺服器
+- 以 Python 改檔時一度把 CRLF 寫成 LF（SHELL_HASH 已正規化換行，但仍改回 CRLF 保持一致）
+- 瀏覽器在 localhost:8765 一直拿到舊模組（Service Worker 與 HTTP 快取），改用 127.0.0.1／[::1] 不同 origin 驗證
+- 測試時在本機瀏覽器 IndexedDB 留下 repro 情境（僅預覽用瀏覽器，不影響 repo）
+
+**待辦**
+- teaching/deck/build_deck.py 第 424 行仍寫「手機安裝後飛航模式也能算」（簡報，非本次範圍），應改成與影片一致的說法後重建簡報
+- 手機實機（Android Chrome、iPhone Safari）安裝與飛航模式仍待作者親測
