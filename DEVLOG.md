@@ -1609,3 +1609,37 @@
 **待辦**
 - D3 統計頁 UI 完成後移除 test_web_sheets 對 dist 的路由豁免
 - 若要支援 df／n／λ > 1e5，需改用 Loader 的 stirlerr／bd0 形式計算前置因子
+
+## 2026-10-28 C3 信賴區間與檢定引擎（engine/infer.py）
+
+**需求**
+- 平均數 CI（z、t）、比例 CI（Wald＋Wilson）、單樣本 t、兩獨立樣本 t（合併變異數／Welch）、成對 t、卡方適合度、卡方獨立性；p 值用 dist 的尾端（不用 1−cdf）、結論文字隨 α；樣本不足、變異數 0、表總和 0 回錯誤；bridge 路由 infer/*；Excel golden（sheet infer）
+
+**做法**
+- TDD：先寫 golden/cases.py 的 infer 案例與 tests/test_infer.py（RED：ImportError cannot import name 'infer'），再寫 engine/infer.py 與 bridge 路由（GREEN）
+- p 值：t 檢定取 dist.t_dist 的 value／right／two、卡方取 dist.chi2 的 right；臨界值取 dist 的 inv（two）；決策 p ≤ α 拒絕 H0，結論「在 α=0.05 下拒絕／不拒絕 H0」（%g 格式）
+- 變異數兩遍法、全部相同時變異數精確為 0；中間值以 _fin 檢查，溢位回錯誤
+- Wilson 區間夾在 [0,1]（只修捨入）；Wald 超出 [0,1] 加 warning；X 或 N−X < 5 加「樣本太小，常態近似可能不準」
+- 卡方：期望次數 < 5 的格數 > 20% 加 warning；GOF 的 EXP 總和與觀察總和不同加 warning；PROBS 總和須 1±1e-9
+- golden 100 筆：CONFIDENCE.NORM／CONFIDENCE.T／T.INV.2T、T.TEST type 1/2/3（單雙尾）、T.DIST.2T／T.DIST.RT／T.DIST、CHISQ.TEST；t、χ² 統計量以 AVERAGE、VAR.S、SUMPRODUCT 定義式；獨立性期望表用 MMULT(列總和,行總和)/總數 在 Excel 內算；Welch df、Wilson 區間標「定義值：」
+- error_cases 新增 12 筆；mutate 新增 2 個（Welch df 分母拿掉一項、獨立性 df 用 r·c−1）；test_web_sheets 豁免 infer（D3 移除）
+
+**產出**
+- engine/infer.py（新增）、engine/bridge.py、golden/cases.py、tests/golden/excel.json（既有 255 筆逐筆不變、新增 100）、tests/golden/error_cases.json（既有 70 筆不變、新增 12）、tests/test_infer.py、tests/test_web_sheets.py、tools/error_dump.py、tools/mutate.py、web/sw.js（build_web）
+
+**驗證**
+- pytest 972 passed；test_infer 23 項（golden、純相對誤差 1e-9、每種 ≥3 筆、結論隨 α、警告、錯誤路徑、與 scipy 1.17 隨機 25 組比對 1e-10）
+- run_mpy_golden 355/355（最大差 2.55e-15）、錯誤案例 82/82 相同
+- mutate 前景一次：28/28 killed，跑完 git 乾淨
+- verify_all --quick PASS：logs/verify-20261028-1257.html
+
+**問題與修正**
+- 第一次用 bash heredoc 附加 golden 案例又因引號解析失敗（檔案未改動），改用 Edit（C2 同樣問題）
+- 結論文字測試原用 μ0=12，p=0.094 不在 (0.01,0.05)，改 μ0=11.9（p≈0.027）
+- 3×3 獨立性表 [[10,4,6],[3,8,9],[2,5,13]] 其實沒有期望次數 < 5 的格子，改為 [[10,4,6],[3,8,9],[2,1,3]]（golden 產生前修正）
+- error_dump --write 只更新既有案例的 expected，新案例需 --init；確認既有 70 筆逐筆不變
+- Welch df 那一行超過 79 字，拆成 den／df 兩行並同步 mutate 的 old 字串
+- 確認 Excel T.TEST type 3 使用非整數 Welch df（與引擎、scipy 一致，不像 T.DIST 會截斷 df）
+
+**待辦**
+- D3 統計頁 UI 完成後移除 test_web_sheets 對 infer 的路由豁免
