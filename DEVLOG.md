@@ -1522,3 +1522,6 @@
 
 **待辦**
 - 無
+
+**B2 修正輪 1 追加**
+- 問題與修正：並行跑了兩個 mutate 導致一次 commit 誤含突變中的 engine/dates.py（a==99）；已還原並重跑，22/22 killed、verify_all --quick PASS
