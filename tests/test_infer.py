@@ -165,6 +165,18 @@ def test_ci_prop_extremes_stay_in_unit_interval():
     assert 0.8 < v["wilson_lower"] < 1
     assert rel_close(v["wilson_upper"], 1, 1e-14)
 
+WALD_DEGENERATE = "Wald 區間退化為單點，請以 Wilson 區間為準"
+
+
+def test_ci_prop_wald_degenerate_warning():
+    """x = 0 或 x = n：Wald SE = 0，區間退化為單點 [p̂, p̂]，必須明確警告（不可看似正常的區間）。"""
+    for x in (0, 30):
+        r = _r("ci_prop", X=x, N=30, CONF=0.95)
+        assert r["ok"] and WALD_DEGENERATE in r["warnings"], (x, r["warnings"])
+    for x in (1, 29, 15):
+        r = _r("ci_prop", X=x, N=30, CONF=0.95)
+        assert WALD_DEGENERATE not in r["warnings"], x
+
 
 def test_t_one_sided_complement():
     """less 與 greater 的 p 值相加為 1；同方向單尾為雙尾的一半。"""

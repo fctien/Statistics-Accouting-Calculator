@@ -265,6 +265,8 @@ def ci_prop(x, n, conf):
         if k < 5 or nn - k < 5:          # n·p̂ < 5 或 n(1−p̂) < 5
             warnings.append(_SMALL_SAMPLE)
         lower, upper = p - margin, p + margin
+        if k == 0 or k == nn:           # p̂ = 0 或 1：SE = 0，Wald 區間只剩一點
+            warnings.append("Wald 區間退化為單點，請以 Wilson 區間為準")
         if lower < 0 or upper > 1:
             warnings.append("Wald 區間超出 [0, 1]，建議參考 Wilson 區間")
         # Wilson 區間理論上必在 [0, 1] 內；夾住只修正最後一位的捨入
