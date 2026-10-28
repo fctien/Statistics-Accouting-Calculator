@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BACalc 三大頁面整合與使用說明影片 計畫</title>
+<style>
+body { font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+       max-width: 960px; margin: 0 auto; padding: 16px; line-height: 1.7;
+       color: #1f2d3d; background: #fff; }
+h1, h2 { color: #1565c0; border-bottom: 2px solid #bbdefb; padding-bottom: 4px; }
+h3 { color: #1976d2; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 15px; }
+th, td { border: 1px solid #bbdefb; padding: 6px 8px; vertical-align: top; }
+th { background: #e3f2fd; }
+code { background: #f1f8ff; padding: 1px 4px; border-radius: 3px; }
+pre { background: #f1f8ff; padding: 12px; overflow-x: auto; }
+blockquote { border-left: 4px solid #64b5f6; margin: 0; padding: 4px 12px;
+             background: #f5faff; }
+</style></head><body>
+<h1>BACalc 三大頁面整合與使用說明影片 計畫</h1>
+<ul>
+<li>日期：2026-10-28</li>
+<li>狀態：<strong>待使用者確認</strong></li>
+<li>基準：<code>impl</code> 分支 ccba449（v0.1，31 個 Task 完成）</li>
+</ul>
+<h2>目標</h2>
+<ol>
+<li>App 最上層分成三大頁面：<strong>工程</strong>、<strong>統計</strong>、<strong>會計</strong>，每頁有自己的子選單；計算機紙帶、記憶、設定三頁共用</li>
+<li>做完後自動產生<strong>實際操作錄影＋中文旁白＋字幕</strong>的使用說明 mp4</li>
+</ol>
+<h2>使用者已決定的範圍（2026-10-28）</h2>
+<table>
+<thead>
+<tr>
+<th>頁面</th>
+<th>內容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工程</td>
+<td>科學計算機（<code>engineering-calculator</code> 既有功能＋三角函數、度／弧度）、單位換算、進位轉換</td>
+</tr>
+<tr>
+<td>統計</td>
+<td>現有 STAT（單變數、LIN/LN/EXP/PWR 迴歸、預測）、機率分配、信賴區間與檢定、敘述統計擴充</td>
+</tr>
+<tr>
+<td>會計</td>
+<td>現有 TVM、AMORT、CF、ICONV、BOND、DEPR、毛利、損益兩平、Δ%、稅額、日期</td>
+</tr>
+<tr>
+<td>影片</td>
+<td>實際操作錄影＋旁白，約 8–12 分鐘</td>
+</tr>
+</tbody>
+</table>
+<h2>已確認的環境（2026-10-28 實測）</h2>
+<ul>
+<li>MicroPython 1.29.0-6：<code>math</code> 有 <code>erf</code>、<code>erfc</code>、<code>gamma</code>、<code>lgamma</code>、<code>sin</code>、<code>asin</code>、<code>atan2</code>、<code>log10</code>、<code>log2</code>、<code>radians</code>、<code>degrees</code>；<strong>沒有 <code>cbrt</code></strong>（自寫，負數也要支援）</li>
+<li>ffmpeg：Python 套件 <code>imageio_ffmpeg</code> 內附 v7.1；<code>moviepy</code> 2.1.2；Playwright 在上層資料夾 <code>node_modules</code>（已安裝，不新增）</li>
+<li>中文語音：Windows OneCore Yating（pywin32 SAPI，離線；edge-tts 自 2026-10-13 回 403）</li>
+</ul>
+<h2>原則（沿用 CLAUDE.md）</h2>
+<ul>
+<li>MVC；engine 只用可攜子集；<strong>絕不產生看起來正常但錯誤的數字</strong></li>
+<li>每個新功能都有 golden 值，出處為 <strong>Excel 公式</strong>（Excel COM 產生，例：<code>=SIN(...)</code>、<code>=CONVERT(...)</code>、<code>=DEC2HEX(...)</code>、<code>=NORM.S.DIST(...)</code>、<code>=T.TEST(...)</code>），CPython 與 MicroPython 雙執行環境比對</li>
+<li>Subagent-Driven：每個 Task 實作 → 審查 → 修正 → 再審；裁定寫入 ledger</li>
+<li>不安裝套件；PowerPoint 開著時不碰</li>
+</ul>
+<h2>Task 清單</h2>
+<h3>A. 先修殘留問題</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>內容</th>
+<th>驗收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A0</td>
+<td>修 v0.1 殘留：選擇性 clearStale 讓過期標記卡住、擋住「帶入攤還」；檔案匯出入去除 gdrive 本機鍵</td>
+<td>回歸測試＋瀏覽器重現步驟不再發生</td>
+</tr>
+</tbody>
+</table>
+<h3>B. 工程頁引擎</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>內容</th>
+<th>golden 出處</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td><code>engine/calc.py</code> 擴充：<code>sin cos tan asin acos atan</code>、<code>log</code>（log₁₀）、<code>cbrt</code>（自寫，含負數）、常數 <code>π</code>、<code>e</code>、角度模式 DEG／RAD（設定值，經 bridge 傳入）；定義域錯誤一律回錯誤（例 <code>asin(2)</code>、<code>tan(90°)</code>）</td>
+<td><code>=SIN(RADIANS(30))</code>、<code>=DEGREES(ASIN(0.5))</code>、<code>=LOG10()</code>、<code>=POWER(-27,1/3)</code> 改用 <code>=-POWER(27,1/3)</code></td>
+</tr>
+<tr>
+<td>B2</td>
+<td><code>engine/units.py</code> 單位換算：長度、質量、溫度（含仿射換算）、壓力、能量、面積、體積、速度、時間；不同類別互換回錯誤</td>
+<td><code>=CONVERT(1,"mi","km")</code> 等，每類至少 3 筆</td>
+</tr>
+<tr>
+<td>B3</td>
+<td><code>engine/base.py</code> 進位轉換：2／8／10／16 進位互換、二補數位寬 8／16／32／64、位元運算 AND OR XOR NOT 與左右移；超出位寬回錯誤</td>
+<td><code>=DEC2BIN()</code>、<code>=HEX2DEC()</code>、<code>=BITAND()</code>、<code>=BITLSHIFT()</code></td>
+</tr>
+</tbody>
+</table>
+<h3>C. 統計頁引擎</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>內容</th>
+<th>golden 出處</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td><code>engine/describe.py</code> 敘述統計：中位數、眾數（多眾數全列）、四分位數（與 Excel <code>QUARTILE.INC</code> 一致）、IQR、偏態、峰態、全距、變異係數</td>
+<td><code>=MEDIAN()</code>、<code>=MODE.MULT()</code>、<code>=QUARTILE.INC()</code>、<code>=SKEW()</code>、<code>=KURT()</code></td>
+</tr>
+<tr>
+<td>C2</td>
+<td><code>engine/dist.py</code> 機率分配：常態、t、卡方、二項、Poisson 的機率密度／累積機率／反查（反查以 <code>solver.find_root</code>）；不完全 Beta／Gamma 用連分數自寫；參數不合法回錯誤</td>
+<td><code>=NORM.DIST()</code>、<code>=NORM.INV()</code>、<code>=T.DIST()</code>、<code>=T.INV()</code>、<code>=CHISQ.DIST()</code>、<code>=CHISQ.INV()</code>、<code>=BINOM.DIST()</code>、<code>=POISSON.DIST()</code></td>
+</tr>
+<tr>
+<td>C3</td>
+<td><code>engine/infer.py</code> 信賴區間與檢定：平均數 CI（z、t）、比例 CI、單樣本 t、兩獨立樣本 t（合併變異數與 Welch）、成對 t、卡方適合度、卡方獨立性；回傳統計量、自由度、p 值、結論文字</td>
+<td><code>=CONFIDENCE.T()</code>、<code>=CONFIDENCE.NORM()</code>、<code>=T.TEST(,,2,1/2/3)</code>、<code>=CHISQ.TEST()</code></td>
+</tr>
+</tbody>
+</table>
+<p>每個 C Task 都要在 MicroPython 上跑同一份 golden；連分數的收斂失敗回錯誤，不回未收斂值。</p>
+<h3>D. 介面</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>內容</th>
+<th>驗收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>導覽改三層：頂端「工程｜統計｜會計」三大頁（手機為底部三分頁），每頁子選單；網址 <code>#eng/calc</code>、<code>#stat/dist</code>…，舊網址（<code>#tvm</code> 等）自動導向新位置；計算機紙帶、記憶、設定共用</td>
+<td>舊情境、匯出入不受影響；手機與桌面版面截圖</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>工程頁畫面：科學計算機（擴充按鍵：sin cos tan、log、∛、π、e、DEG/RAD 切換）、單位換算（類別→單位→即時換算）、進位轉換（四欄同步＋位寬＋位元運算）</td>
+<td>每頁一個 golden 值在瀏覽器實測</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>統計頁畫面：STAT（搬移）、敘述統計（貼上資料）、機率分配（分配選單＋三種計算）、信賴區間與檢定（選檢定類型→輸入→結果與結論）</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>整合驗證：<code>verify_all</code> 全過、突變測試加入新模組、<code>e2e/checklist.md</code> 擴充、SHELL_HASH 更新、版本 0.2.0</td>
+<td>verify_all log PASS</td>
+</tr>
+</tbody>
+</table>
+<h3>E. 使用說明影片</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>內容</th>
+<th>驗收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E1</td>
+<td><code>teaching/video/script.py</code> 單一來源：每段的旁白文字、操作步驟（要點哪個元素、輸入什麼）、預期畫面數值（引用 golden）</td>
+<td>每段數值與引擎一致的測試</td>
+</tr>
+<tr>
+<td>E2</td>
+<td><code>teaching/video/record.mjs</code>：用上層既有 Playwright 開本機伺服器上的 App，依腳本逐段自動操作並錄影（1280×720），每段輸出一個 webm；操作時加游標高亮與字卡</td>
+<td>每段錄影存在、長度合理</td>
+</tr>
+<tr>
+<td>E3</td>
+<td><code>teaching/video/narrate.py</code>：OneCore Yating 合成每段旁白 wav；產生 SRT 字幕；用 imageio_ffmpeg 把每段錄影與旁白對齊（影片依旁白長度延長或剪裁）、加片頭片尾，輸出 <code>BACalc_使用說明.mp4</code></td>
+<td>用 ffprobe 檢查長度、音軌、解析度；抽 5 張影格目視</td>
+</tr>
+</tbody>
+</table>
+<p>影片段落草案：片頭 → 安裝成手機 App → 三大頁面導覽 → 工程（科學計算、單位、進位）→ 統計（敘述、迴歸、分配、檢定）→ 會計（TVM、攤還、現金流、稅額）→ 情境儲存與匯出 → 片尾</p>
+<h2>需要你親自做的事（不變）</h2>
+<ul>
+<li>GitHub Settings → Pages → Source 設成 GitHub Actions（目前仍未啟用）</li>
+<li>關閉 PowerPoint 後才能產生教材 PDF（影片不需要 PowerPoint）</li>
+</ul>
+<h2>風險</h2>
+<table>
+<thead>
+<tr>
+<th>風險</th>
+<th>處理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>不完全 Beta／Gamma 自寫的精度</td>
+<td>以 Excel golden 比對，容差 1e-9；極端參數對不上就回錯誤並記錄限制</td>
+</tr>
+<tr>
+<td>Excel <code>CONVERT</code> 單位代碼與 App 顯示名稱不同</td>
+<td>對照表放 <code>units.py</code>，測試逐一對應</td>
+</tr>
+<tr>
+<td>Yating 語音念英文縮寫不自然</td>
+<td>旁白稿寫成中文讀法（例「T V M」→「貨幣時間價值」）</td>
+</tr>
+<tr>
+<td>錄影時引擎尚未就緒</td>
+<td>錄影腳本先等「就緒」狀態再操作</td>
+</tr>
+<tr>
+<td>既有教學 tag 與教材（step0–step8）以 v0.1 為準</td>
+<td>不改舊 tag；新功能另打 tag <code>v0.2.0</code>，教材日後另行更新</td>
+</tr>
+</tbody>
+</table>
+<h2>預估</h2>
+<p>約 13 個 Task（A0、B1–B3、C1–C3、D1–D4、E1–E3），沿用 Subagent-Driven 流程。</p>
+</body></html>
