@@ -1759,3 +1759,32 @@
 - 單位換算的「⇄」在桌面 2 欄格線中位置略偏；位寬範圍說明目前寫成 2^8−1 形式（非實際數字）
 - 千分位設定由 US 改 EU 時，單位換算輸入框的文字不會自動換寫法（會依新設定重新解讀）
 - D3 完成後移除 test_web_sheets 對 dist、infer、stats/describe 的豁免
+
+## 2026-10-28 D2 審查修正（第 1 輪）
+
+**需求**
+- 審查指出：(1) 千分位設定切換後，單位換算以新設定重新解讀既有文字（US 的 1,000 在 EU 變 1，畫面仍顯示「1,000 mi = 1.61 km」）；(2) DEG／RAD 切換只標 ANS 過期，紙帶的 sin(30) = 0.50 看起來仍是目前結果，重新載入後角度資訊也沒了。另：DEC 欄 inputmode、剪下也去空白、base-bitwise 欄位 id 測試
+
+**做法**
+- 先寫測試（RED：tape angle 2 項、eng rewriteForSep／ansAngleFor 2 項、base_fields 檔案載入失敗），再實作（GREEN）
+- eng.rewriteForSep（沿用 input.convertSepText）；units.js 記 textSep（輸入時的千分位），設定變更與重新掛載時先改寫文字再換算，改寫失敗清空結果並標錯
+- 檢查同類問題：計算機算式與進位轉換不吃千分位（引擎對「1,000」報錯，「.」一律是小數點，與 sep 無關），不需改
+- tape.js：usesTrig（識別字掃描，區分大小寫，與引擎一致）、angleStatus、項目 angle 只在含三角函數且為 DEG|RAD 時保存；toJSON、還原、備份匯入（normalizeData 經 createTape）都會丟掉不合法值
+- calc.js：紙帶顯示 DEG／RAD 標籤，與目前模式不同或「角度未知」時劃線並加說明；ANS 角度改由 ansAngleFor（三角→目前角度、引用 ANS→沿用、其他→null）
+- ansAngle 不存檔：ANS 本身不存檔（重新載入後為 0 且不顯示），紙帶項目的 angle 已涵蓋重新載入後的判斷
+- base.js：DEC inputmode text；copy 與 cut 都去空白（cut 刪除選取並觸發同步）；位元運算欄位 id 取自 eng.BITWISE_INPUT_IDS
+
+**產出**
+- web/js/tape.js、eng.js、views/units.js、views/calc.js、views/base.js、css/app.css、sw.js；tests/js/tape／eng／backup 測試新增、tests/js/base_fields.test.mjs（新）
+- logs/d2-r1-units-sep-eu.jpg、logs/d2-r1-tape-angle.jpg
+
+**驗證**
+- node 185/185；pytest 978 passed；build_web --check、check_shell 通過；verify_all --quick PASS：logs/verify-20261028-1358.html（附本輪瀏覽器實測表）
+- 瀏覽器（桌面）：US 1,000 → EU 改寫為 1000、結果 1.609,34 km；EU 1.000 → US 為 1000；離開畫面時改設定回來仍正確；解不出的文字標「千分位設定已改變，請重新輸入」；紙帶 sin(30) 切 RAD 後標過期、2+3／ANS×2 不標；IndexedDB 只有三角項目存 angle；舊紀錄顯示「角度未知」
+
+**問題與修正**
+- 第一版 ANS 對任何算式都標角度，非三角結果（2+3）切換角度也被標過期：改為 ansAngleFor
+- 執行中的 JS 觸發 reload 讓瀏覽器測試腳本被中斷一次，分成兩段重跑
+
+**待辦**
+- 紙帶的「ANS×2」若 ANS 來自三角結果，紙帶項目不標角度（只看算式本身是否含三角函數）；記憶 M0～M9 的來源角度也不追蹤
