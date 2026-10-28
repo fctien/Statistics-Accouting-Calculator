@@ -1550,3 +1550,29 @@
 
 **待辦**
 - D2 工程頁介面完成後移除 test_web_sheets 對 base 的路由豁免
+
+## 2026-10-28 C1 敘述統計擴充（engine/describe.py）
+
+**需求**
+- 「統計」頁用的擴充敘述統計：中位數、眾數（多個）、Q1／Q3／IQR、變異數、CV、偏態、峰態；bridge 路由 stats/describe；Excel golden；n 不足與 Sx=0 不得回 0／nan／inf
+
+**做法**
+- 新增 engine/describe.py：兩遍法離差（不用原始動差相減）；四分位用 QUARTILE.INC 位置 (n-1)p 線性內插；次數以合併後的累計次數查表，不展開資料；SKEW／KURT 用 Excel 定義，n<3／n<4、Sx=0、平均=0（CV）皆省略該鍵並加 warning；全部相同值時離差強制為 0（避免 0.1 平均的捨入殘差造成假的非零偏態）
+- bridge 加 ("stats","describe")（X、F）與 docstring；display 的 modes 為字串 list
+- golden runner 擴充：expected 為數值 list 時長度相同並逐項比對（bool 不算數值）；同步鏡射到 run_mpy_golden.mjs（含 self-test 新增壞 list 項）、check_worker.mjs、web/selftest.html；數值／字串行為不變
+- make_golden_excel：新增 as_list（Evaluate 陣列攤平遞增）與 literal（定義值，無眾數）
+- 三組資料（A 單眾數、B 含負數小數且無眾數、C 多眾數）共 30 筆 golden；error_dump 加 7 筆案例（--init 重建，既有 expected 不變）；mutate 加 QUARTILE 位置突變
+
+**產出**
+- engine/describe.py、engine/bridge.py、golden/cases.py、golden/runner.py、tools/make_golden_excel.py、tools/error_dump.py、tools/mutate.py、tools/run_mpy_golden.mjs、tools/check_worker.mjs、web/selftest.html、tests/test_describe.py、tests/golden/*.json（既有 139 筆 golden 與 53 筆 error expected 逐筆比對不變）、web/sw.js（build_web）
+
+**驗證**
+- pytest 全綠（含 test_describe 26 項、runner list 測試）；run_mpy_golden 169/169（最大差 1.25e-16）、錯誤案例 60/60、self-test 8 項 OK；check_worker PASS；node --test 156 pass／0 fail；check_portable、check_shell 通過；mutate 24/24 killed（新增的 (n+1)p 被擋下），跑完 git 乾淨
+
+**問題與修正**
+- test_stats.test_golden 原寫死 stats 案例 15 筆，加入 describe 後失敗，改成排除 describe（由 test_describe 負責）；test_golden_file 的型別斷言改為允許 modes 為 list
+- 第一次呼叫 mutate 時外面包了 timeout 900，幸好 mutate 自己在 900 秒內跑完；之後不要再包 timeout
+- 未做嚴格 RED 先行：describe.py 先寫、再寫測試；測試以突變（QUARTILE 位置）驗證有效性
+
+**待辦**
+- D3 統計頁 UI 完成後移除 test_web_sheets 對 stats/describe 的路由豁免
