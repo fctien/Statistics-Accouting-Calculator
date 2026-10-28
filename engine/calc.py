@@ -158,11 +158,6 @@ def _power(a, b, pos):
     return _fin(r, pos)
 
 
-def _to_rad(x, angle):
-    """依角度模式把輸入轉成弧度（radian）。"""
-    return x * math.pi / 180.0 if angle == "DEG" else x
-
-
 def _from_rad(r, angle):
     """依角度模式把弧度結果轉回輸出單位。"""
     return r * 180.0 / math.pi if angle == "DEG" else r
@@ -176,6 +171,42 @@ def _snap(r, arg_rad):
     if abs(r) < _SNAP and abs(arg_rad) > 1e-6:
         return 0.0
     return r
+
+
+def _trig(name, x, angle, pos):
+    """sin／cos／tan：先做引數縮減（argument reduction）再換算，避免大角度誤差。
+
+    DEG：先對 360 取餘並正規化到 (-180, 180]（度），90 的整數倍直接查表（精確值）；
+    RAD：對 2π 取餘並正規化到 (-π, π]。小角度不受影響。
+    """
+    if angle == "DEG":
+        r = math.fmod(x, 360.0)
+        if r > 180.0:
+            r -= 360.0
+        elif r <= -180.0:
+            r += 360.0
+        if r % 90.0 == 0:  # 精確的 90 度倍數
+            k = int(r // 90.0) % 4  # 0,90,180,270 度
+            if name == "tan":
+                if k in (1, 3):
+                    raise _CalcError("tan 在此角度未定義", pos)
+                return 0.0
+            table = (0.0, 1.0, 0.0, -1.0) if name == "sin"                 else (1.0, 0.0, -1.0, 0.0)
+            return table[k]
+        rad = r * math.pi / 180.0
+    else:
+        two_pi = 2.0 * math.pi
+        rad = math.fmod(x, two_pi)
+        if rad > math.pi:
+            rad -= two_pi
+        elif rad <= -math.pi:
+            rad += two_pi
+    if name == "tan":
+        if abs(math.cos(rad)) < _TAN_EPS:
+            raise _CalcError("tan 在此角度未定義", pos)
+        return _snap(math.tan(rad), rad)
+    fn = math.sin if name == "sin" else math.cos
+    return _snap(fn(rad), rad)
 
 
 def _cbrt(x):
@@ -198,13 +229,7 @@ def _call_raw(name, args, pos, angle="DEG"):
         return _comb(args[0], args[1], pos)
     x = args[0]
     if name in ("sin", "cos", "tan"):
-        rad = _to_rad(x, angle)
-        if name == "tan":
-            if abs(math.cos(rad)) < _TAN_EPS:
-                raise _CalcError("tan 在此角度未定義", pos)
-            return _snap(math.tan(rad), rad)
-        fn = math.sin if name == "sin" else math.cos
-        return _snap(fn(rad), rad)
+        return _trig(name, x, angle, pos)
     if name in ("asin", "acos"):
         if x < -1 or x > 1:
             raise _CalcError("%s 的引數須在 -1 到 1 之間" % name, pos)

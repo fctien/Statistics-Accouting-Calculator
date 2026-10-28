@@ -157,3 +157,25 @@ def test_bad_angle():
 
 def test_chain_mode_scientific():
     assert abs(_v("sin(30)+1", mode="CHAIN") - 1.5) < 1e-12
+
+
+def test_large_angle_reduction():
+    assert _v("sin(360*1000000)") == 0.0
+    assert _v("sin(180*1000000)") == 0.0
+    assert _v("cos(90+360*1000000)") == 0.0
+    assert _v("cos(360*1000000)") == 1.0
+    assert abs(_v("tan(45+360*1000000)") - 1.0) < 1e-9
+    assert abs(_v("sin(30+360*1000000)") - 0.5) < 1e-9
+    assert abs(_v("sin(-30)") + 0.5) < 1e-12
+    assert _v("sin(-180)") == 0.0
+    r = evaluate("tan(90+360*1000000)")
+    assert r["ok"] is False and "tan 在此角度未定義" in r["error"]
+    assert evaluate("tan(-90)")["ok"] is False
+    assert _v("tan(180*1000000)") == 0.0
+
+
+def test_small_angle_kept_and_rad_reduction():
+    assert _v("sin(1e-12)", angle="RAD") == pytest.approx(1e-12, rel=1e-9)
+    assert _v("sin(-1e-12)") != 0.0
+    assert abs(_v("sin(1+2*pi)", angle="RAD") - 0.8414709848078965) < 1e-12
+    assert abs(_v("sin(1+2*pi*1000)", angle="RAD") - 0.8414709848078965) < 1e-9
