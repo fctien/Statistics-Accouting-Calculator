@@ -1420,3 +1420,8 @@
 
 **待辦**
 - 瀏覽器未另外實測 STAT 改 EXP 後預測被擋（僅以 staleBlock 單元測試覆蓋）
+
+**A0 追加（CI pytest 修正）**
+- 需求：GitHub Actions（Linux，只裝 pytest）上 `test_visual_pages_found_in_real_deck` 因缺 python-pptx 失敗
+- 做法：該測試開頭加 `pytest.importorskip("pptx")`；其餘讀 pptx／deck_kit 的測試本來就會跳過
+- 驗證：--no-tags 乾淨 clone＋假 pptx（ImportError）＋DECK_KIT 不存在 → 修前 1 failed 326 passed，修後 0 failed 326 passed 22 skipped；暫存 clone 已刪
