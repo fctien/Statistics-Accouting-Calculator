@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  SHEETS, SHEET_ORDER, PRIMARY_SHEETS, KINDS, fieldMap, sendFields, fieldForKey,
+  SHEETS, SHEET_ORDER, KINDS, fieldMap, sendFields, fieldForKey,
   staleBlock, staleAfterSuccess, staleAfterEdit,
 } from "../../web/js/sheets.js";
 
@@ -13,11 +13,9 @@ const REQUIRED_SHEETS = [
   "business-breakeven", "business-pct", "tax", "date", "calc", "settings",
 ];
 
-test("所有規定的工作表都存在，順序表與主要分頁一致", () => {
+test("所有規定的工作表都存在，順序表一致", () => {
   assert.deepEqual([...SHEET_ORDER].sort(), [...REQUIRED_SHEETS].sort());
   assert.deepEqual(Object.keys(SHEETS).sort(), [...REQUIRED_SHEETS].sort());
-  assert.equal(PRIMARY_SHEETS.length, 5);
-  for (const id of PRIMARY_SHEETS) assert.ok(id in SHEETS, id);
 });
 
 test("路由（hash）唯一且為小寫英數", () => {

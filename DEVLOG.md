@@ -1696,3 +1696,31 @@
 
 **待辦**
 - D3 統計頁 UI 完成後移除 test_web_sheets 對 infer 的路由豁免
+
+## 2026-10-28 D1 三大頁面導覽（工程｜統計｜會計）
+
+**需求**
+- 導覽改成頂層三大頁（工程／統計／會計）＋共用設定；舊網址與記住的上次工作表自動導向；D2／D3 未完成畫面先顯示「即將推出」；不動 engine
+
+**做法**
+- 新增 web/js/pages.js（純函式）：PAGES、舊網址對照 LEGACY_ROUTES、parseHash／resolveHash；網址 #<頁>/<項目>、#settings
+- nav.js 重寫：頁首三大頁 tablist（桌面在頂端、手機固定底部）、桌面左側子選單、手機橫向捲動 chip 列、頁首右側設定入口；方向鍵移動焦點、Enter 開啟（手動啟用）
+- 舊網址與未知網址用 replaceState 改寫；記憶改存 bacalc.lastRoute，仍讀舊的 bacalc.lastSheet（工作表 id）
+- app.js：sheetId 為 null 時掛「即將推出」，不呼叫引擎；移除不再使用的 PRIMARY_SHEETS、sheetByRoute
+- 先寫 tests/js/pages.test.mjs 再實作
+
+**產出**
+- web/js/pages.js、web/js/views/nav.js、web/js/app.js、web/index.html、web/css/app.css、web/js/sheets.js、web/sw.js（APP_SHELL 加 pages.js、SHELL_HASH 更新）、tests/js/pages.test.mjs、tests/js/sheets.test.mjs
+
+**驗證**
+- node 165 項全過；pytest 全過；build_web、check_shell 通過
+- 瀏覽器（桌面 1200 與 375px）：#tvm→#acct/tvm、#stat→#stat/reg、#cf、#profit、#pct 都導向且 history 沒多出一筆；無 hash 時由舊記憶 cashflow 還原成 #acct/cf；情境儲存後改值再載入，欄位還原；商業四個分頁切換時網址與子選單跟著變；方向鍵在三大頁間移動焦點；手機 scrollWidth＝clientWidth（沒有橫向捲動）；設定頁隱藏子選單、上一頁可回
+
+**問題與修正**
+- 第一次載入仍是舊畫面：Service Worker／HTTP 快取，清除 SW 與 caches 並 reload 後正常
+- 手機 chip 列目前項目被捲出畫面：markCurrent 加 scrollIntoView（inline center）
+- 點頁籤一律進該頁第一項（不記每頁最後位置）
+
+**待辦**
+- D2 工程畫面（units、base）與 D3 統計畫面（desc、dist、infer）完成後，在 pages.js 填入 sheet 並移除 test_sheet_actions_cover_bridge_routes 豁免
+- 無障礙：目前是手動啟用（方向鍵只移焦點），未做 roving tabindex

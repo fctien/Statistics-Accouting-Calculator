@@ -101,9 +101,32 @@ function setHeading(sheetId) {
   document.title = `${sheet.title}｜BACalc 財務計算機`;
 }
 
-function mountSheet(sheetId, { initial }) {
+/** 尚未完成的畫面（D2／D3）：只顯示「即將推出」，不呼叫任何引擎路由。 */
+function mountPlaceholder(container, info) {
+  document.getElementById("sheet-title").textContent = info.title;
+  document.getElementById("sheet-intro").textContent = "";
+  document.title = `${info.title}｜BACalc 財務計算機`;
+  const box = document.createElement("div");
+  box.className = "coming-soon";
+  box.setAttribute("role", "status");
+  const h = document.createElement("p");
+  h.className = "coming-soon-title";
+  h.textContent = "即將推出";
+  const t = document.createElement("p");
+  t.textContent = `「${info.title}」還在製作中，完成後會出現在這裡。`;
+  box.append(h, t);
+  container.replaceChildren(box);
+}
+
+function mountSheet(sheetId, info) {
+  const { initial } = info;
   const title = document.getElementById("sheet-title");
   const container = document.getElementById("sheet");
+  if (!sheetId) {
+    mountPlaceholder(container, info);
+    if (!initial) title.focus();
+    return;
+  }
   setHeading(sheetId);
   const view = VIEWS[sheetId];
   if (view) {
@@ -151,8 +174,9 @@ function onAppShell() {
   settingsStore.applyTheme();
   initQuickDecimals();
   initNav({
+    pageTabs: document.getElementById("page-tabs"),
     sidebar: document.getElementById("side-nav"),
-    tabbar: document.getElementById("tab-bar"),
+    subnav: document.getElementById("sub-nav"),
     onChange: mountSheet,
   });
 }

@@ -438,15 +438,12 @@ export const TAX_PRESETS = {
   },
 };
 
-/** 側邊選單的順序（全部工作表）。 */
+/** 全部工作表（順序僅供測試與資料遍歷；導覽結構見 pages.js）。 */
 export const SHEET_ORDER = [
   "tvm", "amort", "cashflow", "iconv", "bond", "depr", "stats",
   "business-profit", "business-breakeven", "business-pct", "tax", "date",
   "calc", "settings",
 ];
-
-/** 手機底部分頁列的 5 個主要工作表（其餘放「更多」）。 */
-export const PRIMARY_SHEETS = ["tvm", "cashflow", "amort", "bond", "calc"];
 
 /** {欄位 id: 欄位定義}。 */
 export function fieldMap(sheetId) {
@@ -498,11 +495,6 @@ export function staleAfterEdit(staleIds, editedId) {
 /** 主要動作（Enter 觸發）。 */
 export function primaryAction(sheetId) {
   return SHEETS[sheetId].actions.find((a) => a.primary);
-}
-
-/** 由 hash 路由找工作表 id；找不到回傳 null。 */
-export function sheetByRoute(route) {
-  return SHEET_ORDER.find((id) => SHEETS[id].route === route) || null;
 }
 
 /** 在欄位清單中依序找：引擎鍵（key ?? id）→ 回傳鍵 out → id → 別名 → 不分大小寫。 */

@@ -18,21 +18,24 @@
   <a class="skip-link" href="#sheet-title">跳到工作表</a>
   <header class="app-header">
     <h1 class="app-title">BACalc 財務計算機</h1>
+    <nav id="page-tabs" class="page-tabs" aria-label="主要頁面"></nav>
     <label class="quick-dec" for="quick-decimals" title="結果顯示的小數位數（與「設定」同步）">小數
       <select id="quick-decimals" class="control"></select></label>
+    <a id="settings-link" class="settings-link" href="#settings" data-route="settings"
+       aria-label="設定" title="設定">&#9881;<span class="settings-text"> 設定</span></a>
     <span id="py-status" class="pill pill-loading" role="status"
           aria-live="polite" title="Python 引擎載入中">載入中</span>
   </header>
   <div class="layout">
-    <nav id="side-nav" class="side-nav" aria-label="全部工作表"></nav>
+    <nav id="side-nav" class="side-nav" aria-label="該頁功能"></nav>
     <main id="app">
+      <nav id="sub-nav" class="sub-nav" aria-label="該頁功能"></nav>
       <h2 id="sheet-title" class="sheet-title" tabindex="-1"></h2>
       <p id="sheet-intro" class="sheet-intro"></p>
       <div id="sheet"></div>
       <div id="scenario-bar"></div>
     </main>
   </div>
-  <nav id="tab-bar" class="tab-bar" aria-label="主要工作表"></nav>
   <noscript><p class="noscript">本程式需要啟用 JavaScript。</p></noscript>
 </body>
 </html>
