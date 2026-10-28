@@ -53,6 +53,35 @@ settings（皆可省略）：
                            cdf 另含 right（右尾 P(X>x)）；inv 另含 right（P(X>x)=PROB 的 x）；
                            常態與 t 另含 two（cdf：雙尾機率；inv：雙尾上側臨界值）；
                            卡方 inv 含 right；0 < PROB < 1
+    infer / ci_mean_z      MEAN, SIGMA(>0), N（整數 >= 1）, CONF（0 < CONF < 1）
+                           回傳 z_crit, se, margin, lower, upper
+    infer / ci_mean_t      X（原始資料，n >= 2）或 MEAN, SX(>0), N（整數 >= 2）
+                           擇一, CONF
+                           回傳 n, mean, sx, df, t_crit, se, margin, lower, upper
+    infer / ci_prop        X（成功數，整數 0..N）, N（整數 >= 1）, CONF
+                           回傳 p_hat, se, z_crit, method("Wald"), margin, lower, upper,
+                           wilson_method("Wilson"), wilson_center, wilson_margin,
+                           wilson_lower, wilson_upper；X 或 N−X < 5 時 warning
+    infer / t1             X（n >= 2）, MU0, TAILS(1|2，預設 2),
+                           ALT(less|greater，TAILS=1 必填),
+                           ALPHA（預設 0.05，0 < ALPHA < 1）
+    infer / t2             X, Y（各 n >= 2，可不等長）, EQUAL_VAR(bool；true＝合併變異數，
+                           預設 false＝Welch), TAILS, ALT, ALPHA；
+                           ALT 指 mean(X) 相對 mean(Y)
+    infer / tpaired        X, Y（等長，n >= 2；差值 d = X − Y）, TAILS, ALT, ALPHA
+    infer / chi_gof        OBS（>= 0，至少 2 格）, EXP（期望次數 > 0）或 PROBS（機率 > 0，
+                           總和 1±1e-9）擇一，皆省略＝均等, ALPHA
+    infer / chi_ind        TABLE（[[...], ...]，r、c >= 2，>= 0；
+                           列／行總和不可為 0）, ALPHA
+                           檢定回傳 t 或 chi2、df（Welch 為非整數）、p、alpha、
+                           reject(bool)、
+                           conclusion（「在 α=0.05 下拒絕 H0」／「…不拒絕 H0」）；
+                           t2 另含 n_x, n_y, mean_x, mean_y, diff, sx, sy, se,
+                           method(pooled|Welch)
+                           （pooled 另含 sp）；t1 另含 n, mean, sx, se, mu0；tpaired 另含
+                           n, mean_diff, sd, se；卡方另含 expected
+                           （gof 為 list、ind 為表）；
+                           期望次數 < 5 的格數 > 20% 時 warning
 
 留一格空白規則（leave-one-blank）：
     tvm、date、breakeven、pct_change：可求解欄位中恰有一格 null 才求解，否則報錯。
@@ -67,7 +96,8 @@ settings（皆可省略）：
 import json
 
 from engine import (amort, base, bond, business, calc, cashflow, dates, depr,
-                    describe, dist, iconv, stats, tvm, units)
+                    describe, dist, iconv, infer, stats, tvm,
+                    units)
 from engine.fmt import format_number
 from engine.result import _all_finite, err, is_finite
 
@@ -451,6 +481,53 @@ def _r_poisson(inp, st):
                         _num(inp, "LAMBDA", True), _int(inp, "K", True))
 
 
+def _t_opts(inp):
+    """t 檢定共用：TAILS、ALT、ALPHA。"""
+    return {"tails": _int(inp, "TAILS"),
+            "alt": _str(inp, "ALT", ("less", "greater")),
+            "alpha": _num(inp, "ALPHA")}
+
+
+def _r_ci_mean_z(inp, st):
+    return infer.ci_mean_z(_num(inp, "MEAN", True), _num(inp, "SIGMA", True),
+                           _int(inp, "N", True), _num(inp, "CONF", True))
+
+
+def _r_ci_mean_t(inp, st):
+    return infer.ci_mean_t(_num_list(inp, "X", False), _num(inp, "MEAN"),
+                           _num(inp, "SX"), _int(inp, "N"),
+                           _num(inp, "CONF", True))
+
+
+def _r_ci_prop(inp, st):
+    return infer.ci_prop(_int(inp, "X", True), _int(inp, "N", True),
+                         _num(inp, "CONF", True))
+
+
+def _r_t1(inp, st):
+    return infer.t1(_num_list(inp, "X"), _num(inp, "MU0", True),
+                    **_t_opts(inp))
+
+
+def _r_t2(inp, st):
+    return infer.t2(_num_list(inp, "X"), _num_list(inp, "Y"),
+                    _bool(inp, "EQUAL_VAR"), **_t_opts(inp))
+
+
+def _r_tpaired(inp, st):
+    return infer.tpaired(_num_list(inp, "X"), _num_list(inp, "Y"),
+                         **_t_opts(inp))
+
+
+def _r_chi_gof(inp, st):
+    return infer.chi_gof(_num_list(inp, "OBS"), _num_list(inp, "EXP", False),
+                         _num_list(inp, "PROBS", False), _num(inp, "ALPHA"))
+
+
+def _r_chi_ind(inp, st):
+    return infer.chi_ind(inp.get("TABLE"), _num(inp, "ALPHA"))
+
+
 ROUTES = {
     ("tvm", "solve"): _r_tvm,
     ("amort", "range"): _r_amort_range,
@@ -486,6 +563,14 @@ ROUTES = {
     ("dist", "chi2"): _r_chi2,
     ("dist", "binom"): _r_binom,
     ("dist", "poisson"): _r_poisson,
+    ("infer", "ci_mean_z"): _r_ci_mean_z,
+    ("infer", "ci_mean_t"): _r_ci_mean_t,
+    ("infer", "ci_prop"): _r_ci_prop,
+    ("infer", "t1"): _r_t1,
+    ("infer", "t2"): _r_t2,
+    ("infer", "tpaired"): _r_tpaired,
+    ("infer", "chi_gof"): _r_chi_gof,
+    ("infer", "chi_ind"): _r_chi_ind,
 }
 
 # 值為字串、display 直接等於字串本身的路由（不經 format_number 加千分位）

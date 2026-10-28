@@ -120,6 +120,18 @@ CASES = [
     ("dist_binom_p_out", None, _req("dist", "binom", {"FUNC": "pmf", "N": 10, "P": 1.5, "K": 2})),
     ("dist_poisson_lambda_zero", None, _req("dist", "poisson", {"FUNC": "pmf", "LAMBDA": 0, "K": 1})),
     ("dist_t_inv_out_of_range", None, _req("dist", "t", {"FUNC": "inv", "DF": 0.01, "PROB": 1e-10})),
+    ("infer_t1_n1", None, _req("infer", "t1", {"X": [5], "MU0": 1})),
+    ("infer_t1_sx_zero", None, _req("infer", "t1", {"X": [3, 3, 3], "MU0": 1})),
+    ("infer_t2_pooled_zero_var", None, _req("infer", "t2", {"X": [2, 2, 2], "Y": [5, 5], "EQUAL_VAR": True})),
+    ("infer_tpaired_length", None, _req("infer", "tpaired", {"X": [2, 3, 4], "Y": [1, 2]})),
+    ("infer_tails_bad", None, _req("infer", "t1", {"X": [1, 2, 4], "MU0": 1, "TAILS": 3})),
+    ("infer_alt_missing", None, _req("infer", "t2", {"X": [1, 2, 4], "Y": [3, 5], "TAILS": 1})),
+    ("infer_alpha_bad", None, _req("infer", "t1", {"X": [1, 2, 4], "MU0": 1, "ALPHA": 1.5})),
+    ("infer_ci_t_both_inputs", None, _req("infer", "ci_mean_t", {"X": [1, 2, 4], "MEAN": 2, "CONF": 0.95})),
+    ("infer_ci_prop_x_gt_n", None, _req("infer", "ci_prop", {"X": 11, "N": 10, "CONF": 0.95})),
+    ("infer_gof_probs_sum", None, _req("infer", "chi_gof", {"OBS": [1, 2, 3], "PROBS": [0.5, 0.3, 0.3]})),
+    ("infer_ind_zero_row", None, _req("infer", "chi_ind", {"TABLE": [[0, 0], [3, 4]]})),
+    ("infer_ind_ragged", None, _req("infer", "chi_ind", {"TABLE": [[1, 2, 3], [4, 5]]})),
 ]
 
 

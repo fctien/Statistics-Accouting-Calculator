@@ -5489,5 +5489,2846 @@
   "expected": 4.626179470195847e-19,
   "source": "Excel 16: =GAMMA.DIST(100,201,1,TRUE)",
   "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_a_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": 50,
+    "SIGMA": 8,
+    "N": 36,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 2.6132853127200715,
+  "source": "Excel 16: =CONFIDENCE.NORM(0.05,8,36)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_a_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": 50,
+    "SIGMA": 8,
+    "N": 36,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 47.38671468727993,
+  "source": "Excel 16: =50-CONFIDENCE.NORM(0.05,8,36)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_a_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": 50,
+    "SIGMA": 8,
+    "N": 36,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 52.61328531272007,
+  "source": "Excel 16: =50+CONFIDENCE.NORM(0.05,8,36)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_b_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": 102.5,
+    "SIGMA": 15,
+    "N": 10,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 7.8022258181333575,
+  "source": "Excel 16: =CONFIDENCE.NORM(0.1,15,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_b_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": 102.5,
+    "SIGMA": 15,
+    "N": 10,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 94.69777418186665,
+  "source": "Excel 16: =102.5-CONFIDENCE.NORM(0.1,15,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_b_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": 102.5,
+    "SIGMA": 15,
+    "N": 10,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 110.30222581813335,
+  "source": "Excel 16: =102.5+CONFIDENCE.NORM(0.1,15,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_c_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": -3.2,
+    "SIGMA": 1.1,
+    "N": 4,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 1.416706116951895,
+  "source": "Excel 16: =CONFIDENCE.NORM(0.01,1.1,4)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_c_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": -3.2,
+    "SIGMA": 1.1,
+    "N": 4,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": -4.616706116951895,
+  "source": "Excel 16: =-3.2-CONFIDENCE.NORM(0.01,1.1,4)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ciz_c_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_z",
+   "inputs": {
+    "MEAN": -3.2,
+    "SIGMA": 1.1,
+    "N": 4,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": -1.783293883048105,
+  "source": "Excel 16: =-3.2+CONFIDENCE.NORM(0.01,1.1,4)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_a_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 0.27456274093260047,
+  "source": "Excel 16: =CONFIDENCE.T(0.05,STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}),COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_a_tcrit",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "t_crit",
+  "expected": 2.364624251592785,
+  "source": "Excel 16: =T.INV.2T(0.05,7)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_a_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 11.9504372590674,
+  "source": "Excel 16: =AVERAGE({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})-CONFIDENCE.T(0.05,STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}),COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_a_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 12.4995627409326,
+  "source": "Excel 16: =AVERAGE({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})+CONFIDENCE.T(0.05,STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}),COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_b_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 0.9386440388022229,
+  "source": "Excel 16: =CONFIDENCE.T(0.1,STDEV.S({5.2,4.8,5.9}),COUNT({5.2,4.8,5.9}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_b_tcrit",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "t_crit",
+  "expected": 2.919985580353727,
+  "source": "Excel 16: =T.INV.2T(0.1,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_b_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 4.361355961197777,
+  "source": "Excel 16: =AVERAGE({5.2,4.8,5.9})-CONFIDENCE.T(0.1,STDEV.S({5.2,4.8,5.9}),COUNT({5.2,4.8,5.9}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_b_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 6.238644038802223,
+  "source": "Excel 16: =AVERAGE({5.2,4.8,5.9})+CONFIDENCE.T(0.1,STDEV.S({5.2,4.8,5.9}),COUNT({5.2,4.8,5.9}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_c_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 4.242047729568473,
+  "source": "Excel 16: =CONFIDENCE.T(0.01,STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96}),COUNT({102,98,110,95,105,99,101,108,97,104,100,96}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_c_tcrit",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "t_crit",
+  "expected": 3.105806515539281,
+  "source": "Excel 16: =T.INV.2T(0.01,11)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_c_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 97.00795227043153,
+  "source": "Excel 16: =AVERAGE({102,98,110,95,105,99,101,108,97,104,100,96})-CONFIDENCE.T(0.01,STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96}),COUNT({102,98,110,95,105,99,101,108,97,104,100,96}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_c_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MEAN": null,
+    "SX": null,
+    "N": null,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 105.49204772956847,
+  "source": "Excel 16: =AVERAGE({102,98,110,95,105,99,101,108,97,104,100,96})+CONFIDENCE.T(0.01,STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96}),COUNT({102,98,110,95,105,99,101,108,97,104,100,96}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_sum_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": null,
+    "MEAN": 250,
+    "SX": 12.5,
+    "N": 15,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 9.60771861208066,
+  "source": "Excel 16: =CONFIDENCE.T(0.01,12.5,15)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cit_sum_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_mean_t",
+   "inputs": {
+    "X": null,
+    "MEAN": 250,
+    "SX": 12.5,
+    "N": 15,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 259.60771861208065,
+  "source": "Excel 16: =250+CONFIDENCE.T(0.01,12.5,15)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_a_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 45,
+    "N": 100,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 0.09750697708993934,
+  "source": "Excel 16: =NORM.S.INV(1-0.05/2)*SQRT((45/100)*(1-(45/100))/100)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_a_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 45,
+    "N": 100,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 0.3524930229100607,
+  "source": "Excel 16: =(45/100)-NORM.S.INV(1-0.05/2)*SQRT((45/100)*(1-(45/100))/100)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_a_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 45,
+    "N": 100,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 0.5475069770899393,
+  "source": "Excel 16: =(45/100)+NORM.S.INV(1-0.05/2)*SQRT((45/100)*(1-(45/100))/100)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_a_wilson_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 45,
+    "N": 100,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "wilson_lower",
+  "expected": 0.3561453797951198,
+  "source": "定義值：=(((45/100)+NORM.S.INV(1-0.05/2)^2/(2*100))-NORM.S.INV(1-0.05/2)*SQRT((45/100)*(1-(45/100))/100+NORM.S.INV(1-0.05/2)^2/(4*100^2)))/(1+NORM.S.INV(1-0.05/2)^2/100)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_a_wilson_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 45,
+    "N": 100,
+    "CONF": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "wilson_upper",
+  "expected": 0.5475539700255786,
+  "source": "定義值：=(((45/100)+NORM.S.INV(1-0.05/2)^2/(2*100))+NORM.S.INV(1-0.05/2)*SQRT((45/100)*(1-(45/100))/100+NORM.S.INV(1-0.05/2)^2/(4*100^2)))/(1+NORM.S.INV(1-0.05/2)^2/100)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_b_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 8,
+    "N": 20,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 0.18018468705510168,
+  "source": "Excel 16: =NORM.S.INV(1-0.1/2)*SQRT((8/20)*(1-(8/20))/20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_b_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 8,
+    "N": 20,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 0.21981531294489834,
+  "source": "Excel 16: =(8/20)-NORM.S.INV(1-0.1/2)*SQRT((8/20)*(1-(8/20))/20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_b_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 8,
+    "N": 20,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 0.5801846870551017,
+  "source": "Excel 16: =(8/20)+NORM.S.INV(1-0.1/2)*SQRT((8/20)*(1-(8/20))/20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_b_wilson_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 8,
+    "N": 20,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "wilson_lower",
+  "expected": 0.24238741776545167,
+  "source": "定義值：=(((8/20)+NORM.S.INV(1-0.1/2)^2/(2*20))-NORM.S.INV(1-0.1/2)*SQRT((8/20)*(1-(8/20))/20+NORM.S.INV(1-0.1/2)^2/(4*20^2)))/(1+NORM.S.INV(1-0.1/2)^2/20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_b_wilson_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 8,
+    "N": 20,
+    "CONF": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "wilson_upper",
+  "expected": 0.5814441497067413,
+  "source": "定義值：=(((8/20)+NORM.S.INV(1-0.1/2)^2/(2*20))+NORM.S.INV(1-0.1/2)*SQRT((8/20)*(1-(8/20))/20+NORM.S.INV(1-0.1/2)^2/(4*20^2)))/(1+NORM.S.INV(1-0.1/2)^2/20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_c_margin",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 520,
+    "N": 1000,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "margin",
+  "expected": 0.04069484232203013,
+  "source": "Excel 16: =NORM.S.INV(1-0.01/2)*SQRT((520/1000)*(1-(520/1000))/1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_c_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 520,
+    "N": 1000,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "lower",
+  "expected": 0.4793051576779699,
+  "source": "Excel 16: =(520/1000)-NORM.S.INV(1-0.01/2)*SQRT((520/1000)*(1-(520/1000))/1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_c_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 520,
+    "N": 1000,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "upper",
+  "expected": 0.5606948423220302,
+  "source": "Excel 16: =(520/1000)+NORM.S.INV(1-0.01/2)*SQRT((520/1000)*(1-(520/1000))/1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_c_wilson_lower",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 520,
+    "N": 1000,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "wilson_lower",
+  "expected": 0.4793074550950342,
+  "source": "定義值：=(((520/1000)+NORM.S.INV(1-0.01/2)^2/(2*1000))-NORM.S.INV(1-0.01/2)*SQRT((520/1000)*(1-(520/1000))/1000+NORM.S.INV(1-0.01/2)^2/(4*1000^2)))/(1+NORM.S.INV(1-0.01/2)^2/1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_cip_c_wilson_upper",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "ci_prop",
+   "inputs": {
+    "X": 520,
+    "N": 1000,
+    "CONF": 0.99
+   },
+   "settings": {}
+  },
+  "expect_key": "wilson_upper",
+  "expected": 0.5604288983088296,
+  "source": "定義值：=(((520/1000)+NORM.S.INV(1-0.01/2)^2/(2*1000))+NORM.S.INV(1-0.01/2)*SQRT((520/1000)*(1-(520/1000))/1000+NORM.S.INV(1-0.01/2)^2/(4*1000^2)))/(1+NORM.S.INV(1-0.01/2)^2/1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_a_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MU0": 12,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 1.937773693550724,
+  "source": "Excel 16: =(AVERAGE({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})-12)/(STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})/SQRT(COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_a_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MU0": 12,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.09384213884512431,
+  "source": "Excel 16: =T.DIST.2T(ABS((AVERAGE({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})-12)/(STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})/SQRT(COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})))),7)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_a_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MU0": 12,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.046921069422562155,
+  "source": "Excel 16: =T.DIST.RT((AVERAGE({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})-12)/(STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})/SQRT(COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}))),7)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_a_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     12.1,
+     11.8,
+     12.6,
+     12.3,
+     11.9,
+     12.4,
+     12.0,
+     12.7
+    ],
+    "MU0": 12,
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.9530789305774379,
+  "source": "Excel 16: =T.DIST((AVERAGE({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})-12)/(STDEV.S({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7})/SQRT(COUNT({12.1,11.8,12.6,12.3,11.9,12.4,12.0,12.7}))),7,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_b_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MU0": 5,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 0.9332565252573817,
+  "source": "Excel 16: =(AVERAGE({5.2,4.8,5.9})-5)/(STDEV.S({5.2,4.8,5.9})/SQRT(COUNT({5.2,4.8,5.9})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_b_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MU0": 5,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.44920894477410633,
+  "source": "Excel 16: =T.DIST.2T(ABS((AVERAGE({5.2,4.8,5.9})-5)/(STDEV.S({5.2,4.8,5.9})/SQRT(COUNT({5.2,4.8,5.9})))),2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_b_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MU0": 5,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.22460447238705317,
+  "source": "Excel 16: =T.DIST.RT((AVERAGE({5.2,4.8,5.9})-5)/(STDEV.S({5.2,4.8,5.9})/SQRT(COUNT({5.2,4.8,5.9}))),2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_b_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     5.2,
+     4.8,
+     5.9
+    ],
+    "MU0": 5,
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.7753955276129468,
+  "source": "Excel 16: =T.DIST((AVERAGE({5.2,4.8,5.9})-5)/(STDEV.S({5.2,4.8,5.9})/SQRT(COUNT({5.2,4.8,5.9}))),2,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_c_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MU0": 105,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": -2.74555478291544,
+  "source": "Excel 16: =(AVERAGE({102,98,110,95,105,99,101,108,97,104,100,96})-105)/(STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96})/SQRT(COUNT({102,98,110,95,105,99,101,108,97,104,100,96})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_c_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MU0": 105,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.019041396391651807,
+  "source": "Excel 16: =T.DIST.2T(ABS((AVERAGE({102,98,110,95,105,99,101,108,97,104,100,96})-105)/(STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96})/SQRT(COUNT({102,98,110,95,105,99,101,108,97,104,100,96})))),11)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_c_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MU0": 105,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.9904793018041741,
+  "source": "Excel 16: =T.DIST.RT((AVERAGE({102,98,110,95,105,99,101,108,97,104,100,96})-105)/(STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96})/SQRT(COUNT({102,98,110,95,105,99,101,108,97,104,100,96}))),11)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t1_c_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t1",
+   "inputs": {
+    "X": [
+     102,
+     98,
+     110,
+     95,
+     105,
+     99,
+     101,
+     108,
+     97,
+     104,
+     100,
+     96
+    ],
+    "MU0": 105,
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.009520698195825903,
+  "source": "Excel 16: =T.DIST((AVERAGE({102,98,110,95,105,99,101,108,97,104,100,96})-105)/(STDEV.S({102,98,110,95,105,99,101,108,97,104,100,96})/SQRT(COUNT({102,98,110,95,105,99,101,108,97,104,100,96}))),11,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_pooled_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 3.498097538739098,
+  "source": "Excel 16: =(AVERAGE({23,25,28,30,27,26,24})-AVERAGE({20,22,21,25,23,19}))/SQRT(((7-1)*VAR.S({23,25,28,30,27,26,24})+(6-1)*VAR.S({20,22,21,25,23,19}))/(7+6-2)*(1/7+1/6))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_pooled_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.004986961599351668,
+  "source": "Excel 16: =T.TEST({23,25,28,30,27,26,24},{20,22,21,25,23,19},2,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_welch_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 3.5302441010867933,
+  "source": "Excel 16: =(AVERAGE({23,25,28,30,27,26,24})-AVERAGE({20,22,21,25,23,19}))/SQRT(VAR.S({23,25,28,30,27,26,24})/7+VAR.S({20,22,21,25,23,19})/6)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_welch_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.004737140238314809,
+  "source": "Excel 16: =T.TEST({23,25,28,30,27,26,24},{20,22,21,25,23,19},2,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_welch_df",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "df",
+  "expected": 10.962211977547005,
+  "source": "定義值：=(VAR.S({23,25,28,30,27,26,24})/7+VAR.S({20,22,21,25,23,19})/6)^2/((VAR.S({23,25,28,30,27,26,24})/7)^2/(7-1)+(VAR.S({20,22,21,25,23,19})/6)^2/(6-1))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_pooled_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.002493480799675834,
+  "source": "Excel 16: =T.TEST({23,25,28,30,27,26,24},{20,22,21,25,23,19},1,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_welch_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "Y": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.0023685701191574044,
+  "source": "Excel 16: =T.TEST({23,25,28,30,27,26,24},{20,22,21,25,23,19},1,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_a_welch_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     20,
+     22,
+     21,
+     25,
+     23,
+     19
+    ],
+    "Y": [
+     23,
+     25,
+     28,
+     30,
+     27,
+     26,
+     24
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.0023685701191574044,
+  "source": "Excel 16: =T.TEST({20,22,21,25,23,19},{23,25,28,30,27,26,24},1,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_pooled_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 4.18126891131602,
+  "source": "Excel 16: =(AVERAGE({3.1,2.9,3.4})-AVERAGE({2.5,2.7,2.2,2.6,2.4}))/SQRT(((3-1)*VAR.S({3.1,2.9,3.4})+(5-1)*VAR.S({2.5,2.7,2.2,2.6,2.4}))/(3+5-2)*(1/3+1/5))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_pooled_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.005805297229085126,
+  "source": "Excel 16: =T.TEST({3.1,2.9,3.4},{2.5,2.7,2.2,2.6,2.4},2,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_welch_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 3.8692585001015316,
+  "source": "Excel 16: =(AVERAGE({3.1,2.9,3.4})-AVERAGE({2.5,2.7,2.2,2.6,2.4}))/SQRT(VAR.S({3.1,2.9,3.4})/3+VAR.S({2.5,2.7,2.2,2.6,2.4})/5)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_welch_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.023876057458473494,
+  "source": "Excel 16: =T.TEST({3.1,2.9,3.4},{2.5,2.7,2.2,2.6,2.4},2,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_welch_df",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "df",
+  "expected": 3.43671058187609,
+  "source": "定義值：=(VAR.S({3.1,2.9,3.4})/3+VAR.S({2.5,2.7,2.2,2.6,2.4})/5)^2/((VAR.S({3.1,2.9,3.4})/3)^2/(3-1)+(VAR.S({2.5,2.7,2.2,2.6,2.4})/5)^2/(5-1))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_pooled_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.002902648614542563,
+  "source": "Excel 16: =T.TEST({3.1,2.9,3.4},{2.5,2.7,2.2,2.6,2.4},1,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_welch_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "Y": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.011938028729236747,
+  "source": "Excel 16: =T.TEST({3.1,2.9,3.4},{2.5,2.7,2.2,2.6,2.4},1,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_b_welch_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     2.5,
+     2.7,
+     2.2,
+     2.6,
+     2.4
+    ],
+    "Y": [
+     3.1,
+     2.9,
+     3.4
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.011938028729236747,
+  "source": "Excel 16: =T.TEST({2.5,2.7,2.2,2.6,2.4},{3.1,2.9,3.4},1,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_pooled_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 1.919438970404387,
+  "source": "Excel 16: =(AVERAGE({85,90,78,92,88,76,95,89,84,91})-AVERAGE({80,70,95,60,88,75,92,66,85,79,90,71}))/SQRT(((10-1)*VAR.S({85,90,78,92,88,76,95,89,84,91})+(12-1)*VAR.S({80,70,95,60,88,75,92,66,85,79,90,71}))/(10+12-2)*(1/10+1/12))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_pooled_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.06930988819505063,
+  "source": "Excel 16: =T.TEST({85,90,78,92,88,76,95,89,84,91},{80,70,95,60,88,75,92,66,85,79,90,71},2,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_welch_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 2.0202671983711546,
+  "source": "Excel 16: =(AVERAGE({85,90,78,92,88,76,95,89,84,91})-AVERAGE({80,70,95,60,88,75,92,66,85,79,90,71}))/SQRT(VAR.S({85,90,78,92,88,76,95,89,84,91})/10+VAR.S({80,70,95,60,88,75,92,66,85,79,90,71})/12)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_welch_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.05886132283320087,
+  "source": "Excel 16: =T.TEST({85,90,78,92,88,76,95,89,84,91},{80,70,95,60,88,75,92,66,85,79,90,71},2,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_welch_df",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "df",
+  "expected": 17.579640088903936,
+  "source": "定義值：=(VAR.S({85,90,78,92,88,76,95,89,84,91})/10+VAR.S({80,70,95,60,88,75,92,66,85,79,90,71})/12)^2/((VAR.S({85,90,78,92,88,76,95,89,84,91})/10)^2/(10-1)+(VAR.S({80,70,95,60,88,75,92,66,85,79,90,71})/12)^2/(12-1))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_pooled_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": true,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.034654944097525314,
+  "source": "Excel 16: =T.TEST({85,90,78,92,88,76,95,89,84,91},{80,70,95,60,88,75,92,66,85,79,90,71},1,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_welch_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "Y": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.029430661416600435,
+  "source": "Excel 16: =T.TEST({85,90,78,92,88,76,95,89,84,91},{80,70,95,60,88,75,92,66,85,79,90,71},1,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_t2_c_welch_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "t2",
+   "inputs": {
+    "X": [
+     80,
+     70,
+     95,
+     60,
+     88,
+     75,
+     92,
+     66,
+     85,
+     79,
+     90,
+     71
+    ],
+    "Y": [
+     85,
+     90,
+     78,
+     92,
+     88,
+     76,
+     95,
+     89,
+     84,
+     91
+    ],
+    "EQUAL_VAR": false,
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.029430661416600435,
+  "source": "Excel 16: =T.TEST({80,70,95,60,88,75,92,66,85,79,90,71},{85,90,78,92,88,76,95,89,84,91},1,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_a_mean_diff",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     200,
+     210,
+     190,
+     220,
+     205,
+     215
+    ],
+    "Y": [
+     195,
+     200,
+     192,
+     210,
+     198,
+     207
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean_diff",
+  "expected": 6.333333333333314,
+  "source": "Excel 16: =AVERAGE({200,210,190,220,205,215})-AVERAGE({195,200,192,210,198,207})",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_a_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     200,
+     210,
+     190,
+     220,
+     205,
+     215
+    ],
+    "Y": [
+     195,
+     200,
+     192,
+     210,
+     198,
+     207
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 3.446012188022555,
+  "source": "Excel 16: =AVERAGE(({200,210,190,220,205,215}-{195,200,192,210,198,207}))/(STDEV.S(({200,210,190,220,205,215}-{195,200,192,210,198,207}))/SQRT(6))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_a_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     200,
+     210,
+     190,
+     220,
+     205,
+     215
+    ],
+    "Y": [
+     195,
+     200,
+     192,
+     210,
+     198,
+     207
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.01831620343449105,
+  "source": "Excel 16: =T.TEST({200,210,190,220,205,215},{195,200,192,210,198,207},2,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_a_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     200,
+     210,
+     190,
+     220,
+     205,
+     215
+    ],
+    "Y": [
+     195,
+     200,
+     192,
+     210,
+     198,
+     207
+    ],
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.009158101717245525,
+  "source": "Excel 16: =T.TEST({200,210,190,220,205,215},{195,200,192,210,198,207},1,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_b_mean_diff",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     1.5,
+     2.0,
+     1.8
+    ],
+    "Y": [
+     1.2,
+     1.9,
+     1.4
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean_diff",
+  "expected": 0.2666666666666666,
+  "source": "Excel 16: =AVERAGE({1.5,2.0,1.8})-AVERAGE({1.2,1.9,1.4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_b_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     1.5,
+     2.0,
+     1.8
+    ],
+    "Y": [
+     1.2,
+     1.9,
+     1.4
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": 3.0237157840738185,
+  "source": "Excel 16: =AVERAGE(({1.5,2.0,1.8}-{1.2,1.9,1.4}))/(STDEV.S(({1.5,2.0,1.8}-{1.2,1.9,1.4}))/SQRT(3))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_b_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     1.5,
+     2.0,
+     1.8
+    ],
+    "Y": [
+     1.2,
+     1.9,
+     1.4
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.09417837268432339,
+  "source": "Excel 16: =T.TEST({1.5,2.0,1.8},{1.2,1.9,1.4},2,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_b_greater",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     1.5,
+     2.0,
+     1.8
+    ],
+    "Y": [
+     1.2,
+     1.9,
+     1.4
+    ],
+    "TAILS": 1,
+    "ALT": "greater",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.04708918634216169,
+  "source": "Excel 16: =T.TEST({1.5,2.0,1.8},{1.2,1.9,1.4},1,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_c_mean_diff",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     60,
+     72,
+     55,
+     80,
+     68,
+     74,
+     62,
+     70
+    ],
+    "Y": [
+     65,
+     70,
+     60,
+     78,
+     72,
+     75,
+     66,
+     73
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean_diff",
+  "expected": -2.25,
+  "source": "Excel 16: =AVERAGE({60,72,55,80,68,74,62,70})-AVERAGE({65,70,60,78,72,75,66,73})",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_c_t",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     60,
+     72,
+     55,
+     80,
+     68,
+     74,
+     62,
+     70
+    ],
+    "Y": [
+     65,
+     70,
+     60,
+     78,
+     72,
+     75,
+     66,
+     73
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "t",
+  "expected": -2.182820625326997,
+  "source": "Excel 16: =AVERAGE(({60,72,55,80,68,74,62,70}-{65,70,60,78,72,75,66,73}))/(STDEV.S(({60,72,55,80,68,74,62,70}-{65,70,60,78,72,75,66,73}))/SQRT(8))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_c_p2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     60,
+     72,
+     55,
+     80,
+     68,
+     74,
+     62,
+     70
+    ],
+    "Y": [
+     65,
+     70,
+     60,
+     78,
+     72,
+     75,
+     66,
+     73
+    ],
+    "TAILS": 2,
+    "ALT": null,
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.06536793800277108,
+  "source": "Excel 16: =T.TEST({60,72,55,80,68,74,62,70},{65,70,60,78,72,75,66,73},2,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_tp_c_less",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     60,
+     72,
+     55,
+     80,
+     68,
+     74,
+     62,
+     70
+    ],
+    "Y": [
+     65,
+     70,
+     60,
+     78,
+     72,
+     75,
+     66,
+     73
+    ],
+    "TAILS": 1,
+    "ALT": "less",
+    "ALPHA": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.03268396900138554,
+  "source": "Excel 16: =T.TEST({60,72,55,80,68,74,62,70},{65,70,60,78,72,75,66,73},1,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_uniform_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     18,
+     22,
+     20,
+     25,
+     15
+    ],
+    "EXP": null,
+    "PROBS": null
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 2.9,
+  "source": "Excel 16: =SUMPRODUCT(({18,22,20,25,15}-(SUM({18,22,20,25,15})/5*{1,1,1,1,1}))^2/(SUM({18,22,20,25,15})/5*{1,1,1,1,1}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_uniform_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     18,
+     22,
+     20,
+     25,
+     15
+    ],
+    "EXP": null,
+    "PROBS": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.5746972058298041,
+  "source": "Excel 16: =CHISQ.TEST({18,22,20,25,15},(SUM({18,22,20,25,15})/5*{1,1,1,1,1}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_probs_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     45,
+     35,
+     20
+    ],
+    "EXP": null,
+    "PROBS": [
+     0.5,
+     0.3,
+     0.2
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 1.3333333333333335,
+  "source": "Excel 16: =SUMPRODUCT(({45,35,20}-(SUM({45,35,20})*{0.5,0.3,0.2}))^2/(SUM({45,35,20})*{0.5,0.3,0.2}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_probs_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     45,
+     35,
+     20
+    ],
+    "EXP": null,
+    "PROBS": [
+     0.5,
+     0.3,
+     0.2
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.513417119032592,
+  "source": "Excel 16: =CHISQ.TEST({45,35,20},(SUM({45,35,20})*{0.5,0.3,0.2}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_expected_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     8,
+     12,
+     3,
+     2
+    ],
+    "EXP": [
+     10,
+     10,
+     2.5,
+     2.5
+    ],
+    "PROBS": null
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 1.0,
+  "source": "Excel 16: =SUMPRODUCT(({8,12,3,2}-({10,10,2.5,2.5}))^2/({10,10,2.5,2.5}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_expected_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     8,
+     12,
+     3,
+     2
+    ],
+    "EXP": [
+     10,
+     10,
+     2.5,
+     2.5
+    ],
+    "PROBS": null
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.8012519569012009,
+  "source": "Excel 16: =CHISQ.TEST({8,12,3,2},({10,10,2.5,2.5}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_big_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     120,
+     60,
+     20
+    ],
+    "EXP": null,
+    "PROBS": [
+     0.25,
+     0.25,
+     0.5
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 164.0,
+  "source": "Excel 16: =SUMPRODUCT(({120,60,20}-(SUM({120,60,20})*{0.25,0.25,0.5}))^2/(SUM({120,60,20})*{0.25,0.25,0.5}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_gof_big_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     120,
+     60,
+     20
+    ],
+    "EXP": null,
+    "PROBS": [
+     0.25,
+     0.25,
+     0.5
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 2.4426007377405277e-36,
+  "source": "Excel 16: =CHISQ.TEST({120,60,20},(SUM({120,60,20})*{0.25,0.25,0.5}))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ind_a_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      30,
+      10
+     ],
+     [
+      20,
+      40
+     ]
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 16.666666666666668,
+  "source": "Excel 16: =SUMPRODUCT(({30,10;20,40}-(MMULT(MMULT({30,10;20,40},{1;1}),MMULT({1,1},{30,10;20,40}))/SUM({30,10;20,40})))^2/(MMULT(MMULT({30,10;20,40},{1;1}),MMULT({1,1},{30,10;20,40}))/SUM({30,10;20,40})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ind_a_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      30,
+      10
+     ],
+     [
+      20,
+      40
+     ]
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 4.4557090604056044e-05,
+  "source": "Excel 16: =CHISQ.TEST({30,10;20,40},(MMULT(MMULT({30,10;20,40},{1;1}),MMULT({1,1},{30,10;20,40}))/SUM({30,10;20,40})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ind_b_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      25,
+      30,
+      45
+     ],
+     [
+      35,
+      20,
+      15
+     ]
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 13.80238095238095,
+  "source": "Excel 16: =SUMPRODUCT(({25,30,45;35,20,15}-(MMULT(MMULT({25,30,45;35,20,15},{1;1;1}),MMULT({1,1},{25,30,45;35,20,15}))/SUM({25,30,45;35,20,15})))^2/(MMULT(MMULT({25,30,45;35,20,15},{1;1;1}),MMULT({1,1},{25,30,45;35,20,15}))/SUM({25,30,45;35,20,15})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ind_b_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      25,
+      30,
+      45
+     ],
+     [
+      35,
+      20,
+      15
+     ]
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.0010065863983404844,
+  "source": "Excel 16: =CHISQ.TEST({25,30,45;35,20,15},(MMULT(MMULT({25,30,45;35,20,15},{1;1;1}),MMULT({1,1},{25,30,45;35,20,15}))/SUM({25,30,45;35,20,15})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ind_c_chi2",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      10,
+      4,
+      6
+     ],
+     [
+      3,
+      8,
+      9
+     ],
+     [
+      2,
+      1,
+      3
+     ]
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "chi2",
+  "expected": 6.284700854700854,
+  "source": "Excel 16: =SUMPRODUCT(({10,4,6;3,8,9;2,1,3}-(MMULT(MMULT({10,4,6;3,8,9;2,1,3},{1;1;1}),MMULT({1,1,1},{10,4,6;3,8,9;2,1,3}))/SUM({10,4,6;3,8,9;2,1,3})))^2/(MMULT(MMULT({10,4,6;3,8,9;2,1,3},{1;1;1}),MMULT({1,1,1},{10,4,6;3,8,9;2,1,3}))/SUM({10,4,6;3,8,9;2,1,3})))",
+  "tol": 1e-09
+ },
+ {
+  "id": "infer_ind_c_p",
+  "sheet": "infer",
+  "call": {
+   "sheet": "infer",
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      10,
+      4,
+      6
+     ],
+     [
+      3,
+      8,
+      9
+     ],
+     [
+      2,
+      1,
+      3
+     ]
+    ]
+   },
+   "settings": {}
+  },
+  "expect_key": "p",
+  "expected": 0.17887159721563606,
+  "source": "Excel 16: =CHISQ.TEST({10,4,6;3,8,9;2,1,3},(MMULT(MMULT({10,4,6;3,8,9;2,1,3},{1;1;1}),MMULT({1,1,1},{10,4,6;3,8,9;2,1,3}))/SUM({10,4,6;3,8,9;2,1,3})))",
+  "tol": 1e-09
  }
 ]

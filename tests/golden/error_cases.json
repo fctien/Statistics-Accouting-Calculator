@@ -1888,5 +1888,279 @@
    "settings": {},
    "sheet": "dist"
   }
+ },
+ {
+  "expected": {
+   "error": "X 至少需要 2 筆資料（目前 n=1）",
+   "field": "X",
+   "ok": false
+  },
+  "id": "infer_t1_n1",
+  "request": {
+   "action": "t1",
+   "inputs": {
+    "MU0": 1,
+    "X": [
+     5
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "樣本標準差 Sx 為 0（所有值相同），t 統計量未定義",
+   "field": "X",
+   "ok": false
+  },
+  "id": "infer_t1_sx_zero",
+  "request": {
+   "action": "t1",
+   "inputs": {
+    "MU0": 1,
+    "X": [
+     3,
+     3,
+     3
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "合併標準差 Sp 為 0（所有值相同），t 統計量未定義",
+   "field": null,
+   "ok": false
+  },
+  "id": "infer_t2_pooled_zero_var",
+  "request": {
+   "action": "t2",
+   "inputs": {
+    "EQUAL_VAR": true,
+    "X": [
+     2,
+     2,
+     2
+    ],
+    "Y": [
+     5,
+     5
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "成對資料 X、Y 長度必須相同",
+   "field": "Y",
+   "ok": false
+  },
+  "id": "infer_tpaired_length",
+  "request": {
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     2,
+     3,
+     4
+    ],
+    "Y": [
+     1,
+     2
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "TAILS 必須是 1 或 2",
+   "field": "TAILS",
+   "ok": false
+  },
+  "id": "infer_tails_bad",
+  "request": {
+   "action": "t1",
+   "inputs": {
+    "MU0": 1,
+    "TAILS": 3,
+    "X": [
+     1,
+     2,
+     4
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "單尾檢定請指定 ALT（less 或 greater）",
+   "field": "ALT",
+   "ok": false
+  },
+  "id": "infer_alt_missing",
+  "request": {
+   "action": "t2",
+   "inputs": {
+    "TAILS": 1,
+    "X": [
+     1,
+     2,
+     4
+    ],
+    "Y": [
+     3,
+     5
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "ALPHA 必須介於 0 與 1 之間（不含 0、1）",
+   "field": "ALPHA",
+   "ok": false
+  },
+  "id": "infer_alpha_bad",
+  "request": {
+   "action": "t1",
+   "inputs": {
+    "ALPHA": 1.5,
+    "MU0": 1,
+    "X": [
+     1,
+     2,
+     4
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "X 與 MEAN／SX／N 只能擇一輸入",
+   "field": null,
+   "ok": false
+  },
+  "id": "infer_ci_t_both_inputs",
+  "request": {
+   "action": "ci_mean_t",
+   "inputs": {
+    "CONF": 0.95,
+    "MEAN": 2,
+    "X": [
+     1,
+     2,
+     4
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "X（成功數）不可大於 N",
+   "field": "X",
+   "ok": false
+  },
+  "id": "infer_ci_prop_x_gt_n",
+  "request": {
+   "action": "ci_prop",
+   "inputs": {
+    "CONF": 0.95,
+    "N": 10,
+    "X": 11
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "PROBS 總和必須為 1",
+   "field": "PROBS",
+   "ok": false
+  },
+  "id": "infer_gof_probs_sum",
+  "request": {
+   "action": "chi_gof",
+   "inputs": {
+    "OBS": [
+     1,
+     2,
+     3
+    ],
+    "PROBS": [
+     0.5,
+     0.3,
+     0.3
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "第 1 列總和為 0，無法檢定",
+   "field": "TABLE",
+   "ok": false
+  },
+  "id": "infer_ind_zero_row",
+  "request": {
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      0,
+      0
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "TABLE 每一列的欄數必須相同",
+   "field": "TABLE",
+   "ok": false
+  },
+  "id": "infer_ind_ragged",
+  "request": {
+   "action": "chi_ind",
+   "inputs": {
+    "TABLE": [
+     [
+      1,
+      2,
+      3
+     ],
+     [
+      4,
+      5
+     ]
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
  }
 ]

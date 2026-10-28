@@ -617,3 +617,244 @@ CASES += [
     _dist("pois_right_tiny", "poisson", _po("cdf", 100, 200),
           "=GAMMA.DIST(100,201,1,TRUE)", "right"),
 ]
+
+
+# ---- infer（信賴區間與檢定；Excel 公式）----
+# p 值：T.TEST（type 1 成對、2 合併變異數、3 Welch）、T.DIST.2T／T.DIST.RT／T.DIST、CHISQ.TEST；
+# 統計量 t、χ² 以 AVERAGE、STDEV.S、VAR.S、SUMPRODUCT 寫出定義式由 Excel 求值；
+# 獨立性的期望次數表以 MMULT(列總和, 行總和)/總數 在 Excel 內算出；
+# Welch 自由度、Wilson 區間無對應 Excel 函式，以公式定義值（defined=True）求值。
+def _inf(cid, action, inputs, formula, key, **extra):
+    """信賴區間／檢定案例：bridge infer/<動作>。"""
+    return _case("infer_" + cid, "infer", action, inputs, formula, key,
+                 **extra)
+
+
+def _arr2(rows):
+    """二維 list 轉 Excel 陣列常數，例如 {1,2;3,4}。"""
+    return "{" + ";".join(",".join(repr(x) for x in r) for r in rows) + "}"
+
+
+_T1_SETS = {   # 名稱: (資料, μ0)
+    "a": ([12.1, 11.8, 12.6, 12.3, 11.9, 12.4, 12.0, 12.7], 12),
+    "b": ([5.2, 4.8, 5.9], 5),                      # 小樣本 n=3
+    "c": ([102, 98, 110, 95, 105, 99, 101, 108, 97, 104, 100, 96], 105),
+}
+_T2_SETS = {   # 名稱: (X, Y)；皆為不等長
+    "a": ([23, 25, 28, 30, 27, 26, 24], [20, 22, 21, 25, 23, 19]),
+    "b": ([3.1, 2.9, 3.4], [2.5, 2.7, 2.2, 2.6, 2.4]),
+    "c": ([85, 90, 78, 92, 88, 76, 95, 89, 84, 91],
+          [80, 70, 95, 60, 88, 75, 92, 66, 85, 79, 90, 71]),
+}
+_TP_SETS = {   # 成對資料（等長）
+    "a": ([200, 210, 190, 220, 205, 215], [195, 200, 192, 210, 198, 207]),
+    "b": ([1.5, 2.0, 1.8], [1.2, 1.9, 1.4]),
+    "c": ([60, 72, 55, 80, 68, 74, 62, 70], [65, 70, 60, 78, 72, 75, 66, 73]),
+}
+
+
+def _t_args(tails=2, alt=None):
+    return {"TAILS": tails, "ALT": alt, "ALPHA": None}
+
+
+def _t1_cases():
+    out = []
+    for name, (xs, mu0) in _T1_SETS.items():
+        a, df = _arr(xs), len(xs) - 1
+        t = "(AVERAGE(%s)-%r)/(STDEV.S(%s)/SQRT(COUNT(%s)))" % (a, mu0, a, a)
+
+        def inp(tails=2, alt=None):
+            return dict({"X": list(xs), "MU0": mu0}, **_t_args(tails, alt))
+        out += [
+            _inf("t1_%s_t" % name, "t1", inp(), "=" + t, "t"),
+            _inf("t1_%s_p2" % name, "t1", inp(),
+                 "=T.DIST.2T(ABS(%s),%d)" % (t, df), "p"),
+            _inf("t1_%s_greater" % name, "t1", inp(1, "greater"),
+                 "=T.DIST.RT(%s,%d)" % (t, df), "p"),
+            _inf("t1_%s_less" % name, "t1", inp(1, "less"),
+                 "=T.DIST(%s,%d,TRUE)" % (t, df), "p"),
+        ]
+    return out
+
+
+def _t2_cases():
+    out = []
+    for name, (xs, ys) in _T2_SETS.items():
+        a, b, n1, n2 = _arr(xs), _arr(ys), len(xs), len(ys)
+        va, vb = "VAR.S(%s)" % a, "VAR.S(%s)" % b
+        diff = "(AVERAGE(%s)-AVERAGE(%s))" % (a, b)
+        pooled_t = "%s/SQRT(((%d-1)*%s+(%d-1)*%s)/(%d+%d-2)*(1/%d+1/%d))" % (
+            diff, n1, va, n2, vb, n1, n2, n1, n2)
+        welch_t = "%s/SQRT(%s/%d+%s/%d)" % (diff, va, n1, vb, n2)
+        welch_df = "(%s/%d+%s/%d)^2/((%s/%d)^2/(%d-1)+(%s/%d)^2/(%d-1))" % (
+            va, n1, vb, n2, va, n1, n1, vb, n2, n2)
+
+        def inp(eq, tails=2, alt=None):
+            return dict({"X": list(xs), "Y": list(ys), "EQUAL_VAR": eq},
+                        **_t_args(tails, alt))
+        out += [
+            _inf("t2_%s_pooled_t" % name, "t2", inp(True), "=" + pooled_t,
+                 "t"),
+            _inf("t2_%s_pooled_p2" % name, "t2", inp(True),
+                 "=T.TEST(%s,%s,2,2)" % (a, b), "p"),
+            _inf("t2_%s_welch_t" % name, "t2", inp(False), "=" + welch_t,
+                 "t"),
+            _inf("t2_%s_welch_p2" % name, "t2", inp(False),
+                 "=T.TEST(%s,%s,2,3)" % (a, b), "p"),
+            _inf("t2_%s_welch_df" % name, "t2", inp(False), "=" + welch_df,
+                 "df", defined=True),
+            # 三組的平均數皆為 X > Y：單尾 greater 對應 T.TEST(X,Y,1,type)
+            _inf("t2_%s_pooled_greater" % name, "t2", inp(True, 1, "greater"),
+                 "=T.TEST(%s,%s,1,2)" % (a, b), "p"),
+            _inf("t2_%s_welch_greater" % name, "t2", inp(False, 1, "greater"),
+                 "=T.TEST(%s,%s,1,3)" % (a, b), "p"),
+            # X、Y 對調後平均數 X < Y：單尾 less
+            _inf("t2_%s_welch_less" % name, "t2", dict(
+                {"X": list(ys), "Y": list(xs), "EQUAL_VAR": False},
+                **_t_args(1, "less")), "=T.TEST(%s,%s,1,3)" % (b, a), "p"),
+        ]
+    return out
+
+
+def _tp_cases():
+    out = []
+    for name, (xs, ys) in _TP_SETS.items():
+        a, b, n = _arr(xs), _arr(ys), len(xs)
+        d = "(%s-%s)" % (a, b)
+        alt = "greater" if sum(xs) > sum(ys) else "less"
+
+        def inp(tails=2, alt=None):
+            return dict({"X": list(xs), "Y": list(ys)}, **_t_args(tails, alt))
+        out += [
+            _inf("tp_%s_mean_diff" % name, "tpaired", inp(),
+                 "=AVERAGE(%s)-AVERAGE(%s)" % (a, b), "mean_diff"),
+            _inf("tp_%s_t" % name, "tpaired", inp(),
+                 "=AVERAGE(%s)/(STDEV.S(%s)/SQRT(%d))" % (d, d, n), "t"),
+            _inf("tp_%s_p2" % name, "tpaired", inp(),
+                 "=T.TEST(%s,%s,2,1)" % (a, b), "p"),
+            # 單尾方向與差值平均同號時，等於 T.TEST(...,1,1)
+            _inf("tp_%s_%s" % (name, alt), "tpaired", inp(1, alt),
+                 "=T.TEST(%s,%s,1,1)" % (a, b), "p"),
+        ]
+    return out
+
+
+_CIZ_SETS = (   # (名稱, 平均, σ, n, 信賴水準, α 字面)
+    ("a", 50, 8, 36, 0.95, "0.05"),
+    ("b", 102.5, 15, 10, 0.9, "0.1"),
+    ("c", -3.2, 1.1, 4, 0.99, "0.01"),     # 小樣本
+)
+_CIT_SETS = (   # (名稱, 資料, 信賴水準, α 字面)
+    ("a", _T1_SETS["a"][0], 0.95, "0.05"),
+    ("b", _T1_SETS["b"][0], 0.9, "0.1"),   # 小樣本 n=3
+    ("c", _T1_SETS["c"][0], 0.99, "0.01"),
+)
+_CIP_SETS = (   # (名稱, 成功數, n, 信賴水準, α 字面)
+    ("a", 45, 100, 0.95, "0.05"),
+    ("b", 8, 20, 0.9, "0.1"),              # 小樣本
+    ("c", 520, 1000, 0.99, "0.01"),
+)
+
+
+def _ci_cases():
+    out = []
+    for name, m, s, n, conf, al in _CIZ_SETS:
+        inp = {"MEAN": m, "SIGMA": s, "N": n, "CONF": conf}
+        mg = "CONFIDENCE.NORM(%s,%r,%d)" % (al, s, n)
+        out += [
+            _inf("ciz_%s_margin" % name, "ci_mean_z", inp, "=" + mg, "margin"),
+            _inf("ciz_%s_lower" % name, "ci_mean_z", inp,
+                 "=%r-%s" % (m, mg), "lower"),
+            _inf("ciz_%s_upper" % name, "ci_mean_z", inp,
+                 "=%r+%s" % (m, mg), "upper"),
+        ]
+    for name, xs, conf, al in _CIT_SETS:
+        a, n = _arr(xs), len(xs)
+        inp = {"X": list(xs), "MEAN": None, "SX": None, "N": None,
+               "CONF": conf}
+        mg = "CONFIDENCE.T(%s,STDEV.S(%s),COUNT(%s))" % (al, a, a)
+        out += [
+            _inf("cit_%s_margin" % name, "ci_mean_t", inp, "=" + mg, "margin"),
+            _inf("cit_%s_tcrit" % name, "ci_mean_t", inp,
+                 "=T.INV.2T(%s,%d)" % (al, n - 1), "t_crit"),
+            _inf("cit_%s_lower" % name, "ci_mean_t", inp,
+                 "=AVERAGE(%s)-%s" % (a, mg), "lower"),
+            _inf("cit_%s_upper" % name, "ci_mean_t", inp,
+                 "=AVERAGE(%s)+%s" % (a, mg), "upper"),
+        ]
+    # 摘要輸入（平均、Sx、n）
+    inp = {"X": None, "MEAN": 250, "SX": 12.5, "N": 15, "CONF": 0.99}
+    out += [
+        _inf("cit_sum_margin", "ci_mean_t", inp, "=CONFIDENCE.T(0.01,12.5,15)",
+             "margin"),
+        _inf("cit_sum_upper", "ci_mean_t", inp,
+             "=250+CONFIDENCE.T(0.01,12.5,15)", "upper"),
+    ]
+    for name, x, n, conf, al in _CIP_SETS:
+        inp = {"X": x, "N": n, "CONF": conf}
+        z = "NORM.S.INV(1-%s/2)" % al
+        p = "(%d/%d)" % (x, n)
+        mg = "%s*SQRT(%s*(1-%s)/%d)" % (z, p, p, n)
+        # Wilson（score）區間：(p̂+z²/2n ± z·√(p̂(1−p̂)/n+z²/4n²)) / (1+z²/n)
+        half = "%s*SQRT(%s*(1-%s)/%d+%s^2/(4*%d^2))" % (z, p, p, n, z, n)
+        center = "(%s+%s^2/(2*%d))" % (p, z, n)
+        den = "(1+%s^2/%d)" % (z, n)
+        out += [
+            _inf("cip_%s_margin" % name, "ci_prop", inp, "=" + mg, "margin"),
+            _inf("cip_%s_lower" % name, "ci_prop", inp,
+                 "=%s-%s" % (p, mg), "lower"),
+            _inf("cip_%s_upper" % name, "ci_prop", inp,
+                 "=%s+%s" % (p, mg), "upper"),
+            _inf("cip_%s_wilson_lower" % name, "ci_prop", inp,
+                 "=(%s-%s)/%s" % (center, half, den), "wilson_lower",
+                 defined=True),
+            _inf("cip_%s_wilson_upper" % name, "ci_prop", inp,
+                 "=(%s+%s)/%s" % (center, half, den), "wilson_upper",
+                 defined=True),
+        ]
+    return out
+
+
+_GOF_SETS = (   # (名稱, 觀察次數, EXP, PROBS, Excel 期望次數式)
+    ("uniform", [18, 22, 20, 25, 15], None, None, "SUM(%s)/5*{1,1,1,1,1}"),
+    ("probs", [45, 35, 20], None, [0.5, 0.3, 0.2], "SUM(%s)*{0.5,0.3,0.2}"),
+    ("expected", [8, 12, 3, 2], [10, 10, 2.5, 2.5], None, "{10,10,2.5,2.5}"),
+    ("big", [120, 60, 20], None, [0.25, 0.25, 0.5],
+     "SUM(%s)*{0.25,0.25,0.5}"),           # p 值極小
+)
+_IND_SETS = {
+    "a": [[30, 10], [20, 40]],                       # 2×2
+    "b": [[25, 30, 45], [35, 20, 15]],               # 2×3
+    "c": [[10, 4, 6], [3, 8, 9], [2, 1, 3]],        # 3×3，期望次數有 < 5
+}
+
+
+def _chi_cases():
+    out = []
+    for name, obs, ex, probs, etpl in _GOF_SETS:
+        o = _arr(obs)
+        e = "(" + (etpl % o if "%s" in etpl else etpl) + ")"
+        inp = {"OBS": list(obs), "EXP": ex, "PROBS": probs}
+        out += [
+            _inf("gof_%s_chi2" % name, "chi_gof", inp,
+                 "=SUMPRODUCT((%s-%s)^2/%s)" % (o, e, e), "chi2"),
+            _inf("gof_%s_p" % name, "chi_gof", inp,
+                 "=CHISQ.TEST(%s,%s)" % (o, e), "p"),
+        ]
+    for name, table in _IND_SETS.items():
+        a, r, c = _arr2(table), len(table), len(table[0])
+        ones_c = "{" + ";".join("1" * c) + "}"
+        ones_r = "{" + ",".join("1" * r) + "}"
+        e = "(MMULT(MMULT(%s,%s),MMULT(%s,%s))/SUM(%s))" % (
+            a, ones_c, ones_r, a, a)
+        inp = {"TABLE": [list(row) for row in table]}
+        out += [
+            _inf("ind_%s_chi2" % name, "chi_ind", inp,
+                 "=SUMPRODUCT((%s-%s)^2/%s)" % (a, e, e), "chi2"),
+            _inf("ind_%s_p" % name, "chi_ind", inp,
+                 "=CHISQ.TEST(%s,%s)" % (a, e), "p"),
+        ]
+    return out
+
+
+CASES += _ci_cases() + _t1_cases() + _t2_cases() + _tp_cases() + _chi_cases()

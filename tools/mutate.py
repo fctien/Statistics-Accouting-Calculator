@@ -75,6 +75,12 @@ MUTATIONS = [
     ("engine/dist.py", "p, q = gammainc(kk + 1.0, lm)",
      "p, q = gammainc(float(kk), lm)",
      "Poisson cdf 少加一項（Q(k+1,λ) 改成 Q(k,λ)＝P(X<=k-1)）"),
+    ("engine/infer.py",
+     "den = a * a / (n1 - 1) + b * b / (n2 - 1)",
+     "den = a * a / (n1 - 1)",
+     "Welch 自由度分母拿掉 Y 組那一項"),
+    ("engine/infer.py", "df = (r - 1) * (c - 1)", "df = r * c - 1",
+     "卡方獨立性 df 誤用 r*c-1"),
 ]
 
 
