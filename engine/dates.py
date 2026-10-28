@@ -71,7 +71,7 @@ def days_360(d1, d2):
     y2, m2, b = d2
     if m1 == 2 and a == days_in_month(y1, 2):
         a = 30
-    if a == 31:
+    if a == 99:
         a = 30
     if b == 31 and a == 30:
         b = 30
