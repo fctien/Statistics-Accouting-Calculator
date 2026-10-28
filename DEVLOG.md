@@ -1825,3 +1825,28 @@
 - 卡方的期望次數（expected）引擎沒有 display，依「不在 JS 格式化」規則暫不顯示；若要顯示需引擎 display 支援 list／表
 - 表格內容在千分位設定改變後不會改寫（與既有 CF、STAT 表格相同）
 - 離線與 SW 更新需在一般瀏覽器重驗
+
+## 2026-10-28 D3 審查修正（第 1 輪）
+
+**需求**
+- 審查（Important）：describe 的 q1／q3 說明寫「下半部／上半部資料的中位數」，但引擎用 Excel QUARTILE.INC（(n−1)·p 線性內插）；2,4,4,4,5,5,7,9 的上半部中位數是 6，與畫面顯示的 5.5 矛盾
+- 順帶：(1) 分配圖陰影端點要精確停在 x；(2) MAX_BARS 改 100；(3) inv 結果下加「雙尾 α = 0.05 時請輸入 p = 0.05」
+
+**做法**
+- 先寫 node 測試（RED：withPoint、distHint 不存在，整檔載入失敗），再實作（GREEN 42 項）
+- sheets.js q1／q3 help 改為 QUARTILE.INC 說明（保留 例：4／例：5.5）；測試鎖定 QUARTILE.INC、(n−1)·p、線性內插字樣
+- stat.js withPoint：把陰影端點插入已排序取樣點（範圍外、已存在不插），該點同樣向引擎取 pdf；dist.js 在 cdf／inv 使用
+- MAX_BARS = 100（太寬時以 K 為中心取 100 根）；distHint 只對有雙尾的常態、t 的 inv 顯示
+
+**產出**
+- web/js/stat.js、sheets.js、views/dist.js；tests/js/stat.test.mjs；logs/d3-r1-desktop-t-inv-hint.jpg；logs/verify-20261028-1434.html
+
+**驗證**
+- node 227/227；pytest 978 passed；build_web、check_shell 通過；verify_all --quick PASS
+- 瀏覽器（1280）：Q3 說明正確顯示；常態 cdf(1.96) 陰影右緣 289.09 ＝ 標記線；t inv(df 5, p 0.05) 陰影右緣 94.04 ＝ 標記線，提示顯示
+
+**問題與修正**
+- 無失敗嘗試；原本的「半部中位數」說明是 D3 撰寫時沒有查 engine/describe.py 的定義
+
+**待辦**
+- 沿用 D3 待辦（卡方 expected 不顯示、離線與 SW 更新需在一般瀏覽器重驗）

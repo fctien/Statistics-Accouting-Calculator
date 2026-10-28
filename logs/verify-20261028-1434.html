@@ -1,0 +1,24 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BACalc 一鍵驗證</title><style>:root{--bg:#fff;--fg:#1d2330;--line:#d9dee7;--ok:#0a7a3d;--ng:#b3261e;--code:#f3f5f9}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--line:#2c323c;--ok:#5fd18f;--ng:#ff8a80;--code:#1d2129}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;margin:0;padding:16px;max-width:1200px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
+code,pre{background:var(--code);font-family:Consolas,monospace}pre{margin:0;white-space:pre-wrap;font-size:12px}
+.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}</style></head><body><h1>BACalc 一鍵驗證</h1><p class=ok>總結：PASS（8 項全過；mutate 未執行（--quick））</p><table><tr><th>時間</th><td>2026-10-28 14:34:56 +08:00</td></tr><tr><th>commit</th><td>ee5bc800bb4def780fbdcc7930cc276ea54b9f57（短碼 ee5bc80）</td></tr><tr><th>分支</th><td>impl</td></tr><tr><th>git 狀態</th><td>乾淨（執行前 git status --porcelain 為空）</td></tr><tr><th>Python</th><td>3.11.7</td></tr><tr><th>Node</th><td>v22.15.0</td></tr><tr><th>MicroPython 套件</th><td>1.29.0-6</td></tr><tr><th>SHELL_HASH</th><td>6c2229e739b07fd0</td></tr><tr><th>模式</th><td>quick（略過 mutate）</td></tr></table><h2>各項結果</h2><table><tr><th>項目</th><th>指令</th><th>結果</th><th>耗時</th><th>輸出（通過＝末 3 行；失敗＝末 60 行）</th></tr><tr><td>check_portable（engine／golden 可攜性）</td><td><code>python.exe tools/check_portable.py engine golden</code></td><td class=ok>PASS</td><td>0.2 秒</td><td><pre>可攜性檢查通過：engine golden</pre></td></tr><tr><td>pytest（含 golden）</td><td><code>python.exe -m pytest</code></td><td class=ok>PASS</td><td>47.7 秒</td><td><pre>........................................................................ [ 95%]
+..........................................                               [100%]
+978 passed in 46.16s</pre></td></tr><tr><td>build_web --check</td><td><code>python.exe tools/build_web.py --check</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>web/ 建置檔皆為最新</pre></td></tr><tr><td>check_shell（PWA 殼）</td><td><code>python.exe tools/check_shell.py</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>check_shell：通過</pre></td></tr><tr><td>JS 單元測試（node --test）</td><td><code>node.EXE --test C:\Users\User\Desktop\Tien Research\BACalc\tests\js\backup.test.mjs C:\Users\User\Desktop\Tien Research\ … tests/js/*.test.mjs</code></td><td class=ok>PASS</td><td>0.7 秒</td><td><pre># skipped 0
+# todo 0
+# duration_ms 572.8108</pre></td></tr><tr><td>check_worker（Worker 佇列與 golden）</td><td><code>node.EXE tools/check_worker.mjs</code></td><td class=ok>PASS</td><td>2.4 秒</td><td><pre>statuses loading -&gt; ready；佇列：送出時 loading，EFF=12.682503013196978
+golden 355、錯誤路徑 85 案
+PASS</pre></td></tr><tr><td>test:mpy（MicroPython golden）</td><td><code>node.EXE tools/run_mpy_golden.mjs</code></td><td class=ok>PASS</td><td>1.1 秒</td><td><pre>355/355 passed, max diff vs CPython 2.55e-15 (dist_binom_cdf_3_10)
+85/85 error cases identical</pre></td></tr><tr><td>test:mpy --self-test</td><td><code>node.EXE tools/run_mpy_golden.mjs --self-test</code></td><td class=ok>PASS</td><td>6.7 秒</td><td><pre>OK   self-test: 空 error 集合
+OK   self-test: 壞字串 golden
+OK   self-test: 壞 list golden</pre></td></tr><tr><td>mutate（突變測試）</td><td>—</td><td>未執行</td><td>—</td><td>--quick：略過，不是完整驗證</td></tr></table><h2>D3 審查修正第 1 輪 瀏覽器實測（桌面 1280；commit ee5bc80）</h2>
+<p>python -m http.server 8765 -d web；反註冊 SW、清 caches、cache:"reload" 重抓後重新整理；測完停止伺服器、視窗恢復。</p>
+<table>
+<tr><th>項目</th><th>操作</th><th>預期</th><th>結果</th></tr>
+<tr><td>Q3 說明</td><td>敘述統計 Q3 的 ⓘ</td><td>寫明 QUARTILE.INC、(n−1)·p 線性內插、例：5.5</td><td class=ok>「依 Excel QUARTILE.INC（位置 (n−1)·p 線性內插）計算，例：5.5；與「半部中位數」法（如部分計算機）結果可能不同」</td></tr>
+<tr><td>cdf 陰影端點</td><td>常態 cdf x=1.96</td><td>陰影右緣＝標記線</td><td class=ok>area 最大 x 289.09 ＝ marker 289.09</td></tr>
+<tr><td>inv 陰影端點與提示</td><td>t inv df=5、p=0.05</td><td>陰影右緣＝左尾臨界值；顯示雙尾提示</td><td class=ok>94.04 ＝ 94.04；左尾 −2.02、右尾 2.02、雙尾 ± 2.57；提示「雙尾 α = 0.05 時請輸入 p = 0.05」</td></tr>
+</table>
+<p>截圖：logs/d3-r1-desktop-t-inv-hint.jpg</p>
+</body></html>
