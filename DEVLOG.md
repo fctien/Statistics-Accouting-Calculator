@@ -1576,3 +1576,36 @@
 
 **待辦**
 - D3 統計頁 UI 完成後移除 test_web_sheets 對 stats/describe 的路由豁免
+
+## 2026-10-28 C2 機率分配引擎（engine/dist.py）
+
+**需求**
+- 常態、t、卡方、二項、Poisson 的 pdf／pmf、cdf、inv，加右尾與雙尾便利輸出；不完全 Beta／Gamma 自寫（連分數＋級數，未收斂回錯誤）；inv 用 solver.find_root；bridge 路由 dist/*；Excel golden（sheet dist）；MicroPython 精度要對得上
+
+**做法**
+- 先用 Node 上的 MicroPython 量 math.erfc／lgamma／exp／log 與 CPython 的差：erfc 相對差 ≤ 3.2e-16、lgamma ≤ 1 ulp，精度足夠；MicroPython 沒有 math.log1p，自寫 _log1p（Goldberg 技巧）
+- betainc(a,b,x,y)：y=1−x 可由呼叫端精確給；依 x < (a+1)/(a+b+2) 選一側用 NR 連分數（modified Lentz）直接算較小的一尾，另一尾才 1−小尾；gammainc：x<a+1 級數算 P、否則連分數算 Q。MAX_ITER=10000、EPS=1e-15、未收斂擲 NotConverged → err
+- 常態 cdf／右尾／雙尾各自用 erfc 直接算；t 的雙尾 = I_x(v/2,1/2)，x 與 1−x 分別由 v/(v+t²)、t²/(v+t²) 算；|t| 極大使 x 下溢時改用首項 x^a/(a·B)
+- 二項／Poisson pmf 用 lgamma 對數式；cdf 選「不完全 Beta／Gamma 恆等式」（P(Bin≤k)=I_{1−p}(n−k,k+1)、P(Poi≤k)=Q(k+1,λ)），不逐項累加：大 n／λ 常數成本、兩尾都直接算
+- inv：用對稱關係化成機率 ≤ 0.5 的那一尾（p>0.5 時 1−p 在浮點數中精確），find_root（tol 1e-13）解 (尾機率−q)/q=0；常態初值 A&S 26.2.23、t 初值 Cornish-Fisher、卡方在 ln x 上求根（初值 Wilson-Hilferty），保留極小臨界值的相對精度；超出浮點數範圍回錯誤
+- 參數上限 df、n、λ ≤ 1e5（更大時 lgamma 相減的捨入誤差會逼近 1e-9）
+- golden 86 筆（每個分配每種功能 ≥ 3，含極小尾端 9 筆）；Excel 的 T.DIST／T.INV／CHISQ.* 會把 df 截成整數（實測 T.INV(0.975,2.5)＝T.INV(0.975,2)＝4.3027），非整數 df 改用等價不截斷公式 BETA.DIST／BETA.INV／GAMMA.DIST／GAMMA.INV；右尾極小值用 *.RT、BINOM.DIST.RANGE、GAMMA.DIST 關係式取得
+- error_dump 加 10 筆 dist 錯誤案例；mutate 加 2 個突變；test_web_sheets 路由覆蓋豁免 dist（D3 移除）
+
+**產出**
+- engine/dist.py、engine/bridge.py、golden/cases.py、tests/golden/excel.json（既有 169 筆逐筆不變，新增 86 筆）、tests/golden/error_cases.json（既有 60 筆不變，新增 10 筆）、tools/error_dump.py、tools/mutate.py、tests/test_dist.py、tests/test_web_sheets.py、web/sw.js（build_web）
+
+**驗證**
+- 所有 dist golden 先與 scipy 1.17 交叉比對：除 1−POISSON.DIST 的相消（6.5e-11）外皆 ≤ 4e-14
+- pytest 全綠；test_dist 含 golden、逐筆純相對誤差（一般 1e-9、極小尾 1e-7）、cdf 單調與兩尾和為 1、t 對稱、inv 來回、pmf 累加＝cdf、參數錯誤 28 種、MAX_ITER=2 注入的未收斂路徑、與 scipy 大範圍格點比對（一般 1e-11、df≥1e4 為 1e-10）
+- run_mpy_golden 255/255，與 CPython 最大差 2.55e-15；錯誤案例 70/70
+
+**問題與修正**
+- 先寫 _t_tails 用 x=(v/|t|)/|t| 處理 t² 溢位，結果 df=0.01、t=1e300 的右尾變成 0（真值 4.85e-4），t inv 還回傳 6.4e160 的假根；改成以 ln x 判斷、下溢時用首項公式，並加 mpmath 參考值測試
+- 原本加了兩筆「成功回應結構」錯誤案例，但 error_cases 比對包含浮點值，MicroPython 在最後 1 ulp 不同而失敗；移除（數值已由 golden 覆蓋）
+- 第一次用 bash heredoc 附加 golden 案例時，引號在 shell 解析失敗、檔案未改動；改用 Edit
+- scipy 格點測試第一版 1e-11 對 df=5e4 太嚴（lgamma 相減誤差 ~7e-11），依量測分級放寬並在測試註明
+
+**待辦**
+- D3 統計頁 UI 完成後移除 test_web_sheets 對 dist 的路由豁免
+- 若要支援 df／n／λ > 1e5，需改用 Loader 的 stirlerr／bd0 形式計算前置因子

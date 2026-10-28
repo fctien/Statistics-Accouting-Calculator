@@ -44,6 +44,15 @@ settings（皆可省略）：
                            回傳 BIN、OCT、DEC、HEX 四個字串；display 即字串本身（無千分位）
     base / bitwise         OP(AND|OR|XOR|NOT|SHL|SHR|SAR), A, B（皆為 FROM 進位的字串；
                            NOT 不需 B；移位的 B 為位移量 0..WIDTH）, FROM, WIDTH, SIGNED
+    dist / normal          FUNC(pdf|cdf|inv), MU, SIGMA, X（pdf、cdf）或 PROB（inv）
+    dist / t               FUNC(pdf|cdf|inv), DF（可非整數，0 < DF <= 1e5）, X 或 PROB
+    dist / chi2            FUNC(pdf|cdf|inv), DF（可非整數，0 < DF <= 1e5）, X 或 PROB
+    dist / binom           FUNC(pmf|cdf), N（整數 0..1e5）, P（0..1）, K（整數 0..N）
+    dist / poisson         FUNC(pmf|cdf), LAMBDA（0 < LAMBDA <= 1e5）, K（整數 >= 0）
+                           回傳 value（pdf／pmf、左尾 P(X<=x)，或 inv 的 x）；
+                           cdf 另含 right（右尾 P(X>x)）；inv 另含 right（P(X>x)=PROB 的 x）；
+                           常態與 t 另含 two（cdf：雙尾機率；inv：雙尾上側臨界值）；
+                           卡方 inv 含 right；0 < PROB < 1
 
 留一格空白規則（leave-one-blank）：
     tvm、date、breakeven、pct_change：可求解欄位中恰有一格 null 才求解，否則報錯。
@@ -58,7 +67,7 @@ settings（皆可省略）：
 import json
 
 from engine import (amort, base, bond, business, calc, cashflow, dates, depr,
-                    describe, iconv, stats, tvm, units)
+                    describe, dist, iconv, stats, tvm, units)
 from engine.fmt import format_number
 from engine.result import _all_finite, err, is_finite
 
@@ -414,6 +423,34 @@ def _r_base_bitwise(inp, st):
     return base.bitwise(op, a, b, width, signed)
 
 
+def _r_normal(inp, st):
+    return dist.normal(_str(inp, "FUNC", ("pdf", "cdf", "inv"), True),
+                       _num(inp, "MU", True), _num(inp, "SIGMA", True),
+                       _num(inp, "X"), _num(inp, "PROB"))
+
+
+def _r_t(inp, st):
+    return dist.t_dist(_str(inp, "FUNC", ("pdf", "cdf", "inv"), True),
+                       _num(inp, "DF", True), _num(inp, "X"),
+                       _num(inp, "PROB"))
+
+
+def _r_chi2(inp, st):
+    return dist.chi2(_str(inp, "FUNC", ("pdf", "cdf", "inv"), True),
+                     _num(inp, "DF", True), _num(inp, "X"), _num(inp, "PROB"))
+
+
+def _r_binom(inp, st):
+    return dist.binom(_str(inp, "FUNC", ("pmf", "cdf"), True),
+                      _int(inp, "N", True), _num(inp, "P", True),
+                      _int(inp, "K", True))
+
+
+def _r_poisson(inp, st):
+    return dist.poisson(_str(inp, "FUNC", ("pmf", "cdf"), True),
+                        _num(inp, "LAMBDA", True), _int(inp, "K", True))
+
+
 ROUTES = {
     ("tvm", "solve"): _r_tvm,
     ("amort", "range"): _r_amort_range,
@@ -444,6 +481,11 @@ ROUTES = {
     ("units", "list"): _r_units_list,
     ("base", "convert"): _r_base_convert,
     ("base", "bitwise"): _r_base_bitwise,
+    ("dist", "normal"): _r_normal,
+    ("dist", "t"): _r_t,
+    ("dist", "chi2"): _r_chi2,
+    ("dist", "binom"): _r_binom,
+    ("dist", "poisson"): _r_poisson,
 }
 
 # 值為字串、display 直接等於字串本身的路由（不經 format_number 加千分位）

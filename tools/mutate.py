@@ -69,6 +69,12 @@ MUTATIONS = [
      "QUARTILE.INC 內插位置 (n-1)p 改成 (n+1)p"),
     ("engine/cashflow.py", "if t > 0 and prev < 0 <= cum:",
      "if t > 0 and prev < 0 < cum:", "回收期邊界（累計剛好為 0）判斷改嚴格"),
+    ("engine/dist.py", "    if t > 0:\n        return 1.0 - tail, tail, two",
+     "    if t < 0:\n        return 1.0 - tail, tail, two",
+     "t cdf 對稱關係選錯一側（左右尾對調）"),
+    ("engine/dist.py", "p, q = gammainc(kk + 1.0, lm)",
+     "p, q = gammainc(float(kk), lm)",
+     "Poisson cdf 少加一項（Q(k+1,λ) 改成 Q(k,λ)＝P(X≤k-1)）"),
 ]
 
 

@@ -110,6 +110,16 @@ CASES = [
     ("describe_ok_n1_warnings", None, _req("stats", "describe", {"X": [7], "F": None})),
     ("describe_ok_all_equal", None, _req("stats", "describe", {"X": [5, 5, 5, 5], "F": None})),
     ("settings_bad_decimals", None, _req("tvm", "solve", _TVM, {"decimals": 12})),
+    ("dist_sigma_zero", None, _req("dist", "normal", {"FUNC": "cdf", "MU": 0, "SIGMA": 0, "X": 1})),
+    ("dist_prob_one", None, _req("dist", "normal", {"FUNC": "inv", "MU": 0, "SIGMA": 1, "PROB": 1})),
+    ("dist_bad_func", None, _req("dist", "t", {"FUNC": "pmf", "DF": 5, "X": 1})),
+    ("dist_df_zero", None, _req("dist", "chi2", {"FUNC": "cdf", "DF": 0, "X": 1})),
+    ("dist_chi2_x_negative", None, _req("dist", "chi2", {"FUNC": "cdf", "DF": 3, "X": -1})),
+    ("dist_binom_k_gt_n", None, _req("dist", "binom", {"FUNC": "cdf", "N": 10, "P": 0.3, "K": 11})),
+    ("dist_binom_k_noninteger", None, _req("dist", "binom", {"FUNC": "pmf", "N": 10, "P": 0.3, "K": 2.5})),
+    ("dist_binom_p_out", None, _req("dist", "binom", {"FUNC": "pmf", "N": 10, "P": 1.5, "K": 2})),
+    ("dist_poisson_lambda_zero", None, _req("dist", "poisson", {"FUNC": "pmf", "LAMBDA": 0, "K": 1})),
+    ("dist_t_inv_out_of_range", None, _req("dist", "t", {"FUNC": "inv", "DF": 0.01, "PROB": 1e-10})),
 ]
 
 

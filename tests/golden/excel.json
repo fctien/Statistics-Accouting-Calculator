@@ -3846,5 +3846,1648 @@
   "expected": [],
   "source": "定義值：=MODE.MULT({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
   "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_pdf_std",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "pdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": 1.5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.12951759566589174,
+  "source": "Excel 16: =NORM.DIST(1.5,0,1,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_pdf_100_15",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "pdf",
+    "MU": 100,
+    "SIGMA": 15,
+    "X": 105,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.025158881846199542,
+  "source": "Excel 16: =NORM.DIST(105,100,15,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_pdf_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "pdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": 8,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5.052271083536893e-15,
+  "source": "Excel 16: =NORM.DIST(8,0,1,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_cdf_196",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": 1.96,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.9750021048517795,
+  "source": "Excel 16: =NORM.DIST(1.96,0,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_cdf_m8",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": -8,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 6.220960574271738e-16,
+  "source": "Excel 16: =NORM.DIST(-8,0,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_cdf_100_15",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 100,
+    "SIGMA": 15,
+    "X": 120,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.9087887802741321,
+  "source": "Excel 16: =NORM.DIST(120,100,15,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_right_196",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": 1.96,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.02499789514822043,
+  "source": "Excel 16: =NORM.DIST(-1.96,0,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_right_8",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": 8,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 6.220960574271738e-16,
+  "source": "Excel 16: =NORM.DIST(-8,0,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_right_100_15",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 100,
+    "SIGMA": 15,
+    "X": 80,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.9087887802741321,
+  "source": "Excel 16: =1-NORM.DIST(80,100,15,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_two_196",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": 1.96,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 0.04999579029644086,
+  "source": "Excel 16: =2*NORM.DIST(-1.96,0,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_two_m3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": -3,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 0.0026997960632601866,
+  "source": "Excel 16: =2*NORM.DIST(-3,0,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_two_100_15",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 100,
+    "SIGMA": 15,
+    "X": 130,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 0.04550026389635838,
+  "source": "Excel 16: =2*NORM.DIST(70,100,15,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_975",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": null,
+    "PROB": 0.975
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.9599639845400536,
+  "source": "Excel 16: =NORM.INV(0.975,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_1em10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": null,
+    "PROB": 1e-10
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": -6.361340902404056,
+  "source": "Excel 16: =NORM.INV(1E-10,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_50_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 50,
+    "SIGMA": 10,
+    "X": null,
+    "PROB": 0.3
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 44.755994872919594,
+  "source": "Excel 16: =NORM.INV(0.3,50,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_right_05",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": null,
+    "PROB": 0.05
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1.6448536269514726,
+  "source": "Excel 16: =-NORM.INV(0.05,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_right_100_15",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 100,
+    "SIGMA": 15,
+    "X": null,
+    "PROB": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 80.77672651683099,
+  "source": "Excel 16: =NORM.INV(0.1,100,15)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_right_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": null,
+    "PROB": 1e-12
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 7.034483825301132,
+  "source": "Excel 16: =-NORM.INV(1E-12,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_two_05",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": null,
+    "PROB": 0.05
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 1.9599639845400536,
+  "source": "Excel 16: =NORM.INV(0.975,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_two_01",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "SIGMA": 1,
+    "X": null,
+    "PROB": 0.01
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 2.5758293035489,
+  "source": "Excel 16: =-NORM.INV(0.005,0,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_norm_inv_two_100_15",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 100,
+    "SIGMA": 15,
+    "X": null,
+    "PROB": 0.1
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 124.67280440427207,
+  "source": "Excel 16: =NORM.INV(0.95,100,15)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_pdf_15_7",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 7,
+    "X": 1.5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.1262630612859611,
+  "source": "Excel 16: =T.DIST(1.5,7,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_pdf_0_1",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 1,
+    "X": 0,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.3183098861837907,
+  "source": "Excel 16: =T.DIST(0,1,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_pdf_m3_4",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 4,
+    "X": -3,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.019693498090836536,
+  "source": "Excel 16: =T.DIST(-3,4,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_pdf_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 2.5,
+    "X": 1,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.20079596067092015,
+  "source": "Excel 16: =GAMMA(1.75)/(SQRT(2.5*PI())*GAMMA(1.25))*(1+1/2.5)^(-1.75)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_cdf_2_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 10,
+    "X": 2.0,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.9633059826146297,
+  "source": "Excel 16: =T.DIST(2.0,10,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_cdf_m3_5",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 5,
+    "X": -3,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.015049623948731293,
+  "source": "Excel 16: =T.DIST(-3,5,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_cdf_m40_4",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 4,
+    "X": -40,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.1670081613006339e-06,
+  "source": "Excel 16: =T.DIST(-40,4,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_cdf_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 2.5,
+    "X": 2,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.921304252121017,
+  "source": "Excel 16: =1-0.5*BETA.DIST(2.5/(2.5+4),1.25,0.5,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_right_5_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 3,
+    "X": 5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.007696219036651147,
+  "source": "Excel 16: =T.DIST.RT(5,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_right_200_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 10,
+    "X": 200,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1.2002537297431367e-19,
+  "source": "Excel 16: =T.DIST.RT(200,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_right_05_30",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 30,
+    "X": 0.5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.31036150244256366,
+  "source": "Excel 16: =T.DIST.RT(0.5,30)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_two_2_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 10,
+    "X": 2,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 0.0733880347707404,
+  "source": "Excel 16: =T.DIST.2T(2,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_two_25_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 3,
+    "X": -2.5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 0.08770664700806553,
+  "source": "Excel 16: =T.DIST.2T(2.5,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_two_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 2.5,
+    "X": 2,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 0.15739149575796602,
+  "source": "Excel 16: =BETA.DIST(2.5/(2.5+4),1.25,0.5,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_975_5",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 5,
+    "X": null,
+    "PROB": 0.975
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 2.570581835636315,
+  "source": "Excel 16: =T.INV(0.975,5)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_1em10_5",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 5,
+    "X": null,
+    "PROB": 1e-10
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": -156.8255927088943,
+  "source": "Excel 16: =T.INV(1E-10,5)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_03_12",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 12,
+    "X": null,
+    "PROB": 0.3
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": -0.5386176682019178,
+  "source": "Excel 16: =T.INV(0.3,12)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 2.5,
+    "X": null,
+    "PROB": 0.975
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 3.5746548420036834,
+  "source": "Excel 16: =SQRT(2.5*(1/BETA.INV(0.05,1.25,0.5)-1))",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_right_05_8",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 8,
+    "X": null,
+    "PROB": 0.05
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1.8595480375308975,
+  "source": "Excel 16: =T.INV(0.95,8)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_right_09_8",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 8,
+    "X": null,
+    "PROB": 0.9
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": -1.3968153097438645,
+  "source": "Excel 16: =T.INV(0.1,8)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_right_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 3,
+    "X": null,
+    "PROB": 1e-09
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1033.1096745038074,
+  "source": "Excel 16: =-T.INV(1E-9,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_two_05_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 10,
+    "X": null,
+    "PROB": 0.05
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 2.2281388519862744,
+  "source": "Excel 16: =T.INV.2T(0.05,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_two_01_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 3,
+    "X": null,
+    "PROB": 0.01
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 5.840909309733357,
+  "source": "Excel 16: =T.INV.2T(0.01,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_t_inv_two_1em8_20",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "t",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 20,
+    "X": null,
+    "PROB": 1e-08
+   },
+   "settings": {}
+  },
+  "expect_key": "two",
+  "expected": 9.331245733627977,
+  "source": "Excel 16: =T.INV.2T(1E-8,20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_pdf_25_4",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 4,
+    "X": 2.5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.17906549803761881,
+  "source": "Excel 16: =CHISQ.DIST(2.5,4,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_pdf_05_1",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 1,
+    "X": 0.5,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.4393912894677224,
+  "source": "Excel 16: =CHISQ.DIST(0.5,1,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_pdf_10_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 3,
+    "X": 10,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.008500366602520347,
+  "source": "Excel 16: =CHISQ.DIST(10,3,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_pdf_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "pdf",
+    "DF": 2.5,
+    "X": 3,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.13621659264341945,
+  "source": "Excel 16: =GAMMA.DIST(3,1.25,2,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_cdf_384_1",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 1,
+    "X": 3.84,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.9499564787512949,
+  "source": "Excel 16: =CHISQ.DIST(3.84,1,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_cdf_0001_5",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 5,
+    "X": 0.001,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.6814877189706266e-09,
+  "source": "Excel 16: =CHISQ.DIST(0.001,5,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_cdf_15_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 10,
+    "X": 15,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.8679381437122794,
+  "source": "Excel 16: =CHISQ.DIST(15,10,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_cdf_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 2.5,
+    "X": 3,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.6941503705541818,
+  "source": "Excel 16: =GAMMA.DIST(3,1.25,2,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_right_30_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 10,
+    "X": 30,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.0008566412107753004,
+  "source": "Excel 16: =CHISQ.DIST.RT(30,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_right_200_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 10,
+    "X": 200,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1.6139305336977313e-37,
+  "source": "Excel 16: =CHISQ.DIST.RT(200,10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_right_384_1",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "cdf",
+    "DF": 1,
+    "X": 3.84,
+    "PROB": null
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.05004352124870511,
+  "source": "Excel 16: =CHISQ.DIST.RT(3.84,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_95_4",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 4,
+    "X": null,
+    "PROB": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 9.487729036781158,
+  "source": "Excel 16: =CHISQ.INV(0.95,4)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_05_1",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 1,
+    "X": null,
+    "PROB": 0.05
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.003932140000019523,
+  "source": "Excel 16: =CHISQ.INV(0.05,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_1em10_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 3,
+    "X": null,
+    "PROB": 1e-10
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5.209397621434477e-07,
+  "source": "Excel 16: =CHISQ.INV(1E-10,3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_nonint",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 3.5,
+    "X": null,
+    "PROB": 0.95
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 8.665121760590484,
+  "source": "Excel 16: =GAMMA.INV(0.95,1.75,2)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_right_01_20",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 20,
+    "X": null,
+    "PROB": 0.01
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 37.56623478662505,
+  "source": "Excel 16: =CHISQ.INV.RT(0.01,20)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_right_05_1",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 1,
+    "X": null,
+    "PROB": 0.05
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 3.8414588206941236,
+  "source": "Excel 16: =CHISQ.INV.RT(0.05,1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_chi2_inv_right_1em12_5",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "chi2",
+   "inputs": {
+    "FUNC": "inv",
+    "DF": 5,
+    "X": null,
+    "PROB": 1e-12
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 65.23863621336785,
+  "source": "Excel 16: =CHISQ.INV.RT(1E-12,5)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_pmf_3_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "pmf",
+    "N": 10,
+    "P": 0.3,
+    "K": 3
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.26682793200000005,
+  "source": "Excel 16: =BINOM.DIST(3,10,0.3,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_pmf_500_1000",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "pmf",
+    "N": 1000,
+    "P": 0.5,
+    "K": 500
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.025225018178360807,
+  "source": "Excel 16: =BINOM.DIST(500,1000,0.5,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_pmf_0_20",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "pmf",
+    "N": 20,
+    "P": 0.05,
+    "K": 0
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.3584859224085422,
+  "source": "Excel 16: =BINOM.DIST(0,20,0.05,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_pmf_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "pmf",
+    "N": 100,
+    "P": 0.1,
+    "K": 50
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5.199713101521178e-24,
+  "source": "Excel 16: =BINOM.DIST(50,100,0.1,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_cdf_3_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 10,
+    "P": 0.3,
+    "K": 3
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.6496107184,
+  "source": "Excel 16: =BINOM.DIST(3,10,0.3,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_cdf_500_1000",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 1000,
+    "P": 0.5,
+    "K": 500
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.5126125090891803,
+  "source": "Excel 16: =BINOM.DIST(500,1000,0.5,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_cdf_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 1000,
+    "P": 0.3,
+    "K": 0
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.2532566399657129e-155,
+  "source": "Excel 16: =BINOM.DIST(0,1000,0.3,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_cdf_all",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 10,
+    "P": 0.4,
+    "K": 10
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.0,
+  "source": "Excel 16: =BINOM.DIST(10,10,0.4,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_right_3_10",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 10,
+    "P": 0.3,
+    "K": 3
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.35038928160000005,
+  "source": "Excel 16: =1-BINOM.DIST(3,10,0.3,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_right_500_1000",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 1000,
+    "P": 0.5,
+    "K": 500
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.4873874909108197,
+  "source": "Excel 16: =1-BINOM.DIST(500,1000,0.5,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_binom_right_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "N": 1000,
+    "P": 0.3,
+    "K": 399
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1.1041298190557022e-11,
+  "source": "Excel 16: =BINOM.DIST.RANGE(1000,0.3,400,1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_pmf_2_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "pmf",
+    "LAMBDA": 3,
+    "K": 2
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.22404180765538775,
+  "source": "Excel 16: =POISSON.DIST(2,3,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_pmf_0_30",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "pmf",
+    "LAMBDA": 30,
+    "K": 0
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 9.357622968840175e-14,
+  "source": "Excel 16: =POISSON.DIST(0,30,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_pmf_150_100",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "pmf",
+    "LAMBDA": 100,
+    "K": 150
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 6.511160468786337e-07,
+  "source": "Excel 16: =POISSON.DIST(150,100,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_pmf_5_05",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "pmf",
+    "LAMBDA": 0.5,
+    "K": 5
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.00015795069263349832,
+  "source": "Excel 16: =POISSON.DIST(5,0.5,FALSE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_cdf_2_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 3,
+    "K": 2
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.4231900811268434,
+  "source": "Excel 16: =POISSON.DIST(2,3,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_cdf_10_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 3,
+    "K": 10
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.9997076630493527,
+  "source": "Excel 16: =POISSON.DIST(10,3,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_cdf_150_100",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 100,
+    "K": 150
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.9999987669055808,
+  "source": "Excel 16: =POISSON.DIST(150,100,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_cdf_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 30,
+    "K": 0
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 9.357622968840175e-14,
+  "source": "Excel 16: =POISSON.DIST(0,30,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_cdf_40_80",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 80,
+    "K": 40
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5.749050165306024e-07,
+  "source": "Excel 16: =POISSON.DIST(40,80,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_right_2_3",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 3,
+    "K": 2
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 0.5768099188731566,
+  "source": "Excel 16: =1-POISSON.DIST(2,3,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_right_150_100",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 100,
+    "K": 150
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 1.2330944192395776e-06,
+  "source": "Excel 16: =1-POISSON.DIST(150,100,TRUE)",
+  "tol": 1e-09
+ },
+ {
+  "id": "dist_pois_right_tiny",
+  "sheet": "dist",
+  "call": {
+   "sheet": "dist",
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "cdf",
+    "LAMBDA": 100,
+    "K": 200
+   },
+   "settings": {}
+  },
+  "expect_key": "right",
+  "expected": 4.626179470195847e-19,
+  "source": "Excel 16: =GAMMA.DIST(100,201,1,TRUE)",
+  "tol": 1e-09
  }
 ]

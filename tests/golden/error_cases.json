@@ -1703,5 +1703,190 @@
    },
    "sheet": "tvm"
   }
+ },
+ {
+  "expected": {
+   "error": "SIGMA 必須 > 0",
+   "field": "SIGMA",
+   "ok": false
+  },
+  "id": "dist_sigma_zero",
+  "request": {
+   "action": "normal",
+   "inputs": {
+    "FUNC": "cdf",
+    "MU": 0,
+    "SIGMA": 0,
+    "X": 1
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "PROB 必須介於 0 與 1 之間（不含 0、1）",
+   "field": "PROB",
+   "ok": false
+  },
+  "id": "dist_prob_one",
+  "request": {
+   "action": "normal",
+   "inputs": {
+    "FUNC": "inv",
+    "MU": 0,
+    "PROB": 1,
+    "SIGMA": 1
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "FUNC 不合法",
+   "field": "FUNC",
+   "ok": false
+  },
+  "id": "dist_bad_func",
+  "request": {
+   "action": "t",
+   "inputs": {
+    "DF": 5,
+    "FUNC": "pmf",
+    "X": 1
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "DF 必須 > 0",
+   "field": "DF",
+   "ok": false
+  },
+  "id": "dist_df_zero",
+  "request": {
+   "action": "chi2",
+   "inputs": {
+    "DF": 0,
+    "FUNC": "cdf",
+    "X": 1
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "X 必須 ≥ 0",
+   "field": "X",
+   "ok": false
+  },
+  "id": "dist_chi2_x_negative",
+  "request": {
+   "action": "chi2",
+   "inputs": {
+    "DF": 3,
+    "FUNC": "cdf",
+    "X": -1
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "K 必須介於 0 與 10 之間",
+   "field": "K",
+   "ok": false
+  },
+  "id": "dist_binom_k_gt_n",
+  "request": {
+   "action": "binom",
+   "inputs": {
+    "FUNC": "cdf",
+    "K": 11,
+    "N": 10,
+    "P": 0.3
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "K 必須是整數",
+   "field": "K",
+   "ok": false
+  },
+  "id": "dist_binom_k_noninteger",
+  "request": {
+   "action": "binom",
+   "inputs": {
+    "FUNC": "pmf",
+    "K": 2.5,
+    "N": 10,
+    "P": 0.3
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "P 必須介於 0 與 1 之間",
+   "field": "P",
+   "ok": false
+  },
+  "id": "dist_binom_p_out",
+  "request": {
+   "action": "binom",
+   "inputs": {
+    "FUNC": "pmf",
+    "K": 2,
+    "N": 10,
+    "P": 1.5
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "LAMBDA 必須 > 0",
+   "field": "LAMBDA",
+   "ok": false
+  },
+  "id": "dist_poisson_lambda_zero",
+  "request": {
+   "action": "poisson",
+   "inputs": {
+    "FUNC": "pmf",
+    "K": 1,
+    "LAMBDA": 0
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
+ },
+ {
+  "expected": {
+   "error": "臨界值超出可計算範圍",
+   "field": "PROB",
+   "ok": false
+  },
+  "id": "dist_t_inv_out_of_range",
+  "request": {
+   "action": "t",
+   "inputs": {
+    "DF": 0.01,
+    "FUNC": "inv",
+    "PROB": 1e-10
+   },
+   "settings": {},
+   "sheet": "dist"
+  }
  }
 ]
