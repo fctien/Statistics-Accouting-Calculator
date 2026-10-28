@@ -1910,7 +1910,7 @@
  },
  {
   "expected": {
-   "error": "樣本標準差 Sx 為 0（所有值相同），t 統計量未定義",
+   "error": "樣本標準差 Sx 為 0（所有值相同或只差浮點捨入誤差），t 統計量未定義",
    "field": "X",
    "ok": false
   },
@@ -1931,7 +1931,7 @@
  },
  {
   "expected": {
-   "error": "合併標準差 Sp 為 0（所有值相同），t 統計量未定義",
+   "error": "合併標準差 Sp 為 0（所有值相同或只差浮點捨入誤差），t 統計量未定義",
    "field": null,
    "ok": false
   },
@@ -2157,6 +2157,79 @@
       4,
       5
      ]
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "差值的標準差為 0（所有值相同或只差浮點捨入誤差），t 統計量未定義",
+   "field": null,
+   "ok": false
+  },
+  "id": "infer_tpaired_float_noise",
+  "request": {
+   "action": "tpaired",
+   "inputs": {
+    "X": [
+     1.1,
+     2.2,
+     3.3,
+     4.4
+    ],
+    "Y": [
+     0.1,
+     1.2,
+     2.3,
+     3.4
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "期望次數總和必須等於觀察次數總和，或改用機率 PROBS",
+   "field": "EXP",
+   "ok": false
+  },
+  "id": "infer_gof_exp_total",
+  "request": {
+   "action": "chi_gof",
+   "inputs": {
+    "EXP": [
+     10,
+     25
+    ],
+    "OBS": [
+     10,
+     20
+    ]
+   },
+   "settings": {},
+   "sheet": "infer"
+  }
+ },
+ {
+  "expected": {
+   "error": "雙尾檢定不可指定 ALT（單尾請設 TAILS=1）",
+   "field": "ALT",
+   "ok": false
+  },
+  "id": "infer_two_tailed_with_alt",
+  "request": {
+   "action": "t1",
+   "inputs": {
+    "ALT": "less",
+    "MU0": 1,
+    "TAILS": 2,
+    "X": [
+     1,
+     2,
+     4
     ]
    },
    "settings": {},

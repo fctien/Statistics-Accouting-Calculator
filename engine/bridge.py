@@ -63,14 +63,15 @@ settings（皆可省略）：
                            wilson_method("Wilson"), wilson_center, wilson_margin,
                            wilson_lower, wilson_upper；X 或 N−X < 5 時 warning
     infer / t1             X（n >= 2）, MU0, TAILS(1|2，預設 2),
-                           ALT(less|greater，TAILS=1 必填),
+                           ALT(less|greater，TAILS=1 必填；TAILS=2 不可給),
                            ALPHA（預設 0.05，0 < ALPHA < 1）
     infer / t2             X, Y（各 n >= 2，可不等長）, EQUAL_VAR(bool；true＝合併變異數，
                            預設 false＝Welch), TAILS, ALT, ALPHA；
                            ALT 指 mean(X) 相對 mean(Y)
     infer / tpaired        X, Y（等長，n >= 2；差值 d = X − Y）, TAILS, ALT, ALPHA
-    infer / chi_gof        OBS（>= 0，至少 2 格）, EXP（期望次數 > 0）或 PROBS（機率 > 0，
-                           總和 1±1e-9）擇一，皆省略＝均等, ALPHA
+    infer / chi_gof        OBS（>= 0，至少 2 格）, EXP（期望次數 > 0，總和須等於 OBS
+                           總和）或 PROBS（機率 > 0，總和 1±1e-9）擇一，皆省略＝均等,
+                           ALPHA；df = k−1（不做估計參數的自由度調整）
     infer / chi_ind        TABLE（[[...], ...]，r、c >= 2，>= 0；
                            列／行總和不可為 0）, ALPHA
                            檢定回傳 t 或 chi2、df（Welch 為非整數）、p、alpha、

@@ -8,11 +8,15 @@
     t2          兩獨立樣本 t 檢定：合併變異數（pooled，Excel T.TEST type 2）或 Welch（type 3）
     tpaired     成對 t 檢定（paired t test，Excel T.TEST type 1）
     chi_gof     卡方適合度檢定（goodness of fit），df = k−1
+                （期望值由使用者給定；不做「估計參數」的自由度調整 k−1−m）
     chi_ind     卡方獨立性檢定（test of independence），df = (r−1)(c−1)
 p 值一律由 engine/dist.py 的尾端機率直接取得（左尾 value、右尾 right、雙尾 two），
 不以 1−cdf 計算（極小 p 值才保有相對精度）；臨界值用 dist 的 inv（雙尾 two）。
 檢定的決策：p ≤ α 時拒絕 H0；結論文字「在 α=0.05 下拒絕 H0」或「在 α=0.05 下不拒絕 H0」。
 樣本不足、變異數為 0（t 統計量未定義）、表格列／行總和為 0 等一律回錯誤，絕不回 inf／nan。
+「變異數為 0」的判定：樣本標準差 ≤ ZERO_SD_REL × max|x_i|（ZERO_SD_REL = 64·機器 epsilon）
+時視為 0。例：前後測恰差 1 的一位小數資料，浮點數相減後差值只有 1e-16 級的雜訊，
+若不視為 0 會得到 t≈1e16、p≈1e-48 的錯誤「拒絕 H0」。
 僅用 math 與 engine 內部匯入；無 I/O。
 """
 import math
@@ -25,6 +29,7 @@ PROB_SUM_TOL = 1e-9      # 機率向量總和與 1 的容許差
 SMALL_EXPECTED = 5.0     # 期望次數門檻
 SMALL_SHARE = 0.2        # 期望次數 < 5 的格數比例上限
 _MAX_X = 1e300
+ZERO_SD_REL = 64 * 2.220446049250313e-16   # 標準差視為 0 的相對門檻（64·eps）
 _SIDES = ("less", "greater")
 _SMALL_SAMPLE = "樣本太小，常態近似可能不準"
 _OVERFLOW = "計算結果超出範圍（溢位）"
@@ -98,13 +103,13 @@ def _side(tails, alt):
     """回傳 "two"、"less" 或 "greater"。tails 省略為 2；單尾須指定 alternative。"""
     if alt is not None and alt not in _SIDES:
         raise _InferError("ALT 必須是 less 或 greater", "ALT")
-    if tails is None:
-        return "two"
-    t = _need(tails, "TAILS")
-    if t == 2:
-        return "two"
-    if t != 1:
+    t = 2 if tails is None else _need(tails, "TAILS")
+    if t != 1 and t != 2:
         raise _InferError("TAILS 必須是 1 或 2", "TAILS")
+    if t == 2:
+        if alt is not None:
+            raise _InferError("雙尾檢定不可指定 ALT（單尾請設 TAILS=1）", "ALT")
+        return "two"
     if alt is None:
         raise _InferError("單尾檢定請指定 ALT（less 或 greater）", "ALT")
     return alt
@@ -131,7 +136,11 @@ def _run(fn):
 # ---------------------------------------------------------------- 共用計算
 
 def _mean_var(xs):
-    """(n, 平均, 樣本變異數)；兩遍法，全部相同時變異數為 0（不受捨入影響）。"""
+    """(n, 平均, 樣本變異數)；兩遍法。
+
+    全部相同，或標準差 ≤ ZERO_SD_REL × max|x_i|（只剩浮點捨入雜訊）時變異數視為 0，
+    由呼叫端回「標準差為 0、t 統計量未定義」錯誤，不產生假的巨大 t 值。
+    """
     n = len(xs)
     mean = _fin(sum(xs) / n)
     if min(xs) == max(xs):
@@ -140,7 +149,11 @@ def _mean_var(xs):
     for x in xs:
         d = x - mean
         ss += d * d
-    return n, mean, _fin(ss / (n - 1))
+    var = _fin(ss / (n - 1))
+    scale = max(abs(min(xs)), abs(max(xs)))
+    if math.sqrt(var) <= ZERO_SD_REL * scale:
+        return n, mean, 0.0
+    return n, mean, var
 
 
 def _unwrap(res):
@@ -175,8 +188,8 @@ def _t_result(t, df, side, alpha, extra):
     return _test_values("t", t, df, _t_p(t, df, side), alpha, extra)
 
 
-def _zero_sd(field, what="樣本標準差 Sx"):
-    return _InferError("%s 為 0（所有值相同），t 統計量未定義" % what, field)
+def _zero_sd(field, what="樣本標準差 Sx "):
+    return _InferError("%s為 0（所有值相同或只差浮點捨入誤差），t 統計量未定義" % what, field)
 
 
 # ---------------------------------------------------------------- 信賴區間
@@ -206,8 +219,8 @@ def ci_mean_t(xs=None, mean=None, sx=None, n=None, conf=None):
                 raise _InferError("X 與 MEAN／SX／N 只能擇一輸入", None)
             nn, m, var = _mean_var(_need_list(xs, "X", 2))
             if var == 0:
-                raise _InferError("樣本標準差 Sx 為 0（所有值相同），"
-                                  "信賴區間無意義", "X")
+                raise _InferError("樣本標準差 Sx 為 0（所有值相同或只差浮點"
+                                  "捨入誤差），信賴區間無意義", "X")
             s = math.sqrt(var)
         else:
             m = _need(mean, "MEAN")
@@ -297,7 +310,7 @@ def t2(xs, ys, equal_var=False, tails=None, alt=None, alpha=None):
             df = n1 + n2 - 2
             sp2 = _fin(((n1 - 1) * v1 + (n2 - 1) * v2) / df)
             if sp2 == 0:
-                raise _zero_sd(None, "合併標準差 Sp")
+                raise _zero_sd(None, "合併標準差 Sp ")
             se = math.sqrt(sp2 * (1.0 / n1 + 1.0 / n2))
             extra["sp"] = math.sqrt(sp2)
             extra["method"] = "pooled"
@@ -357,7 +370,10 @@ def _chi_result(obs, expected, df, alpha):
 
 
 def chi_gof(observed, expected=None, probs=None, alpha=None):
-    """卡方適合度：期望次數由 expected、機率向量 probs 或均等分配（皆省略）取得。"""
+    """卡方適合度：期望次數由 expected、機率向量 probs 或均等分配（皆省略）取得。
+
+    expected 總和須等於觀察總和（相對差 ≤ 1e-9）；df = k−1，不扣除估計參數個數。
+    """
     def calc():
         obs = _need_list(observed, "OBS", 2, nonneg=True)
         k = len(obs)
@@ -374,7 +390,8 @@ def chi_gof(observed, expected=None, probs=None, alpha=None):
             if min(exp) <= 0:
                 raise _InferError("EXP（期望次數）必須 > 0", "EXP")
             if abs(_fin(sum(exp)) - total) > PROB_SUM_TOL * total:
-                warnings.append("期望次數總和與觀察次數總和不同")
+                raise _InferError("期望次數總和必須等於觀察次數總和，"
+                                  "或改用機率 PROBS", "EXP")
         elif probs is not None:
             ps = _need_list(probs, "PROBS", 1)
             if len(ps) != k:

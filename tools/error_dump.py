@@ -132,6 +132,9 @@ CASES = [
     ("infer_gof_probs_sum", None, _req("infer", "chi_gof", {"OBS": [1, 2, 3], "PROBS": [0.5, 0.3, 0.3]})),
     ("infer_ind_zero_row", None, _req("infer", "chi_ind", {"TABLE": [[0, 0], [3, 4]]})),
     ("infer_ind_ragged", None, _req("infer", "chi_ind", {"TABLE": [[1, 2, 3], [4, 5]]})),
+    ("infer_tpaired_float_noise", None, _req("infer", "tpaired", {"X": [1.1, 2.2, 3.3, 4.4], "Y": [0.1, 1.2, 2.3, 3.4]})),
+    ("infer_gof_exp_total", None, _req("infer", "chi_gof", {"OBS": [10, 20], "EXP": [10, 25]})),
+    ("infer_two_tailed_with_alt", None, _req("infer", "t1", {"X": [1, 2, 4], "MU0": 1, "TAILS": 2, "ALT": "less"})),
 ]
 
 

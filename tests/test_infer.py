@@ -258,8 +258,10 @@ def test_warnings():
     r = _r("chi_gof", OBS=[20, 20, 20, 20, 3],
            PROBS=[0.24, 0.24, 0.24, 0.24, 0.04])
     assert r["ok"] and r["warnings"] == []
-    r = _r("chi_gof", OBS=[10, 20], EXP=[10, 25])
-    assert r["ok"] and any("總和" in w for w in r["warnings"])
+    # EXP 總和與 OBS 總和不同：回錯誤（不只是警告）
+    _bad("chi_gof", "EXP", "期望次數總和必須等於觀察次數總和，或改用機率 PROBS",
+         OBS=[10, 20], EXP=[10, 25])
+    assert _r("chi_gof", OBS=[10, 20], EXP=[10, 20 + 1e-8])["ok"]
 
 
 # ---------------------------------------------------------------- 錯誤路徑
@@ -282,6 +284,43 @@ def test_errors_sample_size_and_zero_variance():
     _bad("ci_mean_z", "N", None, MEAN=1, SIGMA=1, N=0, CONF=0.95)
     _bad("ci_prop", "X", None, X=11, N=10, CONF=0.95)
     _bad("ci_prop", "N", None, X=0, N=0, CONF=0.95)
+
+
+# 浮點雜訊造成的「假」變異數：差值數學上全為 1，浮點相減後只差 1e-16 級
+_NOISE_X = [1.1, 2.2, 3.3, 4.4]
+_NOISE_Y = [0.1, 1.2, 2.3, 3.4]
+_PRE = [12.3, 15.7, 9.8, 11.1, 14.6, 10.9]
+_POST = [x + 1 for x in _PRE]
+
+
+def test_float_noise_variance_is_zero():
+    """標準差 ≤ 64·eps·max|x| 視為 0：回錯誤，不給 t≈1e16 的假「拒絕 H0」。"""
+    diffs = [x - y for x, y in zip(_NOISE_X, _NOISE_Y)]
+    assert min(diffs) != max(diffs)          # 確實含捨入雜訊
+    _bad("tpaired", None, "差值的標準差為 0", X=_NOISE_X, Y=_NOISE_Y)
+    _bad("tpaired", None, "t 統計量未定義", X=_POST, Y=_PRE)
+    _bad("t1", "X", "t 統計量未定義", X=diffs, MU0=0)
+    _bad("ci_mean_t", "X", "Sx", X=diffs, CONF=0.95)
+    _bad("t2", None, "t 統計量未定義", X=diffs, Y=[2.0, 2.0, 2.0],
+         EQUAL_VAR=True)
+    _bad("t2", None, "t 統計量未定義", X=diffs, Y=[2.0, 2.0, 2.0],
+         EQUAL_VAR=False)
+    # 只有一組為 0 時 Welch／合併仍可計算
+    assert _v("t2", X=diffs, Y=[1.5, 2.0, 2.7])["sx"] == 0
+    # 一般小幅差異不受影響
+    v = _v("tpaired", X=[x + 1 + 0.1 * (i % 2) for i, x in enumerate(_PRE)],
+           Y=_PRE)
+    assert v["sd"] > 0
+    assert _v("t1", X=[1e6, 1e6 + 1e-6, 1e6 + 2e-6], MU0=1e6)["sx"] > 0
+
+
+def test_zero_sd_messages_have_no_stray_space():
+    for action, inp in (("tpaired", {"X": [2, 3, 4], "Y": [1, 2, 3]}),
+                        ("t1", {"X": [3, 3, 3], "MU0": 1}),
+                        ("t2", {"X": [2, 2], "Y": [5, 5],
+                                "EQUAL_VAR": True})):
+        msg = _r(action, **inp)["error"]
+        assert "標準差 為" not in msg and "為 0" in msg, msg
 
 
 def test_errors_tables_and_probs():
@@ -313,6 +352,10 @@ def test_errors_tails_alt_alpha_conf():
     _bad("t1", "ALT", None, X=_XS, MU0=12, TAILS=1)
     _bad("t1", "ALT", None, X=_XS, MU0=12, TAILS=1, ALT="bigger")
     _bad("t2", "ALT", None, X=_XS, Y=[1, 2], TAILS=2, ALT="two")
+    _bad("t1", "ALT", "雙尾", X=_XS, MU0=12, TAILS=2, ALT="less")
+    _bad("t2", "ALT", "雙尾", X=_XS, Y=[1, 2], ALT="greater")   # TAILS 預設 2
+    _bad("tpaired", "ALT", None, X=[1, 2, 4], Y=[0, 2, 1], TAILS=2,
+         ALT="greater")
     _bad("t1", "ALPHA", None, X=_XS, MU0=12, ALPHA=0)
     _bad("t1", "ALPHA", None, X=_XS, MU0=12, ALPHA=1)
     _bad("chi_gof", "ALPHA", None, OBS=[1, 2], ALPHA=-0.1)
