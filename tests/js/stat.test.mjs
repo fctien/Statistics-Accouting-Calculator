@@ -7,7 +7,9 @@ import {
   DISTS, distFields, prepareDist, distRows, dfNote, floatSettings, floatKeys,
   INFER_TYPES, inferFields, prepareInfer, gridLayout, readInferGrid, hypotheses, inferRows,
   DESC_GROUPS, readDescribeTable, chartRange, discreteRange, chartXs, pointRequest, chartGeometry,
+  withPoint, distHint,
 } from "../../web/js/stat.js";
+import { SHEETS, fieldMap } from "../../web/js/sheets.js";
 
 // ---------------------------------------------------------------- 機率分配：請求組裝
 
@@ -270,12 +272,13 @@ test("連續分配的取樣點數 ≤ 100", () => {
   assert.equal(xs[60], 4);
 });
 
-test("離散分配的 k 範圍：含 K、最多 101 點、二項不超過 N", () => {
+test("離散分配的 k 範圍：含 K、最多 100 點、二項不超過 N", () => {
   const b = discreteRange("binom", { N: 10, P: 0.3 }, 3);
   assert.equal(b[0], 0);
   assert.equal(b[b.length - 1], 10);
   const big = discreteRange("binom", { N: 100000, P: 0.5 }, 50000);
-  assert.ok(big.length <= 101 && big.includes(50000));
+  assert.ok(big.length <= 100 && big.includes(50000));
+  assert.equal(big.length, 100);
   const p = discreteRange("poisson", { LAMBDA: 2 }, 1);
   assert.equal(p[0], 0);
   assert.ok(p.includes(1));
@@ -343,4 +346,40 @@ test("匯入時 describe／dist／infer 的情境保留（含類型選單與 r×
   // US 存、EU 載入：表格內容改寫為 EU 寫法
   const prep = prepareScenarioForLoad({ ...out[1], inputs: { X: { text: "1.96" } } }, "eu");
   assert.equal(prep.inputs.X.text, "1,96");
+});
+
+// ---------------------------------------------------------------- 審查修正第 1 輪
+
+test("Q1／Q3 說明寫明 Excel QUARTILE.INC 的 (n−1)·p 線性內插（不是半部中位數法）", () => {
+  const fm = fieldMap("describe");
+  for (const [id, ex] of [["q1", "4"], ["q3", "5.5"]]) {
+    assert.match(fm[id].help, /QUARTILE\.INC/, id);
+    assert.match(fm[id].help, /\(n−1\)·p/, id);
+    assert.match(fm[id].help, /線性內插/, id);
+    assert.ok(fm[id].help.includes(`例：${ex}`), id);
+    assert.doesNotMatch(fm[id].help, /^下半部|^上半部/, id);
+  }
+  assert.ok(SHEETS.describe);
+});
+
+test("陰影端點：把 shadeTo 精確插入取樣點（已存在或超出範圍則不插）", () => {
+  assert.deepEqual(withPoint([0, 1, 2], 1.5), [0, 1, 1.5, 2]);
+  assert.deepEqual(withPoint([0, 1, 2], 1), [0, 1, 2]);
+  assert.deepEqual(withPoint([0, 1, 2], 5), [0, 1, 2]);
+  assert.deepEqual(withPoint([0, 1, 2], null), [0, 1, 2]);
+  assert.ok(withPoint(chartXs(-4, 4, 61), 1.96).length <= 100);
+});
+
+test("陰影面積的右緣正好在 shadeTo", () => {
+  const pts = [[-1, 0.1], [0, 0.4], [0.5, 0.35], [1, 0.1]];
+  const g = chartGeometry({ points: pts, discrete: false, shadeTo: 0.5, marker: 0.5, width: 300, height: 150 });
+  const xs = [...g.area.matchAll(/[ML](-?[\d.]+),/g)].map((m) => Number(m[1]));
+  assert.equal(Math.max(...xs), g.markerX);
+});
+
+test("inv 結果的提示：雙尾 α = 0.05 時輸入 p = 0.05；其他功能沒有提示", () => {
+  assert.equal(distHint("t", "inv"), "雙尾 α = 0.05 時請輸入 p = 0.05");
+  assert.equal(distHint("normal", "inv"), "雙尾 α = 0.05 時請輸入 p = 0.05");
+  assert.equal(distHint("chi2", "inv"), null); // 卡方沒有雙尾臨界值
+  assert.equal(distHint("t", "cdf"), null);
 });

@@ -104,7 +104,7 @@ export function dfNote(dist, df) {
 // ---------------------------------------------------------------- 分配圖
 
 export const CHART_POINTS = 61; // 連續分配取樣點數（≤ 100，每點一次引擎呼叫）
-const MAX_BARS = 101;
+const MAX_BARS = 100; // 每根一次引擎呼叫，與連續分配同樣 ≤ 100
 
 /** 圖的 x 範圍反查機率（左、右）：t 分配尾巴很厚，取較窄的分位數。 */
 export function rangeProbs(dist) {
@@ -151,13 +151,28 @@ export function discreteRange(dist, params, k) {
   }
   if (b - a + 1 > MAX_BARS) { // 太寬：以 K（或平均數）為中心取 MAX_BARS 根
     const c = typeof k === "number" ? k : Math.round(mean);
-    a = Math.max(0, c - 50);
+    a = Math.max(0, c - MAX_BARS / 2);
     b = Math.min(top, a + MAX_BARS - 1);
     a = Math.max(0, b - MAX_BARS + 1);
   }
   const out = [];
   for (let i = a; i <= b; i++) out.push(i);
   return out;
+}
+
+/**
+ * 把陰影端點 x 精確插入已排序的取樣點（讓陰影面積的右緣正好在 x，而不是最近的取樣點）；
+ * x 不在範圍內、已存在或不是數字時原樣回傳。
+ */
+export function withPoint(xs, x) {
+  if (typeof x !== "number" || !xs.length || x < xs[0] || x > xs[xs.length - 1] || xs.includes(x)) return xs;
+  const i = xs.findIndex((v) => v > x);
+  return [...xs.slice(0, i), x, ...xs.slice(i)];
+}
+
+/** inv 結果下的提示（引擎語意：雙尾臨界值使雙尾機率等於 p）；沒有雙尾的分配或其他功能回傳 null。 */
+export function distHint(dist, func) {
+  return func === "inv" && DISTS[dist].two ? "雙尾 α = 0.05 時請輸入 p = 0.05" : null;
 }
 
 /** 單點的 pdf／pmf 請求（參數照抄使用者輸入）。 */

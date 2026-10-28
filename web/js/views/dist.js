@@ -9,7 +9,7 @@ import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import {
   DISTS, distFields, prepareDist, distRows, dfNote, rangeProbs, chartRange, chartXs, discreteRange,
-  pointRequest, invRequest, CHART_POINTS,
+  pointRequest, invRequest, CHART_POINTS, withPoint, distHint,
 } from "../stat.js";
 import { renderForm } from "./form.js";
 import { runEngineAction, watchStale, generation, isGeneration } from "./run.js";
@@ -62,6 +62,8 @@ export function mount(container) {
     const status = statusBox(form);
     status.append(el("h3", { class: "stat-head" }, `${DISTS[dist].label}：${func === "inv" ? "反查臨界值" : func === "cdf" ? "累積機率" : (DISTS[dist].discrete ? "機率 P(X = k)" : "機率密度")}`));
     status.append(resultList(rows, res.response.display, fl ? fl.display : null, "dist-result"));
+    const hint = distHint(dist, func);
+    if (hint) status.append(el("p", { class: "calc-note", id: "dist-inv-hint" }, hint));
     const note = dfNote(dist, res.inputs.DF);
     if (note) status.append(el("p", { class: "stat-note", id: "dist-df-note" }, note));
     const chartBox = el("div", { class: "stat-chart-box" }, "");
@@ -104,7 +106,8 @@ export function mount(container) {
     if (!ok() || !rl || !rh || !rl.ok || !rh.ok) return null;
     const mark = func === "inv" ? v.value : inputs.X;
     const range = chartRange(rl.values.value, rh.values.value, mark);
-    const xs = chartXs(range.lo, range.hi, CHART_POINTS);
+    // 陰影端點（cdf 的 x、inv 的左尾臨界值）也向引擎要 pdf，陰影正好停在 x
+    const xs = withPoint(chartXs(range.lo, range.hi, CHART_POINTS), func === "pdf" ? null : mark);
     const got = await Promise.all(xs.map((x) => call(pointRequest(dist, params, x))));
     if (!ok()) return null;
     const points = xs.map((x, i) => [x, got[i] && got[i].ok ? got[i].values.value : null]).filter((p) => p[1] !== null);
