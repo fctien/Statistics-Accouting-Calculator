@@ -245,6 +245,7 @@ SEGMENTS = [
             "迴歸與單變數頁可以做線性、對數、指數和冪次迴歸。"
             "輸入五組資料，X 是一到五，Y 是二、四、五、四、五，選線性模型後按迴歸。"
             "截距是二點二，斜率零點六，相關係數零點七七，平均數和標準差也一起算出來。"
+            "在預測欄輸入新的 X 值六，按預測，就得到預測的 Y 值五點八。"
             "如果資料有重複，可以在次數欄填寫出現的次數，不必一筆一筆重複輸入；也可以直接從試算表複製貼上。"
         ),
         "actions": [
@@ -258,6 +259,9 @@ SEGMENTS = [
             {"highlight": "#f-stats-A"},
             {"highlight": "#f-stats-B"},
             {"highlight": "#f-stats-r"},
+            {"fill": "#f-stats-XP", "value": "6"},
+            {"click": "#sheet button:text-is('預測')"},
+            {"highlight": "#f-stats-YP"},
         ],
         "expect": [
             {"selector": "#f-stats-A", "text": "2.20",
@@ -269,6 +273,10 @@ SEGMENTS = [
             {"selector": "#f-stats-r", "text": "0.77",
              "engine": {"sheet": "stats", "action": "two_var",
                         "inputs": {"X": [1, 2, 3, 4, 5], "Y": [2, 4, 5, 4, 5], "model": "LIN"}, "key": "r"}},
+            # 預測用迴歸的全精度 a＝2.2、b＝0.6（engine two_var 的 values）
+            {"selector": "#f-stats-YP", "text": "5.80",
+             "engine": {"sheet": "stats", "action": "predict",
+                        "inputs": {"model": "LIN", "A": 2.2, "B": 0.6, "X": 6}, "key": "y"}},
         ],
     },
     {

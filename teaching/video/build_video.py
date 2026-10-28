@@ -1,6 +1,7 @@
 """合成（compose）：每段 webm ＋ 旁白 wav → mp4，串接後燒入字幕；另產外掛字幕 srt。
 
-每段長度 D = max(錄影長度, 旁白長度 + 0.5)；錄影較短時以最後一格靜止延長（tpad clone），
+每段長度 D = max(實際操作秒數, 旁白長度 + 0.5)，多出的 webm 尾段剪掉；較短時以最後一格靜止延長（tpad clone），
+畫面 1280×640 下方加 80px 字幕帶（輸出 1280×720），
 旁白後面補靜音到 D。字幕依標點斷句，時間按字數比例分配在該段旁白長度內。
 輸入：build/record.json（record.mjs）、build/durations.json 與 build/seg-XX.wav（narrate.py）
 輸出：out/BACalc_使用說明.mp4（燒入字幕）、out/BACalc_使用說明.srt
@@ -24,11 +25,14 @@ OUT = os.path.join(HERE, "out")
 NAME = "BACalc_使用說明"
 FPS = 30
 PAD = 0.5  # 旁白後的緩衝（秒）
-# 白字黑框（BorderStyle=1）；不用不透明底框（BorderStyle=3 在 libass 下框底會出現鋸齒狀殘線）
-SUB_STYLE = ("FontName=Microsoft JhengHei,FontSize=20,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
-             "BackColour=&H80000000,BorderStyle=1,Outline=2,Shadow=1,MarginV=18")
+APP_H = 640   # 錄影的 App 畫面高度（record.mjs 的 viewport）
+BAND_H = 80   # 底部字幕帶高度：輸出 1280×720，字幕只出現在字幕帶，不蓋住 UI
+BAND_COLOR = "0x111827"
+# 白字黑邊（BorderStyle=1）；SRT 的 libass 座標高 288 → 字幕帶 80px ≈ 32 單位，字高 16、下邊距 8 置中於字幕帶
+SUB_STYLE = ("FontName=Microsoft JhengHei,FontSize=16,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
+             "BorderStyle=1,Outline=1,Shadow=0,MarginV=8,WrapStyle=2")
 _BREAK = "。！？；，、："
-_MAX_CUE = 26  # 每則字幕最多字數（超過再於逗號處切）
+_MAX_CUE = 24  # 每則字幕最多字數（超過再於逗號處切）
 
 
 def ffmpeg_exe():
@@ -102,13 +106,18 @@ def run(cmd, cwd=None):
 
 
 def compose_segment(rec, wav, narr, out_mp4):
-    """一段：剪掉載入時間、補靜止畫面到 D、混入旁白；回傳實際長度 D。"""
+    """一段：剪掉載入時間，長度 D = max(實際操作秒數, 旁白 + PAD)；
+
+    webm 在操作結束後還有 context 關閉前的尾段，一律剪到 D；較短時才以最後一格靜止延長（tpad clone）。
+    App 畫面（1280×640）放上方，底部補 BAND_H 的深色字幕帶成 1280×720。回傳實際長度。
+    """
     ff = ffmpeg_exe()
     raw = media_seconds(rec["file"]) - rec["trim"]
-    target = max(raw, narr + PAD)
+    target = max(rec.get("length", 0.0), narr + PAD)
     pad = max(0.0, target - raw) + 0.2
     vf = ("[0:v]fps=%d,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=%.3f,"
-          "trim=duration=%.3f,setpts=PTS-STARTPTS,format=yuv420p[v]" % (FPS, pad, target))
+          "trim=duration=%.3f,setpts=PTS-STARTPTS,"
+          "pad=iw:ih+%d:0:0:color=%s,format=yuv420p[v]" % (FPS, pad, target, BAND_H, BAND_COLOR))
     af = "[1:a]aresample=48000,apad,atrim=duration=%.3f,asetpts=PTS-STARTPTS[a]" % target
     run([ff, "-y", "-hide_banner", "-ss", "%.3f" % rec["trim"], "-i", rec["file"], "-i", wav,
          "-filter_complex", vf + ";" + af, "-map", "[v]", "-map", "[a]",

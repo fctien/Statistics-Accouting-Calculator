@@ -1,6 +1,6 @@
 # BACalc 手動 e2e 檢查表（in-app 瀏覽器）
 
-> 使用者尚未同意安裝 Playwright，因此 UI 層以此表手動檢查。自動驗證（引擎、golden、JS 單元、Worker）請跑 `python tools/verify_all.py`。
+> UI 層以此表手動檢查（本檢查表仍為人工操作）。使用說明影片的錄影（`teaching/video/record.mjs`）使用上一層資料夾已有的 Playwright（`../node_modules/playwright`，含 Chromium），本專案沒有另外安裝任何套件；錄影時會核對各段畫面數值，但不取代本表。自動驗證（引擎、golden、JS 單元、Worker）請跑 `python tools/verify_all.py`。
 > 起手：`python tools/build_web.py`，啟動預覽伺服器（根目錄為 `web/`），開啟 `/index.html`。設定頁維持預設（小數位數 2、千分位開、日期 yyyy-mm-dd）。
 > 每張工作表：填入下列輸入 → 按指定動作按鈕 → 對照「預期顯示」。出處是 `tests/golden/excel.json` 的 Excel 公式。
 

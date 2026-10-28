@@ -2,7 +2,7 @@
 // 用法：node teaching/video/record.mjs <base_url> [--only id,id] [--dry]
 //   base_url  例 http://127.0.0.1:8765/（伺服器由 run_video.py 啟動與關閉）
 //   --dry     不錄影、快速跑完所有動作並核對 expect（開發腳本用）
-// 每段一個新的瀏覽器情境（context）＋ recordVideo（1280×720）→ build/seg-XX.webm；
+// 每段一個新的瀏覽器情境（context）＋ recordVideo（1280×640；合成時底部加 80px 字幕帶成 1280×720）→ build/seg-XX.webm；
 // 段落開始前先載入 start 路由並等引擎「就緒」，這段載入時間記在 build/record.json 的 trim，合成時剪掉。
 // 畫面加上游標圓點（跟隨滑鼠）、點擊漣漪、元素外框 highlight 與段落字卡（2 秒）。
 // 動作節奏對齊旁白：第 i 個動作最早在 (旁白秒數 × i / 動作數 × 0.85) 開始；段落至少錄到旁白長度＋0.5 秒。
@@ -17,7 +17,7 @@ const { chromium } = require("playwright");
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BUILD = path.join(HERE, "build");
-const W = 1280, H = 720;
+const W = 1280, H = 640; // App 畫面；字幕帶在合成時另加，不蓋住任何 UI
 
 const args = process.argv.slice(2);
 const BASE = args.find((a) => /^https?:/.test(a)) || "http://127.0.0.1:8765/";

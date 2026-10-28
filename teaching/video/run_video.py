@@ -2,7 +2,7 @@
 
 用法：python teaching/video/run_video.py [--skip-record]
     --skip-record  沿用 build/ 內既有的錄影（只重做旁白與合成）
-本機伺服器（python -m http.server，port 8765，根目錄 web/）由本程式啟動，結束時一定關閉。
+本機伺服器（python -m http.server，port 8765，被占用時改用空 port；根目錄 web/）由本程式啟動，結束時一定關閉。
 完成後印出影片長度、解析度、音軌（ffprobe 不在系統上，用 imageio_ffmpeg 的 ffmpeg -i 取得同樣資訊），
 並在 5 個時間點抽影格存到 out/frames/。
 """
@@ -40,16 +40,28 @@ def port_free(port):
         return s.connect_ex(("127.0.0.1", port)) != 0
 
 
+def free_port():
+    """向系統要一個空的 port。"""
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def start_server():
-    """啟動靜態伺服器並等它回應；回傳 Popen。"""
-    if not port_free(PORT):
-        raise SystemExit("port %d 已被占用，請先關閉該伺服器" % PORT)
-    proc = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT), "-b", "127.0.0.1", "-d", "web"],
+    """啟動靜態伺服器並等它回應；回傳 (Popen, port)。
+
+    預設 port 8765；已被別的程式占用時（例如使用者自己開的預覽伺服器）不去動它，改用系統給的空 port。
+    """
+    port = PORT
+    if not port_free(port):
+        port = free_port()
+        print("port %d 已被占用（不動它），改用 %d" % (PORT, port))
+    proc = subprocess.Popen([sys.executable, "-m", "http.server", str(port), "-b", "127.0.0.1", "-d", "web"],
                             cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for _ in range(50):
         try:
-            urllib.request.urlopen("http://127.0.0.1:%d/index.html" % PORT, timeout=1).close()
-            return proc
+            urllib.request.urlopen("http://127.0.0.1:%d/index.html" % port, timeout=1).close()
+            return proc, port
         except OSError:
             time.sleep(0.2)
     proc.terminate()
@@ -90,9 +102,9 @@ def main(argv):
     step("輸出腳本 script.json", [sys.executable, "teaching/video/script.py", os.path.join(BUILD, "script.json")])
     step("旁白合成 narrate（Yating）", [sys.executable, "teaching/video/narrate.py"])
     if not skip_record:
-        server = start_server()
+        server, port = start_server()
         try:
-            step("錄影 record（Playwright）", ["node", "teaching/video/record.mjs", "http://127.0.0.1:%d/" % PORT])
+            step("錄影 record（Playwright）", ["node", "teaching/video/record.mjs", "http://127.0.0.1:%d/" % port])
         finally:
             server.terminate()
             server.wait(timeout=10)
