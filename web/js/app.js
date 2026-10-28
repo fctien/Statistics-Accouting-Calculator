@@ -20,6 +20,8 @@ import * as statsView from "./views/stats.js";
 import * as bondView from "./views/bond.js";
 import * as deprView from "./views/depr.js";
 import * as calcView from "./views/calc.js";
+import * as unitsView from "./views/units.js";
+import * as baseView from "./views/base.js";
 import * as settingsView from "./views/settings.js";
 
 export const APP_VERSION = "0.1.0";
@@ -84,6 +86,8 @@ const VIEWS = {
   bond: bondView,
   depr: deprView,
   calc: calcView,
+  units: unitsView,
+  base: baseView,
   settings: settingsView,
 };
 

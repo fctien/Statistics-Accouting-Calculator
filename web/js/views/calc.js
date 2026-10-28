@@ -1,4 +1,6 @@
-// View：計算機 CALC。算式輸入框、按鍵面板（手機）、紙帶（tape）、M0～M9 記憶面板與累加器 Σ。
+// View：科學計算機（工程頁 #eng/calc）。算式輸入框、科學鍵（三角／反三角用 2nd、log、ln、∛、π、e、±、
+// DEG／RAD 切換）、數字鍵、紙帶（tape）、M0～M9 記憶面板與累加器 Σ。
+// 角度單位存在 settings.angle，計算時隨 settings 送出；切換後，已顯示的結果若是另一模式算的就標過期（stale）。
 // 所有運算與數字格式化都交給引擎（callEngine，sheet "calc" / action "eval"）：
 //   - 算式結果、記憶與 Σ 的顯示字串都由引擎依小數位數與千分位設定產生，JS 不自己格式化；
 //   - 記憶值以原始浮點數存在 memstore.js（鏡射 engine/memory.py），作為 MEM 送給引擎。
@@ -11,13 +13,15 @@ import { createMemStore, fromJSON as memFromJSON } from "../memstore.js";
 import { createTape, createWalker, MAX_ENTRIES } from "../tape.js";
 import * as persist from "../storage/persist.js";
 import { createGuard } from "../generation.js";
-import { KEY_ROWS, insertAt, backspaceAt } from "../keypad.js";
+import { KEY_ROWS, SCI_ROWS, insertAt, backspaceAt, toggleSign } from "../keypad.js";
+import { evalRequest, angleLabel, resultIsStale } from "../eng.js";
 
 let memory = createMemStore();
 const tape = createTape();
 const walker = createWalker(tape);
 let ans = 0; // 上一次成功的值（原始浮點數）；初始 0，同引擎預設
 let ansDisplay = "";
+let ansAngle = null; // ANS 是在哪個角度模式算出的（null＝還沒有結果）
 let listener = null; // 目前掛載的畫面對 bacalc-settings 的監聽（重新掛載時移除舊的）
 
 /**
@@ -36,6 +40,7 @@ export function replaceState(tapeEntries, memoryData) {
   walker.reset();
   ans = 0;
   ansDisplay = "";
+  ansAngle = null;
 }
 
 const saveTape = () => persist.saveTape(tape.toJSON());
@@ -54,12 +59,8 @@ function el(tag, attrs = {}, text = "") {
 const CHAIN_HINT = "依序（Chain）模式：+ − × ÷ ^ 一律由左到右，所以 2+3×4 = 20，且 −2^2 = 4（AOS 模式為 14 與 −4）";
 
 /** 呼叫引擎計算算式（用目前的 ANS、記憶與設定）。 */
-function evaluate(expr) {
-  return callEngine({
-    sheet: "calc", action: "eval",
-    inputs: { EXPR: expr, ANS: ans, MEM: memory.toEngineMem() },
-    settings: settingsStore.toEngine(),
-  });
+function evaluate(expr, settings = settingsStore.toEngine()) {
+  return callEngine(evalRequest(expr, ans, memory.toEngineMem(), settings));
 }
 
 /** 把原始數值交給引擎格式化（當成數字常數算式）；失敗時回傳 null，由呼叫端保留舊顯示或標 "?"（不顯示猜測值）。 */
@@ -92,26 +93,30 @@ export function mount(container) {
   const status = el("p", { id: "calc-status", class: "calc-status", role: "status", "aria-live": "polite" });
   const result = el("output", { id: "calc-result", class: "calc-result", "aria-label": "結果", "aria-live": "polite" });
 
-  // ---- 按鍵面板
+  // ---- 按鍵面板：科學鍵（5 欄）＋數字鍵（4 欄）
+  const sciPad = el("div", { class: "keypad keypad-sci", role: "group", "aria-label": "科學鍵" });
   const pad = el("div", { class: "keypad", role: "group", "aria-label": "按鍵面板" });
-  const addKey = (k, extra = "") => {
+  const KEY_IDS = {
+    back: "calc-back", clear: "calc-clear-input", second: "calc-2nd", angle: "calc-angle", negate: "calc-negate",
+  };
+  const sciKeys = []; // 有 2nd 替代的鍵：[按鈕, 鍵定義]
+  const addKey = (parent, k) => {
     const b = el("button", {
-      type: "button", class: `key key-${k.kind} ${extra}`.trim(), title: k.title || k.label, "data-insert": k.insert,
+      type: "button", class: `key key-${k.kind}`, title: k.title || k.label,
+      "data-insert": k.insert, "data-action": k.action, id: KEY_IDS[k.action],
     }, k.label);
-    pad.append(b);
+    parent.append(b);
+    if (k.second) sciKeys.push([b, k]);
     return b;
   };
-  for (const row of KEY_ROWS) for (const k of row) addKey(k);
-  for (const k of [
-    { label: "ln", insert: "ln(", title: "自然對數", kind: "fn" },
-    { label: "eˣ", insert: "exp(", title: "e 的次方", kind: "fn" },
-    { label: "nPr", insert: "nPr(", title: "排列：nPr(5,2)", kind: "fn" },
-    { label: "nCr", insert: "nCr(", title: "組合：nCr(5,2)", kind: "fn" },
-    { label: ",", insert: ",", title: "引數分隔（nPr、nCr 用）", kind: "fn" },
-  ]) addKey(k);
-  const back = el("button", { type: "button", id: "calc-back", class: "key key-fn", title: "退格" }, "⌫");
-  const clr = el("button", { type: "button", id: "calc-clear-input", class: "key key-fn", title: "清除輸入（Esc）" }, "C");
-  pad.append(back, clr);
+  for (const row of SCI_ROWS) for (const k of row) addKey(sciPad, k);
+  for (const row of KEY_ROWS) for (const k of row) addKey(pad, k);
+  const back = sciPad.querySelector("#calc-back");
+  const clr = sciPad.querySelector("#calc-clear-input");
+  const secondKey = sciPad.querySelector("#calc-2nd");
+  const angleKey = sciPad.querySelector("#calc-angle");
+  secondKey.setAttribute("aria-pressed", "false");
+  let second = false; // 2nd 狀態：插入一個第二功能後自動放開（同 TI）
 
   // ---- 記憶
   const memBox = el("section", { class: "calc-mem", "aria-labelledby": "calc-mem-title" });
@@ -151,7 +156,7 @@ export function mount(container) {
   tapeBox.append(tapeHead, tapeEmpty, tapeList);
 
   const main = el("div", { class: "calc-main" });
-  main.append(modeLine, hint, inputRow, error, status, result, pad);
+  main.append(modeLine, hint, inputRow, error, status, result, sciPad, pad);
   root.append(main, memBox, tapeBox);
   container.replaceChildren(root);
 
@@ -168,14 +173,41 @@ export function mount(container) {
   const say = (text) => { status.textContent = text; };
 
   function renderMode() {
-    const mode = settingsStore.get().mode;
-    modeLine.textContent = `運算順序：${mode === "CHAIN" ? "依序 Chain" : "代數 AOS"}（可在「設定」更改）`;
+    const { mode, angle } = settingsStore.get();
+    modeLine.textContent = `運算順序：${mode === "CHAIN" ? "依序 Chain" : "代數 AOS"}（可在「設定」更改）`
+      + `｜角度：${angleLabel(angle)}`;
+    angleKey.textContent = angle;
+    angleKey.title = `角度單位目前為 ${angleLabel(angle)}，按一下切換為 ${angle === "DEG" ? "RAD 弧度" : "DEG 度"}`;
+    angleKey.setAttribute("aria-label", angleKey.title);
     hint.textContent = CHAIN_HINT;
     hint.hidden = mode !== "CHAIN";
   }
 
   function renderResult() {
-    result.textContent = ansDisplay ? `ANS = ${ansDisplay}` : "";
+    const angle = settingsStore.get().angle;
+    const stale = Boolean(ansDisplay) && resultIsStale(ansAngle, angle);
+    result.classList.toggle("stale", stale);
+    result.replaceChildren();
+    if (ansDisplay) result.append(el("span", { class: "calc-ans" }, `ANS = ${ansDisplay}`));
+    if (stale) {
+      result.append(el("span", { class: "calc-stale-note" },
+        `${ansAngle} 模式的結果；目前是 ${angle}，請按 ＝ 重新計算`));
+      result.title = "這是舊角度模式的結果";
+    } else {
+      result.removeAttribute("title");
+    }
+  }
+
+  function setSecond(on) {
+    second = on;
+    secondKey.setAttribute("aria-pressed", String(on));
+    secondKey.classList.toggle("key-on", on);
+    for (const [b, k] of sciKeys) {
+      const v = on ? k.second : k;
+      b.textContent = v.label;
+      b.title = v.title || v.label;
+      b.dataset.insert = v.insert;
+    }
   }
 
   function renderTape() {
@@ -255,8 +287,9 @@ export function mount(container) {
     }
     busy = true;
     eq.disabled = true;
+    const settings = settingsStore.toEngine(); // 送出當下的設定（含角度單位）
     try {
-      const r = await evaluate(expr);
+      const r = await evaluate(expr, settings);
       if (r.ok !== true) {
         showError(r.error || "計算失敗（沒有原因）");
         return null;
@@ -265,6 +298,7 @@ export function mount(container) {
       const display = r.display.value;
       ans = value;
       ansDisplay = display;
+      ansAngle = settings.angle;
       if (record) {
         tape.add({ expr, value, display, ts: Date.now() });
         walker.reset();
@@ -336,7 +370,7 @@ export function mount(container) {
     }
   });
   input.addEventListener("input", () => { walker.reset(); });
-  pad.addEventListener("click", (e) => {
+  const onPad = (e) => {
     const b = e.target.closest("button");
     if (!b) return;
     if (b === back) {
@@ -345,10 +379,23 @@ export function mount(container) {
     } else if (b === clr) {
       setInput("");
       showError("");
+    } else if (b === secondKey) {
+      setSecond(!second);
+    } else if (b === angleKey) {
+      const next = settingsStore.get().angle === "DEG" ? "RAD" : "DEG";
+      settingsStore.commit({ angle: next }); // 觸發 bacalc-settings → renderMode／renderResult
+      say(`角度單位：${angleLabel(next)}`);
+    } else if (b.dataset.action === "negate") {
+      const r = toggleSign(input.value, input.selectionStart ?? input.value.length);
+      setInput(r.text, r.caret);
+      walker.reset();
     } else if (b.dataset.insert !== undefined) {
       insert(b.dataset.insert);
+      if (second && sciPad.contains(b)) setSecond(false);
     }
-  });
+  };
+  sciPad.addEventListener("click", onPad);
+  pad.addEventListener("click", onPad);
   memKeys.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-op]");
     if (b) memOp(b.dataset.op);

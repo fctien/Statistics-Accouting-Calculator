@@ -19,7 +19,7 @@ function fakeStorage(initial = {}) {
 test("預設值：還沒 init 時 get 回預設，set 只在記憶體生效", () => {
   _resetCache();
   assert.deepEqual(get(), {
-    decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "",
+    decimals: 2, sep: "us", mode: "AOS", angle: "DEG", theme: "auto", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "",
   });
   assert.deepEqual(DEFAULTS, get());
   const r = set({ decimals: 4 });
@@ -43,14 +43,14 @@ test("init：讀 IndexedDB；不合法值忽略；set 寫回 IndexedDB", async (
   _resetCache();
   await init();
   assert.deepEqual(get(), {
-    decimals: 5, sep: "us", mode: "AOS", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "",
+    decimals: 5, sep: "us", mode: "AOS", angle: "DEG", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "",
   });
   const r = set({ decimals: null, mode: "CHAIN", sep: "fr", bogus: 1 });
   assert.deepEqual(Object.keys(r.errors), ["sep"]);
   await new Promise((res) => setTimeout(res, 50));
   assert.deepEqual((await idb.get("settings", "settings")).value,
-    { decimals: null, sep: "us", mode: "CHAIN", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "" });
-  assert.deepEqual(toEngine(), { decimals: null, sep: "us", mode: "CHAIN" });
+    { decimals: null, sep: "us", mode: "CHAIN", angle: "DEG", theme: "dark", dateFmt: "us", taxPreset: "", gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "" });
+  assert.deepEqual(toEngine(), { decimals: null, sep: "us", mode: "CHAIN", angle: "DEG" });
   cleanup();
 });
 
@@ -101,7 +101,7 @@ test("日期格式與稅率預設值：合法才寫入", () => {
   assert.equal(get().taxPreset, "營業稅");
   assert.deepEqual(Object.keys(set({ dateFmt: "jp", taxPreset: 5 }).errors).sort(), ["dateFmt", "taxPreset"]);
   assert.equal(get().dateFmt, "eu");
-  assert.deepEqual(toEngine(), { decimals: 2, sep: "us", mode: "AOS" });
+  assert.deepEqual(toEngine(), { decimals: 2, sep: "us", mode: "AOS", angle: "DEG" });
   _resetCache();
 });
 
@@ -138,5 +138,18 @@ test("Google Drive 設定：Client ID 形狀驗證、lastSync 為字串", () => 
   const bad = set({ gdriveClientId: "not-a-client-id", gdriveLastSync: 5 });
   assert.deepEqual(Object.keys(bad.errors).sort(), ["gdriveClientId", "gdriveLastSync"]);
   assert.equal(get().gdriveClientId, "123-abc.apps.googleusercontent.com");
+  _resetCache();
+});
+
+test("角度單位 angle：DEG／RAD 才合法，toEngine 送出，sanitize（匯入）丟掉不合法值", async () => {
+  delete globalThis.localStorage;
+  _resetCache();
+  assert.deepEqual(set({ angle: "RAD" }).errors, {});
+  assert.equal(toEngine().angle, "RAD");
+  assert.deepEqual(Object.keys(set({ angle: "GRAD" }).errors), ["angle"]);
+  assert.equal(get().angle, "RAD");
+  const { sanitize } = await import("../../web/js/settings.js");
+  assert.deepEqual(sanitize({ angle: "RAD", mode: "x" }), { angle: "RAD" });
+  assert.deepEqual(sanitize({ angle: "deg" }), {});
   _resetCache();
 });

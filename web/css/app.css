@@ -1121,3 +1121,124 @@ input[type="checkbox"].control {
   background: var(--surface);
   color: var(--fg);
 }
+
+/* ---- D2：工程頁（科學計算機、單位換算、進位轉換） ---- */
+.keypad-sci {
+  grid-template-columns: repeat(5, 1fr);
+  margin-bottom: 6px;
+}
+
+.keypad-sci .key {
+  font-size: 1rem;
+}
+
+.key.key-on {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+
+.calc-result.stale .calc-ans {
+  opacity: 0.65;
+  text-decoration: line-through;
+}
+
+.calc-stale-note {
+  display: block;
+  color: var(--warn);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.field.invalid .control {
+  border-color: var(--bad);
+}
+
+.unit-fields,
+.base-fields,
+.base-bit-fields,
+.base-out {
+  max-width: 720px;
+}
+
+.unit-swap-row {
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 10px;
+}
+
+.unit-swap {
+  min-width: 56px;
+  min-height: 44px;
+  font-size: 1.25rem;
+}
+
+.unit-result {
+  text-align: left;
+  max-width: 720px;
+}
+
+.base-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.base-opts .control {
+  flex: none;
+  width: auto;
+}
+
+.base-signed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.base-signed input {
+  width: 22px;
+  height: 22px;
+}
+
+.base-conv,
+.base-bit {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  max-width: 760px;
+}
+
+.base-conv h3,
+.base-bit h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.base-fields .control,
+.base-out .control,
+.base-bit-fields input.control {
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  overflow-wrap: anywhere;
+}
+
+.base-radix {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.base-fields textarea.control,
+.base-out textarea.control {
+  resize: none;
+  overflow-wrap: break-word;
+}
+
+.base-fields [data-field="BIN"],
+.base-out [data-field="RBIN"] {
+  grid-column: 1 / -1;
+}

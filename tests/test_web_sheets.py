@@ -94,11 +94,10 @@ def test_sheet_actions_cover_bridge_routes(requests):
     """bridge 的每個路由都有對應的工作表動作（UI 不會漏功能）。"""
     from engine.bridge import ROUTES
     have = {(r["engine"], r["action"]) for r in requests if r["engine"]}
-    # units、base 路由的 UI（工程頁）由後續任務（D2）加入，屆時移除此豁免；
     # stats/describe 的 UI（統計頁）由 D3 加入，屆時一併移除此豁免；
     # dist/*（機率分配）、infer/*（信賴區間與檢定）的 UI 亦由 D3 加入，屆時移除 "dist"、"infer" 豁免
     routes = {r for r in ROUTES
-              if r[0] not in ("units", "base", "dist", "infer")
+              if r[0] not in ("dist", "infer")
               and r != ("stats", "describe")}
     assert routes <= have, sorted(routes - have)
 
@@ -203,3 +202,23 @@ def test_amort_csv_cells_are_plain_numbers(sep, decimals):
     for row in rows:
         for cell in row:
             assert re.fullmatch(r"-?\d+(\.\d+)?", cell), cell
+
+
+@pytest.mark.parametrize("angle, expr", [("DEG", "sin(30)"), ("RAD", "sin(π/6)")])
+def test_calc_ui_sends_angle(angle, expr):
+    """計算機畫面送出的請求（eng.evalRequest＋settings.toEngine）含 angle，引擎依此計算。"""
+    js = ("import {evalRequest} from './web/js/eng.js';"
+          "import {set, toEngine} from './web/js/settings.js';"
+          "set({angle: process.argv[1]});"
+          "console.log(JSON.stringify(evalRequest(process.argv[2], 0, {}, toEngine())));")
+    proc = run_node(["--input-type=module", "-e", js, angle, expr])
+    assert proc.returncode == 0, proc.stderr
+    req = json.loads(proc.stdout)
+    assert req["settings"]["angle"] == angle
+    res = json.loads(call(json.dumps(req)))
+    assert res["ok"], res
+    assert res["display"]["value"] == "0.50"
+    # 用另一個模式算同一式：結果不同（確認 angle 真的有作用）
+    other = dict(req, settings=dict(req["settings"],
+                                    angle="RAD" if angle == "DEG" else "DEG"))
+    assert json.loads(call(json.dumps(other)))["display"]["value"] != "0.50"

@@ -7,11 +7,11 @@ import * as idb from "./storage/idb.js";
 const KEY = "bacalc.settings";
 
 /**
- * 預設值：小數 2 位、美式千分位、AOS 運算順序、外觀跟隨系統、日期顯示美式 mm/dd/yyyy、
+ * 預設值：小數 2 位、美式千分位、AOS 運算順序、角度 DEG（三角函數用度）、外觀跟隨系統、日期顯示美式 mm/dd/yyyy、
  * 稅率預設值不指定（taxPreset 為 TAX_PRESETS 的名稱，空字串＝自訂）。
  */
 export const DEFAULTS = Object.freeze({
-  decimals: 2, sep: "us", mode: "AOS", theme: "auto", dateFmt: "us", taxPreset: "",
+  decimals: 2, sep: "us", mode: "AOS", angle: "DEG", theme: "auto", dateFmt: "us", taxPreset: "",
   gdriveClientId: "", gdriveLastSync: "", gdriveLastSyncHash: "", // Google Drive 同步（選用）：Client ID、上次同步的雲端時間
 });
 
@@ -19,6 +19,7 @@ const VALID = {
   decimals: (v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 9),
   sep: (v) => v === "us" || v === "eu",
   mode: (v) => v === "AOS" || v === "CHAIN",
+  angle: (v) => v === "DEG" || v === "RAD",
   theme: (v) => v === "auto" || v === "light" || v === "dark",
   dateFmt: (v) => v === "us" || v === "eu",
   taxPreset: (v) => typeof v === "string" && v.length <= 40,
@@ -115,9 +116,9 @@ export function set(patch) {
   return { settings: { ...next }, errors };
 }
 
-/** 送給引擎的 settings（bridge 只認 decimals、sep、mode；dateFmt、taxPreset 只供畫面使用）。 */
+/** 送給引擎的 settings（bridge 只認 decimals、sep、mode、angle；dateFmt、taxPreset 只供畫面使用）。 */
 export function toEngine(s = get()) {
-  return { decimals: s.decimals, sep: s.sep, mode: s.mode };
+  return { decimals: s.decimals, sep: s.sep, mode: s.mode, angle: s.angle };
 }
 
 /** 套用外觀：auto 移除 data-theme（跟隨 prefers-color-scheme），light／dark 寫入 <html>。 */

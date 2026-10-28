@@ -75,6 +75,13 @@ function tvmField(id) {
   return TVM_FIELDS.find((f) => f.id === id);
 }
 
+// 進位轉換（base）共用的選項
+const BASE_RADIX = [
+  { value: 2, label: "二進位 2" }, { value: 8, label: "八進位 8" },
+  { value: 10, label: "十進位 10" }, { value: 16, label: "十六進位 16" },
+];
+const BASE_WIDTH = [8, 16, 32, 64].map((v) => ({ value: v, label: `${v} 位元` }));
+
 export const SHEETS = {
   tvm: {
     title: "貨幣時間價值 TVM", short: "TVM", route: "tvm", engine: "tvm",
@@ -374,8 +381,8 @@ export const SHEETS = {
   },
 
   calc: {
-    title: "計算機 CALC", short: "計算機", route: "calc", engine: "calc",
-    intro: "輸入算式計算；支援 + − × ÷ ^ ( ) % √ 與 ANS",
+    title: "科學計算機 CALC", short: "科學計算機", route: "calc", engine: "calc",
+    intro: "輸入算式計算；支援 + − × ÷ ^ ( ) % √ ∛ sin cos tan log ln π e 與 ANS，角度可切換 DEG／RAD",
     fields: [
       { id: "EXPR", label: "算式", abbr: "EXPR", unit: "", kind: "text", example: "2+3×4", alias: ["expr"], help: "要計算的算式，例：2+3×4（AOS 結果 14）" },
       { id: "ANS", label: "上次答案", abbr: "ANS", unit: "", kind: "number", example: "14", help: "算式中 ANS 代表的數值，例：上一題答案 14" },
@@ -384,9 +391,63 @@ export const SHEETS = {
     actions: [{ id: "eval", label: "＝ 計算", primary: true }],
   },
 
+  units: {
+    title: "單位換算 UNITS", short: "單位換算", route: "units", engine: "units",
+    intro: "選類別與單位，輸入數值即時換算；⇄ 交換單位",
+    fields: [
+      { id: "VALUE", label: "數值", abbr: "VAL", unit: "", kind: "number", example: "1", help: "要換算的數值，例：1 英里輸入 1" },
+      { id: "FROM", label: "從單位", abbr: "FROM", unit: "", kind: "text", example: "mi", help: "原本的單位 id，例：英里 mi" },
+      { id: "TO", label: "到單位", abbr: "TO", unit: "", kind: "text", example: "km", help: "要換成的單位 id（同一類別），例：公里 km" },
+      { id: "value", label: "結果", abbr: "=", unit: "", kind: "number", example: "1.61", output: true, help: "換算結果（依小數位數設定），例：1 mi = 1.61 km（2 位小數）" },
+    ],
+    actions: [
+      { id: "convert", label: "換算", primary: true, send: ["VALUE", "FROM", "TO"] },
+      { id: "list", label: "單位清單", send: [] },
+    ],
+  },
+
+  base: {
+    title: "進位轉換 BASE", short: "進位轉換", route: "base", engine: "base",
+    intro: "BIN／OCT／DEC／HEX 四欄同步；可選位寬與有號／無號，並做位元運算",
+    fields: [
+      { id: "TEXT", label: "輸入值", abbr: "TEXT", unit: "", kind: "text", example: "255", help: "以 FROM 進位寫的整數，例：十進位 255" },
+      { id: "FROM", label: "輸入進位", abbr: "FROM", unit: "", kind: "select", example: "10", options: BASE_RADIX, help: "輸入值的進位，例：十進位 10" },
+      { id: "WIDTH", label: "位寬", abbr: "WIDTH", unit: "位元", kind: "select", example: "8", options: BASE_WIDTH, help: "整數的位元數，例：8 位元無號為 0～255" },
+      { id: "SIGNED", label: "有號數", abbr: "SIGNED", unit: "", kind: "bool", example: "否", help: "勾選＝二補數有號數，例：8 位元有號為 −128～127" },
+      { id: "BIN", label: "二進位", abbr: "BIN", unit: "", kind: "text", example: "11111111", output: true, help: "二進位結果，例：255 → 11111111" },
+      { id: "OCT", label: "八進位", abbr: "OCT", unit: "", kind: "text", example: "377", output: true, help: "八進位結果，例：255 → 377" },
+      { id: "DEC", label: "十進位", abbr: "DEC", unit: "", kind: "text", example: "255", output: true, help: "十進位結果，例：255" },
+      { id: "HEX", label: "十六進位", abbr: "HEX", unit: "", kind: "text", example: "FF", output: true, help: "十六進位結果，例：255 → FF" },
+    ],
+    actions: [{ id: "convert", label: "轉換", primary: true }],
+  },
+
+  "base-bitwise": {
+    title: "位元運算 BITWISE", short: "位元運算", route: "base-bitwise", engine: "base",
+    embeddedIn: "base", // 內嵌在進位轉換畫面（views/base.js），導覽不單獨列出
+    intro: "A、B 依目前進位解讀，做 AND OR XOR NOT SHL SHR SAR",
+    fields: [
+      {
+        id: "OP", label: "運算", abbr: "OP", unit: "", kind: "select", example: "AND",
+        options: ["AND", "OR", "XOR", "NOT", "SHL", "SHR", "SAR"].map((v) => ({ value: v, label: v })),
+        help: "位元運算，例：12 AND 10 = 8",
+      },
+      { id: "A", label: "運算元 A", abbr: "A", unit: "", kind: "text", example: "12", help: "依目前進位寫的整數，例：十進位 12" },
+      { id: "B", label: "運算元 B", abbr: "B", unit: "", kind: "text", example: "10", help: "第二個運算元或位移量，例：十進位 10（NOT 不需要）" },
+      { id: "FROM", label: "目前進位", abbr: "FROM", unit: "", kind: "select", example: "10", options: BASE_RADIX, help: "A、B 的進位，例：十進位 10" },
+      { id: "WIDTH", label: "位寬", abbr: "WIDTH", unit: "位元", kind: "select", example: "8", options: BASE_WIDTH, help: "整數的位元數，例：8 位元" },
+      { id: "SIGNED", label: "有號數", abbr: "SIGNED", unit: "", kind: "bool", example: "否", help: "勾選＝二補數有號數，例：SAR 只能用於有號數" },
+      { id: "BIN", label: "二進位", abbr: "BIN", unit: "", kind: "text", example: "00001000", output: true, help: "結果的二進位，例：12 AND 10 → 00001000" },
+      { id: "OCT", label: "八進位", abbr: "OCT", unit: "", kind: "text", example: "010", output: true, help: "結果的八進位，例：12 AND 10 → 010" },
+      { id: "DEC", label: "十進位", abbr: "DEC", unit: "", kind: "text", example: "8", output: true, help: "結果的十進位，例：12 AND 10 → 8" },
+      { id: "HEX", label: "十六進位", abbr: "HEX", unit: "", kind: "text", example: "08", output: true, help: "結果的十六進位，例：12 AND 10 → 08" },
+    ],
+    actions: [{ id: "bitwise", label: "運算", primary: true }],
+  },
+
   settings: {
     title: "設定 FORMAT", short: "設定", route: "settings", engine: null,
-    intro: "顯示格式與運算順序；只存在這台裝置",
+    intro: "顯示格式、運算順序與角度單位；只存在這台裝置",
     fields: [
       {
         id: "decimals", label: "小數位數", abbr: "DEC", unit: "位", kind: "select", example: "2", initial: "2",
@@ -410,6 +471,11 @@ export const SHEETS = {
         id: "mode", label: "運算順序", abbr: "AOS/Chn", unit: "", kind: "select", example: "AOS", initial: "AOS",
         options: [{ value: "AOS", label: "代數順序 AOS" }, { value: "CHAIN", label: "依序 Chain" }],
         help: "計算機的運算順序，例：2+3×4 在 AOS 為 14、Chain 為 20",
+      },
+      {
+        id: "angle", label: "角度單位", abbr: "DEG/RAD", unit: "", kind: "select", example: "DEG", initial: "DEG",
+        options: [{ value: "DEG", label: "度 DEG" }, { value: "RAD", label: "弧度 RAD" }],
+        help: "三角函數的角度單位，例：DEG 時 sin(30) = 0.5、RAD 時 sin(π/6) = 0.5",
       },
       {
         id: "theme", label: "外觀", abbr: "THEME", unit: "", kind: "select", example: "auto", initial: "auto",
@@ -442,7 +508,7 @@ export const TAX_PRESETS = {
 export const SHEET_ORDER = [
   "tvm", "amort", "cashflow", "iconv", "bond", "depr", "stats",
   "business-profit", "business-breakeven", "business-pct", "tax", "date",
-  "calc", "settings",
+  "calc", "units", "base", "base-bitwise", "settings",
 ];
 
 /** {欄位 id: 欄位定義}。 */

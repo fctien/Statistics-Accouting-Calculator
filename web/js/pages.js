@@ -11,8 +11,8 @@ export const PAGES = {
     title: "工程", abbr: "ENG",
     items: [
       { route: "calc", sheet: "calc", title: "科學計算機" },
-      { route: "units", sheet: null, title: "單位換算" },
-      { route: "base", sheet: null, title: "進位轉換" },
+      { route: "units", sheet: "units", title: "單位換算" },
+      { route: "base", sheet: "base", title: "進位轉換" },
     ],
   },
   stat: {
@@ -52,7 +52,7 @@ export const LEGACY_ROUTES = {
   tvm: "acct/tvm", amort: "acct/amort", cf: "acct/cf", iconv: "acct/iconv",
   bond: "acct/bond", depr: "acct/depr", profit: "acct/profit", brkevn: "acct/brkevn",
   pct: "acct/pct", tax: "acct/tax", date: "acct/date",
-  stat: "stat/reg", calc: "eng/calc", settings: "settings",
+  stat: "stat/reg", calc: "eng/calc", units: "eng/units", base: "eng/base", settings: "settings",
 };
 
 /** 全部項目（含頁面 id），設定的 page 為 null。 */

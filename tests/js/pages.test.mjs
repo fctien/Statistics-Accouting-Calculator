@@ -26,7 +26,10 @@ test("每個既有工作表（含設定）都恰好出現在一個頁面", () =>
   const items = allItems();
   for (const id of SHEET_ORDER) {
     const hits = items.filter((it) => it.sheet === id);
-    assert.equal(hits.length, 1, `${id} 出現 ${hits.length} 次`);
+    // 內嵌在另一畫面的工作表（例：位元運算在進位轉換畫面內）不單獨出現在導覽
+    const expect = SHEETS[id].embeddedIn ? 0 : 1;
+    assert.equal(hits.length, expect, `${id} 出現 ${hits.length} 次`);
+    if (SHEETS[id].embeddedIn) assert.ok(items.some((it) => it.sheet === SHEETS[id].embeddedIn), id);
   }
   // 每個有畫面的項目都指向存在的工作表；完整路由唯一
   for (const it of items) if (it.sheet) assert.ok(it.sheet in SHEETS, it.full);
@@ -35,7 +38,7 @@ test("每個既有工作表（含設定）都恰好出現在一個頁面", () =>
 });
 
 test("尚未完成的畫面為 placeholder（sheet 為 null）", () => {
-  for (const r of ["eng/units", "eng/base", "stat/desc", "stat/dist", "stat/infer"]) {
+  for (const r of ["stat/desc", "stat/dist", "stat/infer"]) {
     assert.equal(itemByRoute(r).sheet, null, r);
   }
 });
@@ -49,7 +52,7 @@ test("新網址解析", () => {
 });
 
 test("舊網址對照表全覆蓋：每個工作表的舊 route 都有導向", () => {
-  for (const id of SHEET_ORDER) {
+  for (const id of SHEET_ORDER.filter((x) => !SHEETS[x].embeddedIn)) {
     const old = SHEETS[id].route;
     const hit = parseHash("#" + old);
     assert.ok(hit, `${id} 舊網址 #${old} 沒有導向`);
@@ -88,4 +91,9 @@ test("記住的上次工作表：新路由、舊路由、舊工作表 id 都能�
   assert.equal(resolveHash("", "garbage").route, DEFAULT_ROUTE);
   // hash 認得時不看記憶
   assert.deepEqual(resolveHash("#acct/bond", "eng/calc"), { route: "acct/bond", redirected: false });
+});
+
+test("D2：工程頁的單位換算、進位轉換已有畫面", () => {
+  assert.equal(itemByRoute("eng/units").sheet, "units");
+  assert.equal(itemByRoute("eng/base").sheet, "base");
 });
