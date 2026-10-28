@@ -54,7 +54,17 @@ CASES = [
     ("calc_ln_zero", None, _req("calc", "eval", {"EXPR": "ln(0)"})),
     ("calc_unclosed_paren", None, _req("calc", "eval", {"EXPR": "(1+2"})),
     ("calc_1e999", None, _req("calc", "eval", {"EXPR": "1e999"})),
-    ("calc_pi_char", None, _req("calc", "eval", {"EXPR": "π"})),
+    ("calc_dollar_char", None, _req("calc", "eval", {"EXPR": "$"})),  # π 已改為常數
+    ("calc_asin_domain", None, _req("calc", "eval", {"EXPR": "asin(2)"})),
+    ("calc_acos_domain", None, _req("calc", "eval", {"EXPR": "acos(-1.5)"})),
+    ("calc_tan_90_deg", None, _req("calc", "eval", {"EXPR": "tan(90)"})),
+    ("calc_tan_pi_half_rad", None, _req(
+        "calc", "eval", {"EXPR": "tan(pi/2)"}, {"angle": "RAD"})),
+    ("calc_log_zero", None, _req("calc", "eval", {"EXPR": "log(0)"})),
+    ("calc_log_negative", None, _req("calc", "eval", {"EXPR": "log(-1)"})),
+    ("calc_implicit_2e", None, _req("calc", "eval", {"EXPR": "2e"})),
+    ("calc_bad_angle", None, _req(
+        "calc", "eval", {"EXPR": "sin(1)"}, {"angle": "GRAD"})),
     ("stats_exp_negative_y", None, _req("stats", "two_var", {
         "X": [1, 2, 3], "Y": [2, -3, 4], "model": "EXP"})),
     ("bond_sdt_ge_rdt", None, _req("bond", "price", dict(

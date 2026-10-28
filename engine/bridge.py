@@ -8,6 +8,7 @@ settings（皆可省略）：
     decimals  0～9 的整數，或 null（浮動）；預設 2
     sep       "us"（1,234.56）或 "eu"（1.234,56）；預設 "us"
     mode      "AOS" 或 "CHAIN"（只有 calc 使用）；預設 "AOS"
+    angle     "DEG" 或 "RAD"（只有 calc 使用，三角函數的角度單位）；預設 "DEG"
 回應（response）：引擎的 ok／err 字典；成功時另加 "display"：
     純量（整數／浮點）→ 格式化字串（整數固定 0 位小數）；
     "rows"（折舊表、攤還表）→ 同形狀的二維字串陣列；其他（日期 list、字串）不放入 display。
@@ -31,7 +32,9 @@ settings（皆可省略）：
     business / breakeven   FC, VC, P, PFT, Q（恰留一格空白）
     business / pct_change  OLD, NEW, PCT, PD（恰留一格空白）
     business / tax         AMOUNT, RATE, MODE(exclusive|inclusive)
-    calc / eval            EXPR, ANS（預設 0）, MEM（如 {"M3": 1.0}）
+    calc / eval            EXPR, ANS（預設 0）, MEM（如 {"M3": 1.0}）；
+                           settings.mode（AOS|CHAIN）、settings.angle（DEG|RAD）
+                           函式 sin cos tan asin acos atan log cbrt，常數 pi（或 π）、e
 
 留一格空白規則（leave-one-blank）：
     tvm、date、breakeven、pct_change：可求解欄位中恰有一格 null 才求解，否則報錯。
@@ -342,7 +345,8 @@ def _r_calc(inp, st):
                 not isinstance(k, str) or not _is_num(x)
                 for k, x in mem.items()):
             raise _InputError("MEM 必須是 {名稱: 有限數字}", "MEM")
-    return calc.evaluate(expr, st["mode"], 0.0 if ans is None else ans, mem)
+    return calc.evaluate(expr, st["mode"], 0.0 if ans is None else ans, mem,
+                         st["angle"])
 
 
 ROUTES = {
@@ -376,7 +380,7 @@ ROUTES = {
 # ---------------------------------------------------------------- 設定與顯示
 
 def _settings(raw):
-    """驗證 settings，回傳 {"decimals", "sep", "mode"}。"""
+    """驗證 settings，回傳 {"decimals", "sep", "mode", "angle"}。"""
     if raw is None:
         raw = {}
     if not isinstance(raw, dict):
@@ -391,7 +395,10 @@ def _settings(raw):
     mode = raw.get("mode", "AOS")
     if not isinstance(mode, str) or mode not in ("AOS", "CHAIN"):
         raise _InputError("mode 必須是 AOS 或 CHAIN", "mode")
-    return {"decimals": dec, "sep": sep, "mode": mode}
+    angle = raw.get("angle", "DEG")
+    if not isinstance(angle, str) or angle not in ("DEG", "RAD"):
+        raise _InputError("angle 必須是 DEG 或 RAD", "angle")
+    return {"decimals": dec, "sep": sep, "mode": mode, "angle": angle}
 
 
 def _is_scalar(v):

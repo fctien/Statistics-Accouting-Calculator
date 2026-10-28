@@ -6,6 +6,10 @@
 - CHAIN：二元 + − × ÷ ^ 一律由左到右、優先序相同；
   一元負號、後置運算（! % ²）、函式與括號仍照常結合
 
+科學函式（工程頁）：sin cos tan asin acos atan（角度模式 DEG／RAD，預設 DEG）、
+log（= log10）、cbrt（立方根，負數回負實根）；常數 pi（亦可寫 π）、e。
+隱式乘法不支援（2e、2pi 為錯誤）；1e3 仍是科學記號。
+
 百分比 %：一般為 ÷100；作為二元 + 或 − 的「直接右運算元」時，
 a ± b% = a ± a·b/100。
 
@@ -19,7 +23,12 @@ _MAX_DEPTH = 40  # 巢狀深度上限（遞迴保護，MicroPython 堆疊較小�
 _DIGITS = "0123456789"
 # 識別字字母只認 ASCII：MicroPython 的 str.isalpha() 只認 ASCII，CPython 認 Unicode，統一以此表判斷
 _LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-_FUNCS = {"sqrt": 1, "ln": 1, "exp": 1, "inv": 1, "nPr": 2, "nCr": 2}
+_FUNCS = {"sqrt": 1, "ln": 1, "exp": 1, "inv": 1, "nPr": 2, "nCr": 2,
+          "sin": 1, "cos": 1, "tan": 1, "asin": 1, "acos": 1, "atan": 1,
+          "log": 1, "cbrt": 1}
+_ANGLES = ("DEG", "RAD")
+_SNAP = 1e-15       # 三角函數結果小於此值（且輸入不是極小角）歸 0
+_TAN_EPS = 1e-12    # |cos| 小於此值視為 tan 的奇點（singularity）
 _MUL = {"*": "*", "×": "*", "/": "/", "÷": "/"}
 
 
@@ -70,6 +79,9 @@ def _tokenize(s):
                 raise _CalcError("數字超出範圍", i + 1)
             toks.append(("num", val, i + 1))
             i = j
+        elif c == "π":  # 常數 π 視為識別字 pi
+            toks.append(("id", "pi", i + 1))
+            i += 1
         elif c in _LETTERS:
             j = i
             while j < n and (s[j] in _LETTERS or s[j] in _DIGITS):
@@ -146,16 +158,66 @@ def _power(a, b, pos):
     return _fin(r, pos)
 
 
-def _call(name, args, pos):
-    return _fin(_call_raw(name, args, pos), pos)
+def _to_rad(x, angle):
+    """依角度模式把輸入轉成弧度（radian）。"""
+    return x * math.pi / 180.0 if angle == "DEG" else x
 
 
-def _call_raw(name, args, pos):
+def _from_rad(r, angle):
+    """依角度模式把弧度結果轉回輸出單位。"""
+    return r * 180.0 / math.pi if angle == "DEG" else r
+
+
+def _snap(r, arg_rad):
+    """三角函數結果的浮點雜訊歸零（如 sin(180°) = 1.2e-16 -> 0）。
+
+    輸入本身極小（|arg| <= 1e-6 rad）時結果是真的小，不歸零。
+    """
+    if abs(r) < _SNAP and abs(arg_rad) > 1e-6:
+        return 0.0
+    return r
+
+
+def _cbrt(x):
+    """立方根（MicroPython 沒有 math.cbrt）；負數回負實根，再以牛頓法修正一步。"""
+    if x == 0:
+        return 0.0
+    r = math.pow(abs(x), 1.0 / 3.0)
+    r = r - (r * r * r - abs(x)) / (3.0 * r * r)
+    return -r if x < 0 else r
+
+
+def _call(name, args, pos, angle="DEG"):
+    return _fin(_call_raw(name, args, pos, angle), pos)
+
+
+def _call_raw(name, args, pos, angle="DEG"):
     if name == "nPr":
         return _perm(args[0], args[1], pos)
     if name == "nCr":
         return _comb(args[0], args[1], pos)
     x = args[0]
+    if name in ("sin", "cos", "tan"):
+        rad = _to_rad(x, angle)
+        if name == "tan":
+            if abs(math.cos(rad)) < _TAN_EPS:
+                raise _CalcError("tan 在此角度未定義", pos)
+            return _snap(math.tan(rad), rad)
+        fn = math.sin if name == "sin" else math.cos
+        return _snap(fn(rad), rad)
+    if name in ("asin", "acos"):
+        if x < -1 or x > 1:
+            raise _CalcError("%s 的引數須在 -1 到 1 之間" % name, pos)
+        fn = math.asin if name == "asin" else math.acos
+        return _from_rad(fn(x), angle)
+    if name == "atan":
+        return _from_rad(math.atan(x), angle)
+    if name == "log":
+        if x <= 0:
+            raise _CalcError("log 的引數須大於 0", pos)
+        return math.log10(x)
+    if name == "cbrt":
+        return _cbrt(x)
     if name == "sqrt":
         if x < 0:
             raise _CalcError("負數不能開平方根", pos)
@@ -175,12 +237,13 @@ def _call_raw(name, args, pos):
 
 
 class _Parser:
-    def __init__(self, toks, mode, ans, mem):
+    def __init__(self, toks, mode, ans, mem, angle="DEG"):
         self.t = toks
         self.i = 0
         self.chain = (mode == "CHAIN")
         self.ans = ans
         self.mem = mem
+        self.angle = angle
         self.depth = 0
         self.end = (toks[-1][2] + 1) if toks else 1
 
@@ -339,6 +402,10 @@ class _Parser:
     def ident(self, name, pos):
         if name == "ANS":
             return float(self.ans)
+        if name == "pi":
+            return math.pi
+        if name == "e":
+            return math.e
         if len(name) == 2 and name[0] == "M" and name[1] in "0123456789":
             return float(self.mem.get(name, 0.0))  # 未設定的記憶視為 0
         if name in _FUNCS:
@@ -355,19 +422,22 @@ class _Parser:
             if len(args) != _FUNCS[name]:
                 raise _CalcError("函式 %s 需要 %d 個引數" % (name, _FUNCS[name]),
                                  pos)
-            return _call(name, args, pos)
+            return _call(name, args, pos, self.angle)
         raise _CalcError("未知的符號「%s」" % name, pos)
 
 
-def evaluate(expr, mode="AOS", ans=0.0, mem=None):
+def evaluate(expr, mode="AOS", ans=0.0, mem=None, angle="DEG"):
     """計算算式字串，回傳 ok({"value": float}) 或 err(訊息, "expr")。
 
     expr：算式；mode："AOS" 或 "CHAIN"；ans：ANS 的值；
-    mem：如 {"M3": 1.0}，未出現的 Mn 視為 0.0（同 TI 計算機）。
+    mem：如 {"M3": 1.0}，未出現的 Mn 視為 0.0（同 TI 計算機）；
+    angle："DEG"（預設，同 BA II Plus）或 "RAD"，影響三角與反三角函數。
     """
     try:
         if mode not in ("AOS", "CHAIN"):
             return err("未知的運算模式 %s" % (mode,), "expr")
+        if not isinstance(angle, str) or angle not in _ANGLES:
+            return err("未知的角度模式 %s" % (angle,), "angle")
         if not isinstance(expr, str):
             return err("算式必須是字串", "expr")
         if isinstance(ans, bool) or not isinstance(ans, (int, float)) \
@@ -386,7 +456,7 @@ def evaluate(expr, mode="AOS", ans=0.0, mem=None):
                         or not is_finite(float(v)):
                     return err("記憶 %s 的值不是有限數" % (k,), "expr")
                 memory[k] = v
-        parser = _Parser(_tokenize(expr), mode, ans, memory)
+        parser = _Parser(_tokenize(expr), mode, ans, memory, angle)
         value = float(parser.parse())
     except _CalcError as e:
         return err("%s（第 %d 個字元）" % (e.msg, e.pos), "expr")

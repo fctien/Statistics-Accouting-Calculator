@@ -28,6 +28,16 @@ def _case(cid, sheet, action, inputs, formula, key, tol=DEFAULT_TOL, **extra):
             "excel": excel, "expect_key": key, "tol": tol}
 
 
+def _calc(cid, expr, formula, angle="DEG"):
+    """計算機案例：bridge calc/eval，settings.angle 指定角度單位。"""
+    return {"id": cid, "sheet": "calc",
+            "call": {"sheet": "calc", "action": "eval",
+                     "inputs": {"EXPR": expr},
+                     "settings": {"angle": angle}},
+            "excel": {"formula": formula}, "expect_key": "value",
+            "tol": DEFAULT_TOL}
+
+
 def _tvm(**kw):
     """TVM 輸入（未指定欄位為 None；PY=CY=12、END）。"""
     d = {"N": None, "IY": None, "PV": None, "PMT": None, "FV": None,
@@ -189,4 +199,21 @@ CASES = [
     _case("date_360_across_leap", "date", "solve",
           _date([2027, 12, 31], [2028, 3, 1], "360"),
           "=DAYS360(DATE(2027,12,31),DATE(2028,3,1),FALSE)", "DBD"),
+    # ---- calc（科學函式；角度預設 DEG，Excel 以 RADIANS／DEGREES 對應）----
+    _calc("calc_sin_30", "sin(30)", "=SIN(RADIANS(30))"),
+    _calc("calc_cos_60", "cos(60)", "=COS(RADIANS(60))"),
+    _calc("calc_tan_45", "tan(45)", "=TAN(RADIANS(45))"),
+    _calc("calc_asin_half", "asin(0.5)", "=DEGREES(ASIN(0.5))"),
+    _calc("calc_acos_half", "acos(0.5)", "=DEGREES(ACOS(0.5))"),
+    _calc("calc_atan_1", "atan(1)", "=DEGREES(ATAN(1))"),
+    _calc("calc_sin_1_rad", "sin(1)", "=SIN(1)", "RAD"),
+    _calc("calc_log_1000", "log(1000)", "=LOG10(1000)"),
+    _calc("calc_ln_10", "ln(10)", "=LN(10)"),
+    _calc("calc_cbrt_neg27", "cbrt(-27)", "=-POWER(27,1/3)"),
+    _calc("calc_pi_times_2", "pi*2", "=PI()*2"),
+    _calc("calc_pi_symbol", "π*2", "=PI()*2"),
+    _calc("calc_exp_1", "e", "=EXP(1)"),
+    _calc("calc_combo", "sin(30)+log(100)*2",
+          "=SIN(RADIANS(30))+LOG10(100)*2"),
+    _calc("calc_atan_rad", "atan(1)", "=ATAN(1)", "RAD"),
 ]

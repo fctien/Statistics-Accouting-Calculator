@@ -1425,3 +1425,28 @@
 - 需求：GitHub Actions（Linux，只裝 pytest）上 `test_visual_pages_found_in_real_deck` 因缺 python-pptx 失敗
 - 做法：該測試開頭加 `pytest.importorskip("pptx")`；其餘讀 pptx／deck_kit 的測試本來就會跳過
 - 驗證：--no-tags 乾淨 clone＋假 pptx（ImportError）＋DECK_KIT 不存在 → 修前 1 failed 326 passed，修後 0 failed 326 passed 22 skipped；暫存 clone 已刪
+
+## 2026-10-28　Task B1：科學計算機引擎擴充（engine/calc.py、bridge angle）
+
+**需求**
+- 為 v0.2「工程」頁新增 sin cos tan asin acos atan、log（log10）、cbrt，常數 pi／π／e，角度模式 DEG／RAD（預設 DEG），bridge settings.angle
+
+**做法**
+- calc.py：`_FUNCS` 加 8 個函式；`_to_rad`／`_from_rad` 依 angle 換算；`_snap` 把三角結果 |r|<1e-15 歸 0（輸入 |arg|≤1e-6 rad 不歸零，避免把真的很小的值洗成 0）；tan 在 |cos|<1e-12 回「tan 在此角度未定義」；asin／acos 定義域檢查；`_cbrt` 自寫（pow 後牛頓法修正一步，負數回負根）
+- 常數：tokenizer 把 π 轉成 id pi；ident 處理 pi、e；不支援隱式乘法，`2e`、`2pi` 回「算式有多餘的內容」並指出位置，`1e3` 仍是科學記號
+- bridge：_settings 加 angle 驗證（field=angle）、_r_calc 傳入、docstring 鍵對照表更新
+- golden：cases.py 新增 15 筆 calc 案例（只新增），用 make_golden_excel.py（獨立 DispatchEx Excel 實例）重產；error_dump.py 新增 8 個錯誤案例；mutate.py 新增 2 個突變
+
+**產出**
+- engine/calc.py、engine/bridge.py、golden/cases.py、tests/golden/excel.json（純新增）、tests/golden/error_cases.json、tools/error_dump.py、tools/mutate.py、tests/test_calc.py、tests/test_bridge.py、web/sw.js（build_web 重算 SHELL_HASH）
+
+**驗證**
+- 測試先對舊引擎 RED（TypeError／KeyError 等），實作後 GREEN；pytest 全綠；`node tools/run_mpy_golden.mjs`：66/66、max diff 1.25e-16、error cases 32/32 與 CPython 相同；check_portable 通過；git diff 確認 excel.json 既有案例無刪改
+
+**問題與修正**
+- 既有錯誤案例 `calc_pi_char`（π 應報錯）與 test_identifier_ascii_only 的 π 項因 π 變成合法常數而失效：改為 `calc_dollar_char`（"$"）與測試改用 "$"；這是需求造成的預期變更，非 golden 值變更
+- 第一版 log 用 ln(x)/ln(10)，log(1000) 會得 2.9999999999999996；改用 math.log10（MicroPython 亦支援，mpy golden 通過）
+- error_dump.py --write 不會加入新案例，需用 --init 重建（既有案例的 expected 不變）
+
+**待辦**
+- D2 畫面接上 angle 設定與新按鍵

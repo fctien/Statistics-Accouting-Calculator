@@ -299,17 +299,149 @@
  },
  {
   "expected": {
-   "error": "無法辨識的字元「π」（第 1 個字元）",
+   "error": "無法辨識的字元「$」（第 1 個字元）",
    "field": "expr",
    "ok": false
   },
-  "id": "calc_pi_char",
+  "id": "calc_dollar_char",
   "request": {
    "action": "eval",
    "inputs": {
-    "EXPR": "π"
+    "EXPR": "$"
    },
    "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "asin 的引數須在 -1 到 1 之間（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_asin_domain",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "asin(2)"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "acos 的引數須在 -1 到 1 之間（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_acos_domain",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "acos(-1.5)"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "tan 在此角度未定義（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_tan_90_deg",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "tan(90)"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "tan 在此角度未定義（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_tan_pi_half_rad",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "tan(pi/2)"
+   },
+   "settings": {
+    "angle": "RAD"
+   },
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "log 的引數須大於 0（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_log_zero",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "log(0)"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "log 的引數須大於 0（第 1 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_log_negative",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "log(-1)"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "算式有多餘的內容（第 2 個字元）",
+   "field": "expr",
+   "ok": false
+  },
+  "id": "calc_implicit_2e",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "2e"
+   },
+   "settings": {},
+   "sheet": "calc"
+  }
+ },
+ {
+  "expected": {
+   "error": "angle 必須是 DEG 或 RAD",
+   "field": "angle",
+   "ok": false
+  },
+  "id": "calc_bad_angle",
+  "request": {
+   "action": "eval",
+   "inputs": {
+    "EXPR": "sin(1)"
+   },
+   "settings": {
+    "angle": "GRAD"
+   },
    "sheet": "calc"
   }
  },

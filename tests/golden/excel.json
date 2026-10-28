@@ -1400,5 +1400,275 @@
   "expected": 61.0,
   "source": "Excel 16: =DAYS360(DATE(2027,12,31),DATE(2028,3,1),FALSE)",
   "tol": 1e-09
+ },
+ {
+  "id": "calc_sin_30",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "sin(30)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 0.49999999999999994,
+  "source": "Excel 16: =SIN(RADIANS(30))",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_cos_60",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "cos(60)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 0.5000000000000001,
+  "source": "Excel 16: =COS(RADIANS(60))",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_tan_45",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "tan(45)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 0.9999999999999999,
+  "source": "Excel 16: =TAN(RADIANS(45))",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_asin_half",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "asin(0.5)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 30.000000000000004,
+  "source": "Excel 16: =DEGREES(ASIN(0.5))",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_acos_half",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "acos(0.5)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 59.99999999999999,
+  "source": "Excel 16: =DEGREES(ACOS(0.5))",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_atan_1",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "atan(1)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 45.0,
+  "source": "Excel 16: =DEGREES(ATAN(1))",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_sin_1_rad",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "sin(1)"
+   },
+   "settings": {
+    "angle": "RAD"
+   }
+  },
+  "expect_key": "value",
+  "expected": 0.8414709848078965,
+  "source": "Excel 16: =SIN(1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_log_1000",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "log(1000)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 3.0,
+  "source": "Excel 16: =LOG10(1000)",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_ln_10",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "ln(10)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 2.302585092994046,
+  "source": "Excel 16: =LN(10)",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_cbrt_neg27",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "cbrt(-27)"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": -2.9999999999999996,
+  "source": "Excel 16: =-POWER(27,1/3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_pi_times_2",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "pi*2"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 6.283185307179586,
+  "source": "Excel 16: =PI()*2",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_pi_symbol",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "π*2"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 6.283185307179586,
+  "source": "Excel 16: =PI()*2",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_exp_1",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "e"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 2.718281828459045,
+  "source": "Excel 16: =EXP(1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_combo",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "sin(30)+log(100)*2"
+   },
+   "settings": {
+    "angle": "DEG"
+   }
+  },
+  "expect_key": "value",
+  "expected": 4.5,
+  "source": "Excel 16: =SIN(RADIANS(30))+LOG10(100)*2",
+  "tol": 1e-09
+ },
+ {
+  "id": "calc_atan_rad",
+  "sheet": "calc",
+  "call": {
+   "sheet": "calc",
+   "action": "eval",
+   "inputs": {
+    "EXPR": "atan(1)"
+   },
+   "settings": {
+    "angle": "RAD"
+   }
+  },
+  "expect_key": "value",
+  "expected": 0.7853981633974483,
+  "source": "Excel 16: =ATAN(1)",
+  "tol": 1e-09
  }
 ]

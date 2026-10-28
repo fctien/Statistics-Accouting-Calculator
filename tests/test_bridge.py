@@ -115,3 +115,13 @@ def test_profit_conflicting_rate():
     r = _call({"sheet": "business", "action": "profit",
                "inputs": {"CST": 80, "SEL": 100, "MU": 25, "MAR": None}})
     assert r["ok"]
+
+
+def test_calc_angle_setting():
+    req = {"sheet": "calc", "action": "eval", "inputs": {"EXPR": "sin(30)"}}
+    assert abs(_call(req)["values"]["value"] - 0.5) < 1e-12  # 預設 DEG
+    r = _call(dict(req, settings={"angle": "RAD"}))
+    assert abs(r["values"]["value"] - (-0.9880316240928618)) < 1e-12
+    for bad in ("deg", "GRAD", 1, None, True):
+        r = _call(dict(req, settings={"angle": bad}))
+        assert r["ok"] is False and r["field"] == "angle"
