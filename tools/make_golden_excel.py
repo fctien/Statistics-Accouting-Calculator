@@ -39,7 +39,8 @@ def build(xl):
             "id": case["id"], "sheet": case["sheet"], "call": call,
             "expect_key": case["expect_key"],
             "expected": _evaluate(xl, formula),
-            "source": "Excel 16: " + formula,
+            "source": ("定義值：" if case["excel"].get("defined")
+                       else "Excel 16: ") + formula,
             "tol": case["tol"],
         })
     return out

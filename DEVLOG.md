@@ -1500,3 +1500,25 @@
 
 **待辦**
 - 工程頁 UI 加入後移除豁免
+
+## 2026-10-28 B2 修正輪 1
+
+**需求**
+- mmHg 係數改為習慣定義、定義值案例標示出處、錯誤訊息中文化、清理 _lookup、list 加 sym、MicroPython 套件加 units/list 案例
+
+**做法**
+- mmHg = 133.322387415 Pa（torr 為 101325/760，相差約 1.4e-7，已寫入 docstring）；golden 舊案例（760 mmHg = 1 atm）只驗同義反覆，改為 100 mmHg → Pa 直接案例，並加手算測試
+- 定義值案例 source 改「定義值：」（make_golden_excel.py 依 excel.defined 旗標；test_golden_file 接受此前綴），其餘 expected 未變
+- 跨類錯誤訊息改用中文名；移除 _lookup 未用參數；list_units 每單位加 sym（µm、m²、°C 等，id 仍 ASCII）；error_cases 加 units_list_shape（成功案例，供 mpy 結構比對）
+
+**產出**
+- engine/units.py、golden/cases.py、tools/make_golden_excel.py、tools/error_dump.py、tests/test_units.py、tests/test_golden_file.py、兩份 golden json、web/sw.js
+
+**驗證**
+- pytest 全綠；mpy golden 109/109、error 39/39；其餘見報告
+
+**問題與修正**
+- 初版 mmHg 誤用 torr 值，且對應案例為同義反覆而未能偵測
+
+**待辦**
+- 無

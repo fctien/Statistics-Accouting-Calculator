@@ -220,10 +220,12 @@ CASES = [
 
 
 def _unit(cid, value, frm, to, formula):
-    """單位換算案例：bridge units/convert，輸出鍵 value。"""
+    """單位換算案例：bridge units/convert，輸出鍵 value。
+    id 含 units_def_ 者為「定義值」案例：出處標為定義值而非 Excel。"""
+    extra = {"defined": True} if "units_def_" in cid else {}
     return _case(cid, "units", "convert",
                  {"VALUE": value, "FROM": frm, "TO": to}, formula, "value",
-                 tol=1e-9)
+                 tol=1e-9, **extra)
 
 
 # ---- units（Excel CONVERT；引擎單位 id 與 Excel 代碼不同者見公式）----
@@ -254,7 +256,7 @@ CASES += [
     _unit("units_pres_kpa_atm", 202.65, "kPa", "atm",
           '=CONVERT(202.65,"kPa","atm")'),
     _unit("units_def_pres_bar_pa", 3, "bar", "Pa", "=3*100000"),
-    _unit("units_def_pres_mmhg_pa", 760, "mmHg", "Pa", "=760*101325/760"),
+    _unit("units_def_pres_mmhg_pa", 100, "mmHg", "Pa", "=100*133.322387415"),
     # 能量（cal 為熱化學卡，對應 Excel 代碼 "c"）
     _unit("units_en_kwh_j", 1, "kWh", "J", '=CONVERT(1,"kWh","J")'),
     _unit("units_en_cal_j", 10, "cal", "J", '=CONVERT(10,"c","J")'),

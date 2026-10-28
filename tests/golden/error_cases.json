@@ -571,7 +571,7 @@
  },
  {
   "expected": {
-   "error": "無法在不同類別間換算（meter 與 kilogram）",
+   "error": "無法在不同類別間換算（公尺 與 公斤）",
    "field": "TO",
    "ok": false
   },
@@ -672,6 +672,447 @@
     "FROM": "m",
     "VALUE": 1
    },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
+   "display": {},
+   "ok": true,
+   "values": {
+    "categories": [
+     {
+      "en": "Length",
+      "id": "length",
+      "units": [
+       {
+        "en": "meter",
+        "id": "m",
+        "sym": "m",
+        "zh": "公尺"
+       },
+       {
+        "en": "kilometer",
+        "id": "km",
+        "sym": "km",
+        "zh": "公里"
+       },
+       {
+        "en": "centimeter",
+        "id": "cm",
+        "sym": "cm",
+        "zh": "公分"
+       },
+       {
+        "en": "millimeter",
+        "id": "mm",
+        "sym": "mm",
+        "zh": "公釐"
+       },
+       {
+        "en": "micrometer",
+        "id": "um",
+        "sym": "µm",
+        "zh": "微米"
+       },
+       {
+        "en": "inch",
+        "id": "in",
+        "sym": "in",
+        "zh": "英吋"
+       },
+       {
+        "en": "foot",
+        "id": "ft",
+        "sym": "ft",
+        "zh": "英呎"
+       },
+       {
+        "en": "yard",
+        "id": "yd",
+        "sym": "yd",
+        "zh": "碼"
+       },
+       {
+        "en": "mile",
+        "id": "mi",
+        "sym": "mi",
+        "zh": "英里"
+       },
+       {
+        "en": "nautical mile",
+        "id": "nmi",
+        "sym": "nmi",
+        "zh": "海里"
+       }
+      ],
+      "zh": "長度"
+     },
+     {
+      "en": "Mass",
+      "id": "mass",
+      "units": [
+       {
+        "en": "kilogram",
+        "id": "kg",
+        "sym": "kg",
+        "zh": "公斤"
+       },
+       {
+        "en": "gram",
+        "id": "g",
+        "sym": "g",
+        "zh": "公克"
+       },
+       {
+        "en": "milligram",
+        "id": "mg",
+        "sym": "mg",
+        "zh": "毫克"
+       },
+       {
+        "en": "metric ton",
+        "id": "t",
+        "sym": "t",
+        "zh": "公噸"
+       },
+       {
+        "en": "pound",
+        "id": "lb",
+        "sym": "lb",
+        "zh": "磅"
+       },
+       {
+        "en": "ounce",
+        "id": "oz",
+        "sym": "oz",
+        "zh": "盎司"
+       },
+       {
+        "en": "Taiwan catty",
+        "id": "catty",
+        "sym": "catty",
+        "zh": "台斤"
+       },
+       {
+        "en": "Taiwan tael",
+        "id": "tael",
+        "sym": "tael",
+        "zh": "兩"
+       }
+      ],
+      "zh": "質量"
+     },
+     {
+      "en": "Temperature",
+      "id": "temperature",
+      "units": [
+       {
+        "en": "Celsius",
+        "id": "degC",
+        "sym": "°C",
+        "zh": "攝氏"
+       },
+       {
+        "en": "Fahrenheit",
+        "id": "degF",
+        "sym": "°F",
+        "zh": "華氏"
+       },
+       {
+        "en": "Kelvin",
+        "id": "K",
+        "sym": "K",
+        "zh": "克耳文"
+       }
+      ],
+      "zh": "溫度"
+     },
+     {
+      "en": "Pressure",
+      "id": "pressure",
+      "units": [
+       {
+        "en": "pascal",
+        "id": "Pa",
+        "sym": "Pa",
+        "zh": "帕"
+       },
+       {
+        "en": "kilopascal",
+        "id": "kPa",
+        "sym": "kPa",
+        "zh": "千帕"
+       },
+       {
+        "en": "megapascal",
+        "id": "MPa",
+        "sym": "MPa",
+        "zh": "百萬帕"
+       },
+       {
+        "en": "bar",
+        "id": "bar",
+        "sym": "bar",
+        "zh": "巴"
+       },
+       {
+        "en": "standard atmosphere",
+        "id": "atm",
+        "sym": "atm",
+        "zh": "大氣壓"
+       },
+       {
+        "en": "pound-force per square inch",
+        "id": "psi",
+        "sym": "psi",
+        "zh": "磅力每平方吋"
+       },
+       {
+        "en": "millimeter of mercury",
+        "id": "mmHg",
+        "sym": "mmHg",
+        "zh": "毫米汞柱"
+       }
+      ],
+      "zh": "壓力"
+     },
+     {
+      "en": "Energy",
+      "id": "energy",
+      "units": [
+       {
+        "en": "joule",
+        "id": "J",
+        "sym": "J",
+        "zh": "焦耳"
+       },
+       {
+        "en": "kilojoule",
+        "id": "kJ",
+        "sym": "kJ",
+        "zh": "千焦耳"
+       },
+       {
+        "en": "calorie (thermochemical)",
+        "id": "cal",
+        "sym": "cal",
+        "zh": "卡"
+       },
+       {
+        "en": "kilocalorie",
+        "id": "kcal",
+        "sym": "kcal",
+        "zh": "大卡"
+       },
+       {
+        "en": "watt-hour",
+        "id": "Wh",
+        "sym": "Wh",
+        "zh": "瓦時"
+       },
+       {
+        "en": "kilowatt-hour",
+        "id": "kWh",
+        "sym": "kWh",
+        "zh": "度（千瓦時）"
+       },
+       {
+        "en": "British thermal unit",
+        "id": "BTU",
+        "sym": "BTU",
+        "zh": "英制熱單位"
+       }
+      ],
+      "zh": "能量"
+     },
+     {
+      "en": "Area",
+      "id": "area",
+      "units": [
+       {
+        "en": "square meter",
+        "id": "m2",
+        "sym": "m²",
+        "zh": "平方公尺"
+       },
+       {
+        "en": "square kilometer",
+        "id": "km2",
+        "sym": "km²",
+        "zh": "平方公里"
+       },
+       {
+        "en": "square centimeter",
+        "id": "cm2",
+        "sym": "cm²",
+        "zh": "平方公分"
+       },
+       {
+        "en": "hectare",
+        "id": "ha",
+        "sym": "ha",
+        "zh": "公頃"
+       },
+       {
+        "en": "Taiwan ping",
+        "id": "ping",
+        "sym": "ping",
+        "zh": "坪"
+       },
+       {
+        "en": "square foot",
+        "id": "ft2",
+        "sym": "ft²",
+        "zh": "平方英呎"
+       },
+       {
+        "en": "square inch",
+        "id": "in2",
+        "sym": "in²",
+        "zh": "平方英吋"
+       },
+       {
+        "en": "acre",
+        "id": "acre",
+        "sym": "acre",
+        "zh": "英畝"
+       }
+      ],
+      "zh": "面積"
+     },
+     {
+      "en": "Volume",
+      "id": "volume",
+      "units": [
+       {
+        "en": "cubic meter",
+        "id": "m3",
+        "sym": "m³",
+        "zh": "立方公尺"
+       },
+       {
+        "en": "liter",
+        "id": "L",
+        "sym": "L",
+        "zh": "公升"
+       },
+       {
+        "en": "milliliter",
+        "id": "mL",
+        "sym": "mL",
+        "zh": "毫升"
+       },
+       {
+        "en": "US gallon",
+        "id": "gal",
+        "sym": "gal",
+        "zh": "加侖（美制）"
+       },
+       {
+        "en": "cubic foot",
+        "id": "ft3",
+        "sym": "ft³",
+        "zh": "立方英呎"
+       },
+       {
+        "en": "cubic inch",
+        "id": "in3",
+        "sym": "in³",
+        "zh": "立方英吋"
+       }
+      ],
+      "zh": "體積"
+     },
+     {
+      "en": "Speed",
+      "id": "speed",
+      "units": [
+       {
+        "en": "meter per second",
+        "id": "m/s",
+        "sym": "m/s",
+        "zh": "公尺每秒"
+       },
+       {
+        "en": "kilometer per hour",
+        "id": "km/h",
+        "sym": "km/h",
+        "zh": "公里每小時"
+       },
+       {
+        "en": "mile per hour",
+        "id": "mph",
+        "sym": "mph",
+        "zh": "英里每小時"
+       },
+       {
+        "en": "knot",
+        "id": "knot",
+        "sym": "knot",
+        "zh": "節"
+       },
+       {
+        "en": "foot per second",
+        "id": "ft/s",
+        "sym": "ft/s",
+        "zh": "英呎每秒"
+       }
+      ],
+      "zh": "速度"
+     },
+     {
+      "en": "Time",
+      "id": "time",
+      "units": [
+       {
+        "en": "second",
+        "id": "s",
+        "sym": "s",
+        "zh": "秒"
+       },
+       {
+        "en": "minute",
+        "id": "min",
+        "sym": "min",
+        "zh": "分"
+       },
+       {
+        "en": "hour",
+        "id": "h",
+        "sym": "h",
+        "zh": "小時"
+       },
+       {
+        "en": "day",
+        "id": "day",
+        "sym": "day",
+        "zh": "日"
+       },
+       {
+        "en": "week",
+        "id": "week",
+        "sym": "week",
+        "zh": "週"
+       },
+       {
+        "en": "year (365 days)",
+        "id": "yr",
+        "sym": "yr",
+        "zh": "年（365 天）"
+       }
+      ],
+      "zh": "時間"
+     }
+    ]
+   },
+   "warnings": []
+  },
+  "id": "units_list_shape",
+  "request": {
+   "action": "list",
+   "inputs": {},
    "settings": {},
    "sheet": "units"
   }

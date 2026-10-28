@@ -6,6 +6,8 @@
 係數出處：國際協議的精確定義值（in = 0.0254 m、lb = 0.45359237 kg、
 atm = 101325 Pa、gal(US) = 231 in³、BTU 用 IT 定義等）。
 需注意的取捨：
+    mmHg 為習慣定義 133.322387415 Pa（13595.1 kg/m³ × 9.80665 m/s² × 1 mm）；
+        與 torr（101325/760 = 133.3223684 Pa）有約 1.4e-7 的相對差異，不可混用；
     cal／kcal 用熱化學卡 1 cal = 4.184 J（與 Excel CONVERT 的 "c" 一致，
         而非 IT 卡 4.1868 J）；
     BTU 用 IT 定義 1055.05585262 J（與 Excel "BTU" 一致）；
@@ -71,7 +73,7 @@ _UNITS = (
     ("psi", "磅力每平方吋", "pound-force per square inch", "pressure",
      _LB * 9.80665 / (_IN * _IN), 0.0),
     ("mmHg", "毫米汞柱", "millimeter of mercury", "pressure",
-     101325.0 / 760.0, 0.0),
+     133.322387415, 0.0),
     ("J", "焦耳", "joule", "energy", 1.0, 0.0),
     ("kJ", "千焦耳", "kilojoule", "energy", 1000.0, 0.0),
     ("cal", "卡", "calorie (thermochemical)", "energy", _CAL, 0.0),
@@ -107,6 +109,11 @@ _UNITS = (
     ("yr", "年（365 天）", "year (365 days)", "time", 365 * 86400.0, 0.0),
 )
 
+# 顯示用符號（sym）；未列出者與 id 相同
+_SYM = {"um": "µm", "m2": "m²", "km2": "km²", "cm2": "cm²", "ft2": "ft²",
+        "in2": "in²", "m3": "m³", "ft3": "ft³", "in3": "in³",
+        "degC": "°C", "degF": "°F"}
+
 _BY_ID = {}
 for _u in _UNITS:
     _BY_ID[_u[0]] = _u
@@ -116,13 +123,14 @@ def list_units():
     """列出所有類別與單位（供 UI 下拉選單）。"""
     cats = []
     for cid, zh, en in _CATEGORIES:
-        units = [{"id": u[0], "zh": u[1], "en": u[2]}
+        units = [{"id": u[0], "zh": u[1], "en": u[2],
+                  "sym": _SYM.get(u[0], u[0])}
                  for u in _UNITS if u[3] == cid]
         cats.append({"id": cid, "zh": zh, "en": en, "units": units})
     return ok({"categories": cats})
 
 
-def _lookup(uid, field):
+def _lookup(uid):
     """依 id 查單位；未知或非字串回 None。"""
     if not isinstance(uid, str):
         return None
@@ -134,14 +142,14 @@ def convert(value, from_id, to_id):
     if (isinstance(value, bool) or not isinstance(value, (int, float))
             or not is_finite(value)):
         return err("VALUE 必須是有限數字", "VALUE")
-    src = _lookup(from_id, "FROM")
+    src = _lookup(from_id)
     if src is None:
         return err("未知的單位：%s" % (from_id,), "FROM")
-    dst = _lookup(to_id, "TO")
+    dst = _lookup(to_id)
     if dst is None:
         return err("未知的單位：%s" % (to_id,), "TO")
     if src[3] != dst[3]:
-        return err("無法在不同類別間換算（%s 與 %s）" % (src[2], dst[2]), "TO")
+        return err("無法在不同類別間換算（%s 與 %s）" % (src[1], dst[1]), "TO")
     base = src[4] * value + src[5]
     if src[3] == "temperature" and base < 0:
         return err("溫度低於絕對零度", "VALUE")

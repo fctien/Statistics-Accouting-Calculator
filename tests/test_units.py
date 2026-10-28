@@ -132,3 +132,18 @@ def test_bridge_validation():
                       "inputs": {"VALUE": None, "FROM": "m", "TO": "km"}})["ok"]
     r = _conv(1000, "m", "km")
     assert r["ok"] and r["display"]["value"] == "1.00"
+
+
+def test_mmhg_is_conventional_not_torr():
+    v = units.convert(100, "mmHg", "Pa")["values"]["value"]
+    assert rel_close(v, 13332.2387415, 1e-12)
+    assert not rel_close(v, 100 * 101325 / 760, 1e-8)
+
+
+def test_list_has_sym_and_zh_error():
+    cats = units.list_units()["values"]["categories"]
+    sym = {u["id"]: u["sym"] for c in cats for u in c["units"]}
+    assert sym["um"] == "µm" and sym["m2"] == "m²" and sym["degC"] == "°C"
+    assert sym["in3"] == "in³" and sym["km"] == "km"
+    r = units.convert(1, "m", "kg")
+    assert "長度" not in r["error"] and "公尺" in r["error"]

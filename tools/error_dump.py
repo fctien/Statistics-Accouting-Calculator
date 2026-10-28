@@ -87,6 +87,7 @@ CASES = [
         "VALUE": "1", "FROM": "m", "TO": "km"})),
     ("units_missing_to", None, _req("units", "convert", {
         "VALUE": 1, "FROM": "m"})),
+    ("units_list_shape", None, _req("units", "list", {})),  # 成功案例：結構比對
     ("settings_bad_decimals", None, _req("tvm", "solve", _TVM, {"decimals": 12})),
 ]
 

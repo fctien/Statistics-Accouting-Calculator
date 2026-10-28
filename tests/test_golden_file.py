@@ -19,7 +19,7 @@ def test_every_case_has_source_and_value():
     data = _data()
     assert len(data) >= 30
     for c in data:
-        assert c["source"].startswith(("Excel 16:", "TI Guidebook"))
+        assert c["source"].startswith(("Excel 16:", "TI Guidebook", "定義值："))
         assert isinstance(c["expected"], float)
 
 

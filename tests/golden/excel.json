@@ -1830,7 +1830,7 @@
   },
   "expect_key": "value",
   "expected": 1.7999999999999998,
-  "source": "Excel 16: =3*0.6",
+  "source": "定義值：=3*0.6",
   "tol": 1e-09
  },
  {
@@ -1848,7 +1848,7 @@
   },
   "expect_key": "value",
   "expected": 75.0,
-  "source": "Excel 16: =2*37.5",
+  "source": "定義值：=2*37.5",
   "tol": 1e-09
  },
  {
@@ -1866,7 +1866,7 @@
   },
   "expect_key": "value",
   "expected": 1500.0,
-  "source": "Excel 16: =1.5*1000",
+  "source": "定義值：=1.5*1000",
   "tol": 1e-09
  },
  {
@@ -2010,7 +2010,7 @@
   },
   "expect_key": "value",
   "expected": 300000.0,
-  "source": "Excel 16: =3*100000",
+  "source": "定義值：=3*100000",
   "tol": 1e-09
  },
  {
@@ -2020,15 +2020,15 @@
    "sheet": "units",
    "action": "convert",
    "inputs": {
-    "VALUE": 760,
+    "VALUE": 100,
     "FROM": "mmHg",
     "TO": "Pa"
    },
    "settings": {}
   },
   "expect_key": "value",
-  "expected": 101325.0,
-  "source": "Excel 16: =760*101325/760",
+  "expected": 13332.238741500001,
+  "source": "定義值：=100*133.322387415",
   "tol": 1e-09
  },
  {
@@ -2208,7 +2208,7 @@
   },
   "expect_key": "value",
   "expected": 99.17355371900827,
-  "source": "Excel 16: =30*400/121",
+  "source": "定義值：=30*400/121",
   "tol": 1e-09
  },
  {
@@ -2352,7 +2352,7 @@
   },
   "expect_key": "value",
   "expected": 30.48,
-  "source": "Excel 16: =100*0.3048",
+  "source": "定義值：=100*0.3048",
   "tol": 1e-09
  },
  {
@@ -2424,7 +2424,7 @@
   },
   "expect_key": "value",
   "expected": 14.0,
-  "source": "Excel 16: =2*7",
+  "source": "定義值：=2*7",
   "tol": 1e-09
  },
  {
@@ -2442,7 +2442,7 @@
   },
   "expect_key": "value",
   "expected": 365.0,
-  "source": "Excel 16: =1*365",
+  "source": "定義值：=1*365",
   "tol": 1e-09
  }
 ]
