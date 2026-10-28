@@ -6,6 +6,8 @@ Python 計算引擎透過 MicroPython（WebAssembly，在 Web Worker 中）於�
 
 **線上網址**：<https://fctien.github.io/Statistics-Accouting-Calculator/>（路徑區分大小寫）
 
+**目前版本**：v0.2.0（變更紀錄見 [docs/CHANGELOG.md](docs/CHANGELOG.md)）
+
 ## 設計原則
 
 - 絕不產生看起來正常但錯誤的數字：算不出來就回報原因，不用 0 或預設值
@@ -13,21 +15,22 @@ Python 計算引擎透過 MicroPython（WebAssembly，在 Web Worker 中）於�
 - 算式用自寫遞迴下降剖析器（recursive descent parser），不使用 `eval`
 - 金額以「分」整數計算，日期用序數日（ordinal day），不依賴 decimal、datetime
 
-## 功能（工作表 Worksheet）
+## 功能（三大頁面，v0.2.0）
 
-| 工作表 | 內容 |
-|---|---|
-| 計算機 CALC | 算式、AOS／Chain、紙帶 Tape、`ANS` |
-| 記憶 MEM | M0–M9、累加 Σ |
-| TVM | N、I/Y、PV、PMT、FV、P/Y、C/Y、BGN／END，任一欄可求解 |
-| AMORT | 分期攤還（amortization）與完整攤還表，可匯出 CSV |
-| CF | 現金流 NPV、IRR、NFV、PB、DPB、MIRR |
-| ICONV | 名目利率 NOM 與有效利率 EFF 互換 |
-| STAT | 1-V／LIN／Ln／EXP／PWR 統計與迴歸、預測 |
-| BOND | 債券價格 PRI、殖利率 YLD、應計利息 AI |
-| DEPR | SL／SYD／DB／DBX 折舊表 |
-| 商業 | 毛利與加成、損益兩平、百分比變動、日期、稅額 |
-| 設定 FORMAT | 小數位數、千分位、日期格式、運算順序、深色模式 |
+頂端（手機為底部）三個頁籤：工程 ENG｜統計 STAT｜會計 ACCT，另有共用的設定。網址格式 `#<頁>/<項目>`，例：`#acct/tvm`；舊網址自動導向。
+
+| 頁面 | 項目 | 內容 |
+|---|---|---|
+| 工程 ENG | 科學計算機 CALC | 算式、AOS／Chain、DEG／RAD、三角與對數函式、紙帶 Tape、`ANS`、記憶 M0–M9 |
+| | 單位換算 UNITS | 長度、質量、溫度、壓力等類別換算 |
+| | 進位轉換 BASE | BIN／OCT／DEC／HEX、位元寬度與有號／無號、位元運算 |
+| 統計 STAT | 迴歸與單變數 | 1-V／LIN／Ln／EXP／PWR 統計與迴歸、預測 |
+| | 敘述統計 DESC | 平均、中位數、眾數、四分位數、變異數、偏態、峰度 |
+| | 機率分配 DIST | 常態、t、卡方、二項、Poisson 的 pdf／cdf／inv 與分配圖 |
+| | 信賴區間與檢定 INFER | z／t／比例信賴區間、單樣本／兩樣本／成對 t 檢定、卡方適合度與獨立性 |
+| 會計 ACCT | TVM、AMORT、CF、ICONV、BOND、DEPR | 貨幣時間價值、攤還、現金流 NPV／IRR、利率換算、債券、折舊 |
+| | PROFIT、BRKEVN、Δ%、TAX、DATE | 毛利與加成、損益兩平、百分比變動、稅額、日期 |
+| 設定 FORMAT | | 小數位數、千分位、日期格式、運算順序、深色模式 |
 
 另有情境儲存、JSON 匯出入、選用的 Google Drive 同步。
 
@@ -108,6 +111,7 @@ python run_all.py
 
 ## 文件
 
+- [變更紀錄 CHANGELOG](docs/CHANGELOG.md)
 - [規格書](docs/spec-2026-10-19.md)
 - [實作計畫](docs/plan-2026-10-20.md)
 - [Google OAuth 申請說明](docs/google-oauth-setup.html)（僅在要用 Google Drive 同步時需要）
