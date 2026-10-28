@@ -2,14 +2,17 @@
 // 單位清單來自引擎 units/list（只取一次）；換算交給 units/convert，數字由引擎依小數位數設定格式化。
 // 即時換算：防抖 250 ms＋序號（seq，同 ICONV）——較舊的回應晚到時丟棄，不蓋掉新結果。
 // 錯誤（非數值、低於絕對零度、單位不合法）顯示在對應欄位下方，結果清空（不留舊數字）。
+// 千分位設定改變：數值文字依「輸入時的寫法」（textSep）解讀後改寫成新寫法，不以新設定重新解讀
+// （否則 US 的 1,000 在 EU 會變成 1）；原本就解不出來時清空結果並請使用者重新輸入。
 import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import { debounce } from "../util.js";
-import { unitsRequest, unitLabel, swapUnits, createSeq } from "../eng.js";
+import { unitsRequest, unitLabel, swapUnits, createSeq, rewriteForSep } from "../eng.js";
 
 const DELAY_MS = 250;
 let listPromise = null; // units/list 的結果（成功才快取）
-const state = { cat: null, from: null, to: null, text: "1" }; // 切換畫面再回來仍保留
+// 切換畫面再回來仍保留；textSep＝數值文字是在哪個千分位設定下輸入的（null＝跟隨目前設定）
+const state = { cat: null, from: null, to: null, text: "1", textSep: null };
 let listener = null;
 
 function el(tag, attrs = {}, text = "") {
@@ -137,6 +140,24 @@ export async function mount(container) {
     Object.assign(state, { cat: catSel.value, from: fromSel.value, to: toSel.value, text: value.value });
   }
 
+  /** 千分位設定與輸入時不同：改寫數值文字；回傳 false＝無法改寫（已標錯誤，不換算）。 */
+  function syncSep() {
+    const sep = settingsStore.get().sep;
+    const from = state.textSep || sep;
+    state.textSep = sep;
+    if (from === sep) return true;
+    const r = rewriteForSep(value.value, from, sep);
+    if (r.error) {
+      seq.bump();
+      clearOutput();
+      showError(r.error, "VALUE");
+      return false;
+    }
+    value.value = r.text;
+    remember();
+    return true;
+  }
+
   async function convert() {
     remember();
     const my = seq.next();
@@ -182,6 +203,7 @@ export async function mount(container) {
   fromSel.addEventListener("change", now);
   toSel.addEventListener("change", now);
   value.addEventListener("input", () => {
+    state.textSep = settingsStore.get().sep; // 使用者以目前設定的寫法輸入
     seq.bump(); // 進行中的舊請求作廢
     result.textContent = ""; // 舊結果不可留著看似目前的
     live();
@@ -204,8 +226,9 @@ export async function mount(container) {
       document.removeEventListener("bacalc-settings", listener);
       return;
     }
-    now(); // 小數位數、千分位改了：重新換算
+    live.cancel();
+    if (syncSep()) now(); // 小數位數、千分位改了：先改寫數值文字，再重新換算
   };
   document.addEventListener("bacalc-settings", listener);
-  now();
+  if (syncSep()) now();
 }

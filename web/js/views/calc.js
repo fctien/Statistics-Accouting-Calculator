@@ -10,18 +10,20 @@
 import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import { createMemStore, fromJSON as memFromJSON } from "../memstore.js";
-import { createTape, createWalker, MAX_ENTRIES } from "../tape.js";
+import { createTape, createWalker, angleStatus, MAX_ENTRIES } from "../tape.js";
 import * as persist from "../storage/persist.js";
 import { createGuard } from "../generation.js";
 import { KEY_ROWS, SCI_ROWS, insertAt, backspaceAt, toggleSign } from "../keypad.js";
-import { evalRequest, angleLabel, resultIsStale } from "../eng.js";
+import { evalRequest, angleLabel, resultIsStale, ansAngleFor } from "../eng.js";
 
 let memory = createMemStore();
 const tape = createTape();
 const walker = createWalker(tape);
 let ans = 0; // 上一次成功的值（原始浮點數）；初始 0，同引擎預設
 let ansDisplay = "";
-let ansAngle = null; // ANS 是在哪個角度模式算出的（null＝還沒有結果）
+// ANS 是在哪個角度模式算出的（null＝與角度無關或還沒有結果）。ANS 本身不存檔（重新載入後為 0、
+// 不顯示），所以 ansAngle 也不需存檔；紙帶各項目另存 angle（tape.js），重新載入後仍可判斷是否過期
+let ansAngle = null;
 let listener = null; // 目前掛載的畫面對 bacalc-settings 的監聽（重新掛載時移除舊的）
 
 /**
@@ -33,7 +35,7 @@ export function replaceState(tapeEntries, memoryData) {
   tape.clear();
   if (Array.isArray(tapeEntries)) {
     for (const e of createTape(MAX_ENTRIES, tapeEntries).list()) {
-      tape.add({ expr: e.expr, value: e.value, display: e.display, ts: e.ts });
+      tape.add({ expr: e.expr, value: e.value, display: e.display, ts: e.ts, angle: e.angle });
     }
   }
   memory = memoryData ? memFromJSON(memoryData) : createMemStore();
@@ -212,6 +214,7 @@ export function mount(container) {
 
   function renderTape() {
     const items = tape.list();
+    const angle = settingsStore.get().angle;
     tapeEmpty.hidden = items.length > 0;
     tapeClear.disabled = items.length === 0;
     tapeList.hidden = items.length === 0;
@@ -222,6 +225,18 @@ export function mount(container) {
       const b = el("button", { type: "button", class: "tape-line", "data-i": i, title: "點一下把算式帶回輸入框" });
       b.append(el("span", { class: "tape-expr" }, e.expr), el("span", { class: "tape-eq" }, " = "),
         el("span", { class: "tape-val" }, e.display));
+      // 含三角函數的項目：標出算的角度模式；與目前模式不同（或不知道）就標過期
+      const st = angleStatus(e, angle);
+      if (st) {
+        const text = st === "unknown" ? "角度未知" : e.angle;
+        b.append(el("span", { class: `tape-angle tape-angle-${st}` }, text));
+        if (st !== "current") {
+          li.classList.add("stale");
+          b.title = st === "unknown"
+            ? "舊紀錄沒有記錄角度單位，結果可能不是目前模式（點一下帶回算式重新計算）"
+            : `${e.angle} 模式的結果；目前是 ${angle}（點一下帶回算式重新計算）`;
+        }
+      }
       li.append(b);
       frag.append(li);
     }
@@ -298,9 +313,9 @@ export function mount(container) {
       const display = r.display.value;
       ans = value;
       ansDisplay = display;
-      ansAngle = settings.angle;
+      ansAngle = ansAngleFor(expr, settings.angle, ansAngle);
       if (record) {
-        tape.add({ expr, value, display, ts: Date.now() });
+        tape.add({ expr, value, display, ts: Date.now(), angle: settings.angle });
         walker.reset();
         renderTape();
         saveTape();

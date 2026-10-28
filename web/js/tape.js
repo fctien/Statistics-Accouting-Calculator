@@ -1,9 +1,32 @@
 // Model：計算機紙帶（tape）。純函式模型，可用 node --test 測試。
-// 每次成功計算新增 {expr, value, display, ts}；最多 max（預設 500）筆，超過時捨棄最舊的。
+// 每次成功計算新增 {expr, value, display, ts, angle?}；最多 max（預設 500）筆，超過時捨棄最舊的。
 // 錯誤不進紙帶（由畫面顯示在輸入框下方）。value 是引擎的原始浮點數，display 是引擎格式化字串
 // （設定改變時由畫面請引擎重新格式化，JS 不自己格式化）。
 
 export const MAX_ENTRIES = 500;
+
+const TRIG = new Set(["sin", "cos", "tan", "asin", "acos", "atan"]);
+const ANGLES = new Set(["DEG", "RAD"]);
+
+/** 算式是否用到三角函數（掃描識別字；引擎的識別字區分大小寫）。結果才與角度單位有關。 */
+export function usesTrig(expr) {
+  return (String(expr).match(/[A-Za-z_][A-Za-z0-9_]*/g) || []).some((id) => TRIG.has(id));
+}
+
+/**
+ * 紙帶項目的角度狀態：null（與角度無關）、"unknown"（含三角函數但沒記角度，例：舊版紙帶）、
+ * "stale"（在另一個角度模式算的）、"current"（與目前模式相同）。
+ */
+export function angleStatus(entry, current) {
+  if (!entry || !usesTrig(entry.expr)) return null;
+  if (!ANGLES.has(entry.angle)) return "unknown";
+  return entry.angle === current ? "current" : "stale";
+}
+
+/** 只有含三角函數且角度合法時才記 angle（DEG|RAD）；其餘回傳 undefined。 */
+function angleOf(expr, angle) {
+  return ANGLES.has(angle) && usesTrig(expr) ? angle : undefined;
+}
 
 export function createTape(max = MAX_ENTRIES, init = null) {
   let entries = [];
@@ -11,8 +34,10 @@ export function createTape(max = MAX_ENTRIES, init = null) {
 
   const tape = {
     /** 新增一筆；回傳新增的項目。 */
-    add({ expr, value, display, ts = Date.now() }) {
+    add({ expr, value, display, ts = Date.now(), angle }) {
       const e = { id: nextId++, expr: String(expr), value, display: String(display), ts };
+      const a = angleOf(e.expr, angle);
+      if (a) e.angle = a;
       entries.push(e);
       if (entries.length > max) entries = entries.slice(entries.length - max);
       return e;
@@ -30,13 +55,14 @@ export function createTape(max = MAX_ENTRIES, init = null) {
       e.display = String(display);
       return true;
     },
-    toJSON: () => entries.map(({ expr, value, display, ts }) => ({ expr, value, display, ts })),
+    toJSON: () => entries.map(({ expr, value, display, ts, angle }) => (
+      angle ? { expr, value, display, ts, angle } : { expr, value, display, ts })),
   };
 
   if (Array.isArray(init)) {
     for (const e of init) {
       if (e && typeof e.expr === "string" && Number.isFinite(e.value)) {
-        tape.add({ expr: e.expr, value: e.value, display: e.display ?? "", ts: e.ts });
+        tape.add({ expr: e.expr, value: e.value, display: e.display ?? "", ts: e.ts, angle: e.angle });
       }
     }
   }

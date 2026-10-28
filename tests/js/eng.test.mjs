@@ -139,3 +139,26 @@ test("科學鍵：三角、反三角（2nd）、log、ln、∛、π、e、DEG／
   }
   assert.ok(KEY_ROWS.flat().some((k) => k.label === "xʸ"), "次方鍵標為 xʸ");
 });
+
+test("千分位設定改變：單位換算的數值文字依原本的寫法解讀再改寫（不重新解讀）", async () => {
+  const { rewriteForSep } = await import("../../web/js/eng.js");
+  assert.deepEqual(rewriteForSep("1,000", "us", "eu"), { text: "1000" });
+  assert.deepEqual(rewriteForSep("1.000", "eu", "us"), { text: "1000" });
+  assert.deepEqual(rewriteForSep("1,5", "eu", "us"), { text: "1.5" });
+  assert.deepEqual(rewriteForSep("2.5", "us", "eu"), { text: "2,5" });
+  assert.deepEqual(rewriteForSep("1,000", "us", "us"), { text: "1,000" }, "設定沒變：不動");
+  assert.deepEqual(rewriteForSep("", "us", "eu"), { text: "" });
+  assert.equal(rewriteForSep("abc", "us", "eu").error, "千分位設定已改變，請重新輸入");
+  // 改寫後用新設定解析，數值與原本相同
+  const r = rewriteForSep("1,000", "us", "eu");
+  assert.equal(unitsRequest(r.text, "mi", "km", "eu").request.inputs.VALUE, 1000);
+});
+
+test("ansAngleFor：含三角函數記目前角度；引用 ANS 時沿用 ANS 的角度；其餘 null", async () => {
+  const { ansAngleFor } = await import("../../web/js/eng.js");
+  assert.equal(ansAngleFor("sin(30)", "DEG", null), "DEG");
+  assert.equal(ansAngleFor("2+3", "RAD", "DEG"), null);
+  assert.equal(ansAngleFor("ANS×2", "RAD", "DEG"), "DEG", "ANS 來自 DEG 的三角結果");
+  assert.equal(ansAngleFor("ANS×2", "RAD", null), null);
+  assert.equal(ansAngleFor("ANS+cos(0)", "RAD", "DEG"), "RAD");
+});

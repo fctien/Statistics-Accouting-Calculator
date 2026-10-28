@@ -4,7 +4,8 @@
 //   - 進位轉換：四欄 BIN／OCT／DEC／HEX 的同步、BIN 每 4 位分組（只供顯示）、位元運算請求
 //   - 序號防亂序（sequence guard）：沿用 ICONV 的寫法，較晚發出的請求才算數
 // 數值格式化一律交給引擎（display）；這裡不自己算任何結果。
-import { parseNumber } from "./input.js";
+import { parseNumber, convertSepText } from "./input.js";
+import { usesTrig } from "./tape.js";
 
 /** 四種進位：id 同時是 base/convert 回傳值的鍵。 */
 export const BASES = [
@@ -42,6 +43,16 @@ export function angleLabel(angle) {
   return angle === "RAD" ? "RAD 弧度" : "DEG 度";
 }
 
+/**
+ * 新結果（ANS）的角度標記：算式含三角函數 → 目前角度；引用 ANS → 沿用上一個 ANS 的標記；
+ * 其餘與角度無關（null）。記憶 M0～M9 的來源不追蹤。
+ */
+export function ansAngleFor(expr, angle, prevAnsAngle) {
+  if (usesTrig(expr)) return angle;
+  if (/(^|[^A-Za-z0-9_])ANS([^A-Za-z0-9_]|$)/.test(String(expr))) return prevAnsAngle ?? null;
+  return null;
+}
+
 /** 結果是在 resultAngle 模式算的，目前是 currentAngle：不同就是過期（沒有結果則否）。 */
 export function resultIsStale(resultAngle, currentAngle) {
   return resultAngle !== null && resultAngle !== undefined && resultAngle !== currentAngle;
@@ -60,6 +71,15 @@ export function unitsRequest(text, from, to, sep = "us") {
     return { error: `請輸入數字，例如 ${sep === "eu" ? "1,5" : "1.5"}`, field: "VALUE" };
   }
   return { request: { sheet: "units", action: "convert", inputs: { VALUE: v, FROM: from, TO: to } } };
+}
+
+/**
+ * 千分位設定改變時，把 fromSep 下輸入的數值文字改寫成 toSep 的寫法（不重新解讀）。
+ * 回傳 {text}，或 {error}（原本的寫法就解不出來，請使用者重新輸入）。
+ */
+export function rewriteForSep(text, fromSep, toSep) {
+  const r = convertSepText(String(text ?? ""), { kind: "number" }, fromSep, toSep);
+  return r.error ? { error: "千分位設定已改變，請重新輸入" } : { text: r.text };
 }
 
 /** 單位選項文字：中文名＋符號，例「公里 km」。 */
@@ -110,6 +130,9 @@ export function baseFieldUpdates(sourceId, values) {
   }
   return out;
 }
+
+/** 位元運算畫面建立的輸入欄位 id（與 sheets.js 的 base-bitwise 欄位 id 相同，測試比對）。 */
+export const BITWISE_INPUT_IDS = ["A", "OP", "B"];
 
 /** 這個運算需要 B 嗎（NOT 只要 A）。 */
 export function needsB(op) {

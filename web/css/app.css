@@ -1242,3 +1242,24 @@ input[type="checkbox"].control {
 .base-out [data-field="RBIN"] {
   grid-column: 1 / -1;
 }
+
+.tape-angle {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tape-angle-stale,
+.tape-angle-unknown {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.tape-list li.stale .tape-val {
+  opacity: 0.65;
+  text-decoration: line-through;
+}

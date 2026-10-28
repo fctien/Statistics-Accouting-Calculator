@@ -257,3 +257,21 @@ test("A0 importBackup：合併與取代都保留本機三個 gdrive 鍵，不被
   const r2 = importBackup(file, emptyData(), "replace");
   for (const k of ["gdriveClientId", "gdriveLastSync", "gdriveLastSyncHash"]) assert.ok(!(k in r2.data.settings), k);
 });
+
+test("匯入紙帶的 angle：含三角函數且為 DEG|RAD 才保留，其餘丟掉；settings.angle 經 sanitize", () => {
+  const out = normalizeData({
+    settings: { angle: "RAD", mode: "AOS" },
+    scenarios: [],
+    tape: [
+      { expr: "sin(30)", value: 0.5, display: "0.50", ts: 1, angle: "DEG" },
+      { expr: "cos(0)", value: 1, display: "1.00", ts: 2, angle: "GRAD" },
+      { expr: "2+3", value: 5, display: "5.00", ts: 3, angle: "RAD" },
+      { expr: "tan(0)", value: 0, display: "0.00", ts: 4 },
+    ],
+    memory: {},
+  });
+  assert.deepEqual(out.tape.map((e) => e.angle), ["DEG", undefined, undefined, undefined]);
+  assert.ok(!("angle" in out.tape[1]) && !("angle" in out.tape[2]) && !("angle" in out.tape[3]));
+  assert.equal(out.settings.angle, "RAD");
+  assert.equal(normalizeData({ settings: { angle: "grad" }, scenarios: [], tape: [], memory: {} }).settings.angle, undefined);
+});

@@ -8,7 +8,7 @@
 import { callEngine } from "../py-client.js";
 import { debounce } from "../util.js";
 import {
-  BASES, WIDTHS, BIT_OPS, baseRequest, baseFieldUpdates, bitwiseRequest, needsB, opAllowed,
+  BASES, WIDTHS, BIT_OPS, BITWISE_INPUT_IDS, baseRequest, baseFieldUpdates, bitwiseRequest, needsB, opAllowed,
   stripSpaces, createSeq,
 } from "../eng.js";
 
@@ -60,15 +60,22 @@ function fit(t) {
   t.style.height = `${t.scrollHeight + 2}px`;
 }
 
-/** 複製 BIN（輸入框或結果）：去掉分組空白。 */
+/** 複製／剪下 BIN（輸入框或結果）：剪貼簿內容去掉分組空白；剪下時一併刪除選取內容。 */
 function stripOnCopy(input) {
-  input.addEventListener("copy", (e) => {
+  const handler = (e) => {
     const { selectionStart: a, selectionEnd: b, value } = input;
-    const text = a !== null && b !== null && a !== b ? value.slice(a, b) : value;
+    const has = a !== null && b !== null && a !== b;
+    const text = has ? value.slice(a, b) : value;
     if (!e.clipboardData) return;
     e.clipboardData.setData("text/plain", stripSpaces(text));
     e.preventDefault();
-  });
+    if (e.type === "cut" && has && !input.readOnly) {
+      input.setRangeText("", a, b, "end");
+      input.dispatchEvent(new Event("input", { bubbles: true })); // 照常觸發同步
+    }
+  };
+  input.addEventListener("copy", handler);
+  input.addEventListener("cut", handler);
 }
 
 export function mount(container) {
@@ -95,7 +102,7 @@ export function mount(container) {
     // BIN 用 textarea：64 位元分組後約 79 字，手機上要能換行完整顯示（不截斷）
     const input = el(b.id === "BIN" ? "textarea" : "input", {
       id: `b-${b.id}`, type: b.id === "BIN" ? null : "text", rows: b.id === "BIN" ? 2 : null, autocomplete: "off", autocapitalize: "characters", spellcheck: "false",
-      "data-base": b.id, inputmode: b.id === "DEC" ? "numeric" : "text",
+      "data-base": b.id, inputmode: "text", // DEC 也用 text：iOS 數字鍵盤沒有負號
       placeholder: { BIN: "例：1111 1111", OCT: "例：377", DEC: "例：255", HEX: "例：FF" }[b.id],
     });
     if (b.id === "BIN") stripOnCopy(input);
@@ -116,9 +123,10 @@ export function mount(container) {
   const bIn = el("input", { id: "b-b", type: "text", autocomplete: "off", spellcheck: "false" });
   stripOnCopy(aIn);
   stripOnCopy(bIn);
-  const fA = field("A", "A", aIn);
-  const fOp = field("OP", "運算", opSel);
-  const fB = field("B", "B", bIn);
+  const [A_ID, OP_ID, B_ID] = BITWISE_INPUT_IDS; // 與 sheets.js 的 base-bitwise 欄位 id 相同
+  const fA = field(A_ID, "A", aIn);
+  const fOp = field(OP_ID, "運算", opSel);
+  const fB = field(B_ID, "B", bIn);
   const sarHint = el("p", { id: "b-sar-hint", class: "calc-hint", hidden: true }, SAR_HINT);
   const bitGrid = el("div", { class: "fields base-bit-fields" });
   bitGrid.append(fA.wrap, fOp.wrap, fB.wrap);
