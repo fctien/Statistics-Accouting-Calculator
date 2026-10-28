@@ -217,3 +217,72 @@ CASES = [
           "=SIN(RADIANS(30))+LOG10(100)*2"),
     _calc("calc_atan_rad", "atan(1)", "=ATAN(1)", "RAD"),
 ]
+
+
+def _unit(cid, value, frm, to, formula):
+    """單位換算案例：bridge units/convert，輸出鍵 value。"""
+    return _case(cid, "units", "convert",
+                 {"VALUE": value, "FROM": frm, "TO": to}, formula, "value",
+                 tol=1e-9)
+
+
+# ---- units（Excel CONVERT；引擎單位 id 與 Excel 代碼不同者見公式）----
+# 「定義值」案例：Excel CONVERT 不支援（或定義不同）的單位，公式以
+# 國際／法定定義值字面寫成（例：台斤 0.6 kg），仍由 Excel 求算術值。
+CASES += [
+    # 長度
+    _unit("units_len_mi_km", 1, "mi", "km", '=CONVERT(1,"mi","km")'),
+    _unit("units_len_nmi_m", 3, "nmi", "m", '=CONVERT(3,"Nmi","m")'),
+    _unit("units_len_in_mm", 10, "in", "mm", '=CONVERT(10,"in","mm")'),
+    _unit("units_len_um_m", 250, "um", "m", '=CONVERT(250,"um","m")'),
+    # 質量
+    _unit("units_mass_lb_kg", 150, "lb", "kg", '=CONVERT(150,"lbm","kg")'),
+    _unit("units_mass_oz_g", 7, "oz", "g", '=CONVERT(7,"ozm","g")'),
+    _unit("units_mass_kg_lb", 1, "kg", "lb", '=CONVERT(1,"kg","lbm")'),
+    _unit("units_mass_mg_g", 2500, "mg", "g", '=CONVERT(2500,"mg","g")'),
+    _unit("units_def_mass_catty_kg", 3, "catty", "kg", "=3*0.6"),
+    _unit("units_def_mass_tael_g", 2, "tael", "g", "=2*37.5"),
+    _unit("units_def_mass_t_kg", 1.5, "t", "kg", "=1.5*1000"),
+    # 溫度
+    _unit("units_temp_c_f", 100, "degC", "degF", '=CONVERT(100,"C","F")'),
+    _unit("units_temp_f_c_m40", -40, "degF", "degC", '=CONVERT(-40,"F","C")'),
+    _unit("units_temp_k_c", 0, "K", "degC", '=CONVERT(0,"K","C")'),
+    _unit("units_temp_f_k", 98.6, "degF", "K", '=CONVERT(98.6,"F","K")'),
+    # 壓力
+    _unit("units_pres_atm_psi", 1, "atm", "psi", '=CONVERT(1,"atm","psi")'),
+    _unit("units_pres_mpa_pa", 2.5, "MPa", "Pa", '=CONVERT(2.5,"MPa","Pa")'),
+    _unit("units_pres_kpa_atm", 202.65, "kPa", "atm",
+          '=CONVERT(202.65,"kPa","atm")'),
+    _unit("units_def_pres_bar_pa", 3, "bar", "Pa", "=3*100000"),
+    _unit("units_def_pres_mmhg_pa", 760, "mmHg", "Pa", "=760*101325/760"),
+    # 能量（cal 為熱化學卡，對應 Excel 代碼 "c"）
+    _unit("units_en_kwh_j", 1, "kWh", "J", '=CONVERT(1,"kWh","J")'),
+    _unit("units_en_cal_j", 10, "cal", "J", '=CONVERT(10,"c","J")'),
+    _unit("units_en_kcal_j", 2, "kcal", "J", '=CONVERT(2,"kc","J")'),
+    _unit("units_en_btu_j", 1, "BTU", "J", '=CONVERT(1,"BTU","J")'),
+    _unit("units_en_wh_kj", 500, "Wh", "kJ", '=CONVERT(500,"Wh","J")/1000'),
+    # 面積
+    _unit("units_area_ha_m2", 2.5, "ha", "m2", '=CONVERT(2.5,"ha","m2")'),
+    _unit("units_area_ft2_m2", 100, "ft2", "m2", '=CONVERT(100,"ft2","m2")'),
+    _unit("units_area_acre_m2", 1, "acre", "m2",
+          '=CONVERT(1,"uk_acre","m2")'),
+    _unit("units_area_in2_cm2", 4, "in2", "cm2",
+          '=CONVERT(4,"in2","m2")*10000'),
+    _unit("units_def_area_ping_m2", 30, "ping", "m2", "=30*400/121"),
+    # 體積
+    _unit("units_vol_gal_l", 1, "gal", "L", '=CONVERT(1,"gal","l")'),
+    _unit("units_vol_ft3_l", 2, "ft3", "L", '=CONVERT(2,"ft3","l")'),
+    _unit("units_vol_in3_ml", 10, "in3", "mL", '=CONVERT(10,"in3","ml")'),
+    _unit("units_vol_m3_l", 0.75, "m3", "L", '=CONVERT(0.75,"m3","l")'),
+    # 速度
+    _unit("units_spd_mph_ms", 60, "mph", "m/s", '=CONVERT(60,"mph","m/s")'),
+    _unit("units_spd_knot_ms", 10, "knot", "m/s", '=CONVERT(10,"kn","m/s")'),
+    _unit("units_spd_kmh_ms", 90, "km/h", "m/s", '=CONVERT(90,"km/h","m/s")'),
+    _unit("units_def_spd_fts_ms", 100, "ft/s", "m/s", "=100*0.3048"),
+    # 時間（yr = 365 天，Excel "yr" 為 365.25 天故用定義值）
+    _unit("units_time_day_h", 3, "day", "h", '=CONVERT(3,"day","hr")'),
+    _unit("units_time_min_s", 90, "min", "s", '=CONVERT(90,"mn","sec")'),
+    _unit("units_time_h_min", 2.5, "h", "min", '=CONVERT(2.5,"hr","mn")'),
+    _unit("units_def_time_week_day", 2, "week", "day", "=2*7"),
+    _unit("units_def_time_yr_day", 1, "yr", "day", "=1*365"),
+]

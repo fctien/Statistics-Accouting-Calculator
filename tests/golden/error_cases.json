@@ -571,6 +571,113 @@
  },
  {
   "expected": {
+   "error": "無法在不同類別間換算（meter 與 kilogram）",
+   "field": "TO",
+   "ok": false
+  },
+  "id": "units_cross_category",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": "m",
+    "TO": "kg",
+    "VALUE": 1
+   },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
+   "error": "未知的單位：zz",
+   "field": "FROM",
+   "ok": false
+  },
+  "id": "units_unknown_from",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": "zz",
+    "TO": "m",
+    "VALUE": 1
+   },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
+   "error": "未知的單位：zz",
+   "field": "TO",
+   "ok": false
+  },
+  "id": "units_unknown_to",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": "m",
+    "TO": "zz",
+    "VALUE": 1
+   },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
+   "error": "溫度低於絕對零度",
+   "field": "VALUE",
+   "ok": false
+  },
+  "id": "units_below_absolute_zero",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": "degC",
+    "TO": "degF",
+    "VALUE": -300
+   },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
+   "error": "VALUE 必須是有限數字",
+   "field": "VALUE",
+   "ok": false
+  },
+  "id": "units_value_string",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": "m",
+    "TO": "km",
+    "VALUE": "1"
+   },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
+   "error": "請輸入 TO",
+   "field": "TO",
+   "ok": false
+  },
+  "id": "units_missing_to",
+  "request": {
+   "action": "convert",
+   "inputs": {
+    "FROM": "m",
+    "VALUE": 1
+   },
+   "settings": {},
+   "sheet": "units"
+  }
+ },
+ {
+  "expected": {
    "error": "decimals 必須是 0～9 的整數或 null",
    "field": "decimals",
    "ok": false

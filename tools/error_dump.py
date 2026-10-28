@@ -75,6 +75,18 @@ CASES = [
         "AMOUNT": 1e14, "RATE": 5, "MODE": "exclusive"})),
     ("date_invalid_feb30", None, _req("date", "solve", {
         "DT1": [2026, 2, 30], "DT2": [2026, 3, 1], "DBD": None, "basis": "ACT"})),
+    ("units_cross_category", None, _req("units", "convert", {
+        "VALUE": 1, "FROM": "m", "TO": "kg"})),
+    ("units_unknown_from", None, _req("units", "convert", {
+        "VALUE": 1, "FROM": "zz", "TO": "m"})),
+    ("units_unknown_to", None, _req("units", "convert", {
+        "VALUE": 1, "FROM": "m", "TO": "zz"})),
+    ("units_below_absolute_zero", None, _req("units", "convert", {
+        "VALUE": -300, "FROM": "degC", "TO": "degF"})),
+    ("units_value_string", None, _req("units", "convert", {
+        "VALUE": "1", "FROM": "m", "TO": "km"})),
+    ("units_missing_to", None, _req("units", "convert", {
+        "VALUE": 1, "FROM": "m"})),
     ("settings_bad_decimals", None, _req("tvm", "solve", _TVM, {"decimals": 12})),
 ]
 

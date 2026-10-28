@@ -1474,3 +1474,29 @@
 
 **B1 修正輪 1 追加**
 - 問題與修正：新增的「拿掉 fmod 縮減」突變第一次存活（20/21）：mutant 下 r=x 只被 ±360 修一次，而 90 倍數案例仍走精確查表而通過；補測試用非 90 倍數的超大角度（30+360e12、60-360e12、45+360e12），手動確認該突變被擋
+
+## 2026-10-28 B2 單位換算引擎（engine/units.py）
+
+**需求**
+- 工程頁需要 9 類單位換算（長度、質量、溫度、壓力、能量、面積、體積、速度、時間）；bridge 路由 units/convert、units/list；Excel CONVERT golden
+
+**做法**
+- engine/units.py：單位表 (id, 中文, 英文, 類別, a, b)，基準值 = a·x + b（溫度仿射，基準 K）；convert／list_units；錯誤欄位 FROM／TO／VALUE，< 0 K 報錯
+- bridge 加兩條路由與 docstring 鍵對照；golden/cases.py 加 units 43 筆（Excel CONVERT 33、定義值 10），make_golden_excel.py 重產（只新增、既有 expected 不變）
+- error_dump.py 加 6 筆錯誤案例並用 --init 重建；mutate.py 加溫度 offset 突變；build_web 重建
+
+**產出**
+- engine/units.py、engine/bridge.py、golden/cases.py、tests/golden/excel.json、error_cases.json、tests/test_units.py、tools/error_dump.py、tools/mutate.py、web/sw.js（雜湊）、tests/test_web_sheets.py（路由覆蓋測試暫時豁免 units，待 UI 任務）
+
+**驗證**
+- pytest 全綠；mpy golden 109/109、error 38/38；check_portable 通過；mutate 與 verify_all --quick 見報告
+
+**問題與修正**
+- 先寫引擎再寫測試（未嚴格先 RED）；以突變測試補證測試有效
+- Excel CONVERT 的 "cal" 是 IT 卡 4.1868，"c" 才是熱化學卡 4.184；採 4.184，golden 用 "c"
+- Excel 不支援：bar、ft/s、week、台斤、兩、坪；Excel "yr"=365.25 天、"mmHg"=133.322（四捨五入），與本引擎定義不同 → 這些用定義值案例（公式以字面定義值寫成，Excel 僅算術）
+- error_dump.py --write 只更新既有案例，新案例須 --init
+- test_sheet_actions_cover_bridge_routes 因新路由無 UI 而失敗，暫時豁免 units
+
+**待辦**
+- 工程頁 UI 加入後移除豁免

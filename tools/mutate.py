@@ -61,6 +61,8 @@ MUTATIONS = [
      "留一格空白檢查改成 >=1 格"),
     ("engine/depr.py", "dep = max(dep, avail / (lif - k))",
      "dep = min(dep, avail / (lif - k))", "DBX 轉直線法改取較小者"),
+    ("engine/units.py", "base = src[4] * value + src[5]",
+     "base = src[4] * value", "溫度仿射換算拿掉 offset（b）"),
     ("engine/cashflow.py", "if t > 0 and prev < 0 <= cum:",
      "if t > 0 and prev < 0 < cum:", "回收期邊界（累計剛好為 0）判斷改嚴格"),
 ]

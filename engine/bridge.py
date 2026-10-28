@@ -35,6 +35,8 @@ settings（皆可省略）：
     calc / eval            EXPR, ANS（預設 0）, MEM（如 {"M3": 1.0}）；
                            settings.mode（AOS|CHAIN）、settings.angle（DEG|RAD）
                            函式 sin cos tan asin acos atan log cbrt，常數 pi（或 π）、e
+    units / convert        VALUE, FROM, TO（單位 id，如 km、degC、psi；跨類別報錯）
+    units / list           （無輸入）回傳 categories（含各類別的單位 id、中英文名）
 
 留一格空白規則（leave-one-blank）：
     tvm、date、breakeven、pct_change：可求解欄位中恰有一格 null 才求解，否則報錯。
@@ -49,7 +51,7 @@ settings（皆可省略）：
 import json
 
 from engine import (amort, bond, business, calc, cashflow, dates, depr,
-                    iconv, stats, tvm)
+                    iconv, stats, tvm, units)
 from engine.fmt import format_number
 from engine.result import _all_finite, err, is_finite
 
@@ -349,6 +351,17 @@ def _r_calc(inp, st):
                          st["angle"])
 
 
+def _r_units_convert(inp, st):
+    value = _num(inp, "VALUE", required=True)
+    frm = _str(inp, "FROM", required=True)
+    to = _str(inp, "TO", required=True)
+    return units.convert(value, frm, to)
+
+
+def _r_units_list(inp, st):
+    return units.list_units()
+
+
 ROUTES = {
     ("tvm", "solve"): _r_tvm,
     ("amort", "range"): _r_amort_range,
@@ -374,6 +387,8 @@ ROUTES = {
     ("business", "tax"): _r_tax,
     ("date", "solve"): _r_date,
     ("calc", "eval"): _r_calc,
+    ("units", "convert"): _r_units_convert,
+    ("units", "list"): _r_units_list,
 }
 
 

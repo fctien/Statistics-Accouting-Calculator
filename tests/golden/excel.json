@@ -1670,5 +1670,779 @@
   "expected": 0.7853981633974483,
   "source": "Excel 16: =ATAN(1)",
   "tol": 1e-09
+ },
+ {
+  "id": "units_len_mi_km",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "mi",
+    "TO": "km"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.609344,
+  "source": "Excel 16: =CONVERT(1,\"mi\",\"km\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_len_nmi_m",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 3,
+    "FROM": "nmi",
+    "TO": "m"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5556.0,
+  "source": "Excel 16: =CONVERT(3,\"Nmi\",\"m\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_len_in_mm",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 10,
+    "FROM": "in",
+    "TO": "mm"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 254.0,
+  "source": "Excel 16: =CONVERT(10,\"in\",\"mm\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_len_um_m",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 250,
+    "FROM": "um",
+    "TO": "m"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 0.00025,
+  "source": "Excel 16: =CONVERT(250,\"um\",\"m\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_mass_lb_kg",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 150,
+    "FROM": "lb",
+    "TO": "kg"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 68.03885550000001,
+  "source": "Excel 16: =CONVERT(150,\"lbm\",\"kg\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_mass_oz_g",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 7,
+    "FROM": "oz",
+    "TO": "g"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 198.44666187500002,
+  "source": "Excel 16: =CONVERT(7,\"ozm\",\"g\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_mass_kg_lb",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "kg",
+    "TO": "lb"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 2.2046226218487757,
+  "source": "Excel 16: =CONVERT(1,\"kg\",\"lbm\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_mass_mg_g",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2500,
+    "FROM": "mg",
+    "TO": "g"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 2.5,
+  "source": "Excel 16: =CONVERT(2500,\"mg\",\"g\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_mass_catty_kg",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 3,
+    "FROM": "catty",
+    "TO": "kg"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1.7999999999999998,
+  "source": "Excel 16: =3*0.6",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_mass_tael_g",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2,
+    "FROM": "tael",
+    "TO": "g"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 75.0,
+  "source": "Excel 16: =2*37.5",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_mass_t_kg",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1.5,
+    "FROM": "t",
+    "TO": "kg"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1500.0,
+  "source": "Excel 16: =1.5*1000",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_temp_c_f",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 100,
+    "FROM": "degC",
+    "TO": "degF"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 212.0,
+  "source": "Excel 16: =CONVERT(100,\"C\",\"F\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_temp_f_c_m40",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": -40,
+    "FROM": "degF",
+    "TO": "degC"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": -40.0,
+  "source": "Excel 16: =CONVERT(-40,\"F\",\"C\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_temp_k_c",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 0,
+    "FROM": "K",
+    "TO": "degC"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": -273.15,
+  "source": "Excel 16: =CONVERT(0,\"K\",\"C\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_temp_f_k",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 98.6,
+    "FROM": "degF",
+    "TO": "K"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 310.15,
+  "source": "Excel 16: =CONVERT(98.6,\"F\",\"K\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_pres_atm_psi",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "atm",
+    "TO": "psi"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 14.695948775513449,
+  "source": "Excel 16: =CONVERT(1,\"atm\",\"psi\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_pres_mpa_pa",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2.5,
+    "FROM": "MPa",
+    "TO": "Pa"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 2500000.0,
+  "source": "Excel 16: =CONVERT(2.5,\"MPa\",\"Pa\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_pres_kpa_atm",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 202.65,
+    "FROM": "kPa",
+    "TO": "atm"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 2.0,
+  "source": "Excel 16: =CONVERT(202.65,\"kPa\",\"atm\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_pres_bar_pa",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 3,
+    "FROM": "bar",
+    "TO": "Pa"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 300000.0,
+  "source": "Excel 16: =3*100000",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_pres_mmhg_pa",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 760,
+    "FROM": "mmHg",
+    "TO": "Pa"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 101325.0,
+  "source": "Excel 16: =760*101325/760",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_en_kwh_j",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "kWh",
+    "TO": "J"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 3600000.0,
+  "source": "Excel 16: =CONVERT(1,\"kWh\",\"J\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_en_cal_j",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 10,
+    "FROM": "cal",
+    "TO": "J"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 41.84,
+  "source": "Excel 16: =CONVERT(10,\"c\",\"J\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_en_kcal_j",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2,
+    "FROM": "kcal",
+    "TO": "J"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 8368.0,
+  "source": "Excel 16: =CONVERT(2,\"kc\",\"J\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_en_btu_j",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "BTU",
+    "TO": "J"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1055.05585262,
+  "source": "Excel 16: =CONVERT(1,\"BTU\",\"J\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_en_wh_kj",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 500,
+    "FROM": "Wh",
+    "TO": "kJ"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 1800.0,
+  "source": "Excel 16: =CONVERT(500,\"Wh\",\"J\")/1000",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_area_ha_m2",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2.5,
+    "FROM": "ha",
+    "TO": "m2"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 24999.999999999996,
+  "source": "Excel 16: =CONVERT(2.5,\"ha\",\"m2\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_area_ft2_m2",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 100,
+    "FROM": "ft2",
+    "TO": "m2"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 9.290304,
+  "source": "Excel 16: =CONVERT(100,\"ft2\",\"m2\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_area_acre_m2",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "acre",
+    "TO": "m2"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 4046.8564224,
+  "source": "Excel 16: =CONVERT(1,\"uk_acre\",\"m2\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_area_in2_cm2",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 4,
+    "FROM": "in2",
+    "TO": "cm2"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 25.8064,
+  "source": "Excel 16: =CONVERT(4,\"in2\",\"m2\")*10000",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_area_ping_m2",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 30,
+    "FROM": "ping",
+    "TO": "m2"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 99.17355371900827,
+  "source": "Excel 16: =30*400/121",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_vol_gal_l",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "gal",
+    "TO": "L"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 3.785411784,
+  "source": "Excel 16: =CONVERT(1,\"gal\",\"l\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_vol_ft3_l",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2,
+    "FROM": "ft3",
+    "TO": "L"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 56.633693184,
+  "source": "Excel 16: =CONVERT(2,\"ft3\",\"l\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_vol_in3_ml",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 10,
+    "FROM": "in3",
+    "TO": "mL"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 163.87064,
+  "source": "Excel 16: =CONVERT(10,\"in3\",\"ml\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_vol_m3_l",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 0.75,
+    "FROM": "m3",
+    "TO": "L"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 750.0,
+  "source": "Excel 16: =CONVERT(0.75,\"m3\",\"l\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_spd_mph_ms",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 60,
+    "FROM": "mph",
+    "TO": "m/s"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 26.8224,
+  "source": "Excel 16: =CONVERT(60,\"mph\",\"m/s\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_spd_knot_ms",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 10,
+    "FROM": "knot",
+    "TO": "m/s"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5.144444444444445,
+  "source": "Excel 16: =CONVERT(10,\"kn\",\"m/s\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_spd_kmh_ms",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 90,
+    "FROM": "km/h",
+    "TO": "m/s"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 25.0,
+  "source": "Excel 16: =CONVERT(90,\"km/h\",\"m/s\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_spd_fts_ms",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 100,
+    "FROM": "ft/s",
+    "TO": "m/s"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 30.48,
+  "source": "Excel 16: =100*0.3048",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_time_day_h",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 3,
+    "FROM": "day",
+    "TO": "h"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 72.0,
+  "source": "Excel 16: =CONVERT(3,\"day\",\"hr\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_time_min_s",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 90,
+    "FROM": "min",
+    "TO": "s"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 5400.0,
+  "source": "Excel 16: =CONVERT(90,\"mn\",\"sec\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_time_h_min",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2.5,
+    "FROM": "h",
+    "TO": "min"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 150.0,
+  "source": "Excel 16: =CONVERT(2.5,\"hr\",\"mn\")",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_time_week_day",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 2,
+    "FROM": "week",
+    "TO": "day"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 14.0,
+  "source": "Excel 16: =2*7",
+  "tol": 1e-09
+ },
+ {
+  "id": "units_def_time_yr_day",
+  "sheet": "units",
+  "call": {
+   "sheet": "units",
+   "action": "convert",
+   "inputs": {
+    "VALUE": 1,
+    "FROM": "yr",
+    "TO": "day"
+   },
+   "settings": {}
+  },
+  "expect_key": "value",
+  "expected": 365.0,
+  "source": "Excel 16: =1*365",
+  "tol": 1e-09
  }
 ]
