@@ -20,8 +20,14 @@ def test_every_case_has_source_and_value():
     assert len(data) >= 30
     for c in data:
         assert c["source"].startswith(("Excel 16:", "TI Guidebook", "定義值："))
-        # base 工作表的 expected 為字串，其餘為數值
-        assert isinstance(c["expected"], str if c["sheet"] == "base" else float)
+        # base 工作表的 expected 為字串；眾數為數值 list；其餘為數值
+        if c["sheet"] == "base":
+            assert isinstance(c["expected"], str)
+        elif c["expect_key"] == "modes":
+            assert isinstance(c["expected"], list)
+            assert all(isinstance(m, float) for m in c["expected"])
+        else:
+            assert isinstance(c["expected"], float)
 
 
 def test_each_sheet_has_three_cases():
@@ -77,6 +83,27 @@ def test_runner_string_cases_exact_match():
     assert len(runner.run([case], ret(255))) == 1         # 數值不等於字串
     assert len(runner.run([case], ret(None))) == 1
     assert len(runner.run([case], lambda r: {"ok": False, "error": "x"})) == 1
+
+
+def test_runner_list_cases_elementwise():
+    """expected 為數值 list：長度相同、逐項比對；型別或長度不符即失敗。"""
+    case = {"id": "l", "expect_key": "modes", "expected": [1.0, 3.0],
+            "tol": 1e-9, "call": {}}
+
+    def ret(v):
+        return lambda req: {"ok": True, "values": {"modes": v}}
+    assert runner.run([case], ret([1, 3.0])) == []
+    assert runner.run([case], ret([1.0, 3.0 + 1e-12])) == []
+    assert len(runner.run([case], ret([1.0, 3.5]))) == 1   # 某項不符
+    assert len(runner.run([case], ret([1.0]))) == 1        # 長度不同
+    assert len(runner.run([case], ret([1.0, 3.0, 5.0]))) == 1
+    assert len(runner.run([case], ret(1.0))) == 1          # 非 list
+    assert len(runner.run([case], ret(None))) == 1
+    assert len(runner.run([case], ret([True, 3.0]))) == 1  # bool 不算數值
+    assert len(runner.run([case], ret(["1", 3.0]))) == 1
+    empty = dict(case, expected=[])
+    assert runner.run([empty], ret([])) == []
+    assert len(runner.run([empty], ret([1.0]))) == 1
 
 
 def test_runner_numeric_behaviour_unchanged():

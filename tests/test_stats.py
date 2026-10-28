@@ -13,7 +13,9 @@ def _run(call):
 
 
 def test_golden(golden_cases):
-    cases = golden_cases("stats")
+    # describe 案例由 tests/test_describe.py 負責
+    cases = [c for c in golden_cases("stats")
+             if c["call"]["action"] != "describe"]
     assert len(cases) == 15
     for c in cases:
         res = _run(c["call"])

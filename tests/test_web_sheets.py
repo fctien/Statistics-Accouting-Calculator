@@ -94,8 +94,10 @@ def test_sheet_actions_cover_bridge_routes(requests):
     """bridge 的每個路由都有對應的工作表動作（UI 不會漏功能）。"""
     from engine.bridge import ROUTES
     have = {(r["engine"], r["action"]) for r in requests if r["engine"]}
-    # units、base 路由的 UI（工程頁）由後續任務（D2）加入，屆時移除此豁免
-    routes = {r for r in ROUTES if r[0] not in ("units", "base")}
+    # units、base 路由的 UI（工程頁）由後續任務（D2）加入，屆時移除此豁免；
+    # stats/describe 的 UI（統計頁）由 D3 加入，屆時一併移除此豁免
+    routes = {r for r in ROUTES if r[0] not in ("units", "base")
+              and r != ("stats", "describe")}
     assert routes <= have, sorted(routes - have)
 
 

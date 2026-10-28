@@ -102,6 +102,13 @@ CASES = [
     ("base_missing_b", None, _req("base", "bitwise", {"OP": "AND", "A": "1", "B": None, "FROM": 10, "WIDTH": 8, "SIGNED": False})),
     ("base_and_ok_shape", None, _req("base", "bitwise", {"OP": "AND", "A": "F0", "B": "3C", "FROM": 16, "WIDTH": 8, "SIGNED": False})),
     ("base_convert_ok_64", None, _req("base", "convert", {"TEXT": "8000000000000000", "FROM": 16, "WIDTH": 64, "SIGNED": True})),
+    ("describe_empty", None, _req("stats", "describe", {"X": [], "F": None})),
+    ("describe_bad_freq", None, _req("stats", "describe", {"X": [1, 2, 3], "F": [1, 0, 1]})),
+    ("describe_freq_length", None, _req("stats", "describe", {"X": [1, 2, 3], "F": [1, 2]})),
+    ("describe_string_value", None, _req("stats", "describe", {"X": [1, "a", 3], "F": None})),
+    ("describe_ok_multimode", None, _req("stats", "describe", {"X": [3, 1, 3, 1, 2], "F": None})),
+    ("describe_ok_n1_warnings", None, _req("stats", "describe", {"X": [7], "F": None})),
+    ("describe_ok_all_equal", None, _req("stats", "describe", {"X": [5, 5, 5, 5], "F": None})),
     ("settings_bad_decimals", None, _req("tvm", "solve", _TVM, {"decimals": 12})),
 ]
 

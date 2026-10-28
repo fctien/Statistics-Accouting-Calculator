@@ -17,6 +17,21 @@ from golden.cases import CASES  # noqa: E402
 OUT = os.path.join(ROOT, "tests", "golden", "excel.json")
 
 
+def _evaluate_list(xl, formula):
+    """求值陣列公式（如 MODE.MULT），攤平成遞增排序的數值 list。"""
+    v = xl.Evaluate(formula.lstrip("="))
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        v = ((v,),)
+    if not isinstance(v, (tuple, list)):
+        raise RuntimeError("Excel 回傳非陣列 %r（公式 %s）" % (v, formula))
+    flat = [c for row in v for c in (row if isinstance(row, (tuple, list))
+                                     else (row,))]
+    if not flat or any(isinstance(c, bool) or not isinstance(c, (int, float))
+                       for c in flat):
+        raise RuntimeError("Excel 回傳非數值陣列 %r（公式 %s）" % (v, formula))
+    return sorted(float(c) for c in flat)
+
+
 def _evaluate(xl, formula, string=False):
     """以 Application.Evaluate 求值（可處理陣列常數）；錯誤值視為失敗。
     string=True 時結果必須是字串（base 案例），否則必須是數值。"""
@@ -28,6 +43,15 @@ def _evaluate(xl, formula, string=False):
     if isinstance(v, (int, float)) and not isinstance(v, bool):
         return float(v)
     raise RuntimeError("Excel 回傳非數值 %r（公式 %s）" % (v, formula))
+
+
+def _expected(xl, excel, formula):
+    """依案例型態求期望值：literal（定義值 list）、as_list（陣列）、字串或數值。"""
+    if "literal" in excel:
+        return copy.deepcopy(excel["literal"])
+    if excel.get("as_list"):
+        return _evaluate_list(xl, formula)
+    return _evaluate(xl, formula, excel.get("string", False))
 
 
 def build(xl):
@@ -43,8 +67,7 @@ def build(xl):
         out.append({
             "id": case["id"], "sheet": case["sheet"], "call": call,
             "expect_key": case["expect_key"],
-            "expected": _evaluate(xl, formula,
-                                  case["excel"].get("string", False)),
+            "expected": _expected(xl, case["excel"], formula),
             "source": ("定義值：" if case["excel"].get("defined")
                        else "Excel 16: ") + formula,
             "tol": case["tol"],

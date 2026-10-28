@@ -89,6 +89,12 @@
           pass = got === c.expected;
           if (!pass) why = "字串不相等：" + JSON.stringify(got);
         }
+        else if (Array.isArray(c.expected)) {  // 數值 list 案例（眾數）：長度相同、逐項比對
+          pass = Array.isArray(got) && got.length === c.expected.length &&
+            got.every((x, k) => isNum(x) && isNum(c.expected[k]) &&
+              Math.abs(x - c.expected[k]) / Math.max(1, Math.abs(c.expected[k])) <= tol);
+          if (!pass) why = "list 不符：" + JSON.stringify(got);
+        }
         else if (!isNum(got)) why = "非有限數值：" + JSON.stringify(got);
         else if (!isNum(c.expected)) why = "期望值不是有限數值";
         else {

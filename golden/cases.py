@@ -375,3 +375,47 @@ CASES += [
              "0F0F0F0F0F0F0F0F", 16, 64, False, "HEX",
              '="0F0F0F0F0F0F0F0F"'),
 ]
+
+
+# ---- stats / describe（敘述統計；眾數 expected 為數值 list）----
+# 三組資料：A 單一眾數；B 含負數與小數、無眾數（定義值，MODE.MULT 在 Excel 為 #N/A）；
+# C 多眾數。MODE.MULT 在 Evaluate 回傳陣列，產生器會攤平並遞增排序後存入 list。
+_DESC_SETS = {
+    "a": [2, 4, 4, 4, 5, 5, 7, 9],
+    "b": [-3.5, 2.25, 0.5, -1.75, 8, 4.125, -0.5, 6.75, 1.0],
+    "c": [3, 1, 3, 1, 2, 5, 5, 9, 4],
+}
+_DESC_FUNCS = (
+    ("mean", "AVERAGE({a})"), ("median", "MEDIAN({a})"),
+    ("q1", "QUARTILE.INC({a},1)"), ("q3", "QUARTILE.INC({a},3)"),
+    ("skew", "SKEW({a})"), ("kurt", "KURT({a})"),
+    ("sx", "STDEV.S({a})"), ("sigma_x", "STDEV.P({a})"),
+    ("var", "VAR.S({a})"),
+)
+
+
+def _describe_cases():
+    out = []
+    for name, data in _DESC_SETS.items():
+        arr = _arr(data)
+        for key, tpl in _DESC_FUNCS:
+            out.append(_case("stats_desc_%s_%s" % (name, key), "stats",
+                             "describe", {"X": list(data), "F": None},
+                             "=" + tpl.format(a=arr), key))
+    return out
+
+
+CASES += _describe_cases()
+CASES += [
+    _case("stats_desc_a_modes", "stats", "describe",
+          {"X": list(_DESC_SETS["a"]), "F": None},
+          "=MODE.MULT(%s)" % _arr(_DESC_SETS["a"]), "modes", as_list=True),
+    _case("stats_desc_c_modes", "stats", "describe",
+          {"X": list(_DESC_SETS["c"]), "F": None},
+          "=MODE.MULT(%s)" % _arr(_DESC_SETS["c"]), "modes", as_list=True),
+    # B 組每個值都只出現一次：MODE.MULT 為 #N/A，本 App 定義為空 list
+    _case("stats_desc_b_modes", "stats", "describe",
+          {"X": list(_DESC_SETS["b"]), "F": None},
+          "=MODE.MULT(%s)" % _arr(_DESC_SETS["b"]), "modes",
+          defined=True, literal=[]),
+]

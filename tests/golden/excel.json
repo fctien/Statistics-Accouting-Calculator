@@ -3040,5 +3040,811 @@
   "expected": "0F0F0F0F0F0F0F0F",
   "source": "定義值：=\"0F0F0F0F0F0F0F0F\"",
   "tol": 0
+ },
+ {
+  "id": "stats_desc_a_mean",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean",
+  "expected": 5.0,
+  "source": "Excel 16: =AVERAGE({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_median",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "median",
+  "expected": 4.5,
+  "source": "Excel 16: =MEDIAN({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_q1",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "q1",
+  "expected": 4.0,
+  "source": "Excel 16: =QUARTILE.INC({2,4,4,4,5,5,7,9},1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_q3",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "q3",
+  "expected": 5.5,
+  "source": "Excel 16: =QUARTILE.INC({2,4,4,4,5,5,7,9},3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_skew",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "skew",
+  "expected": 0.8184875533567997,
+  "source": "Excel 16: =SKEW({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_kurt",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "kurt",
+  "expected": 0.9406249999999998,
+  "source": "Excel 16: =KURT({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_sx",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sx",
+  "expected": 2.138089935299395,
+  "source": "Excel 16: =STDEV.S({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_sigma_x",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sigma_x",
+  "expected": 2.0,
+  "source": "Excel 16: =STDEV.P({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_var",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "var",
+  "expected": 4.571428571428571,
+  "source": "Excel 16: =VAR.S({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_mean",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean",
+  "expected": 1.875,
+  "source": "Excel 16: =AVERAGE({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_median",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "median",
+  "expected": 1.0,
+  "source": "Excel 16: =MEDIAN({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_q1",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "q1",
+  "expected": -0.5,
+  "source": "Excel 16: =QUARTILE.INC({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0},1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_q3",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "q3",
+  "expected": 4.125,
+  "source": "Excel 16: =QUARTILE.INC({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0},3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_skew",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "skew",
+  "expected": 0.3960461947624235,
+  "source": "Excel 16: =SKEW({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_kurt",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "kurt",
+  "expected": -0.7506738370858277,
+  "source": "Excel 16: =KURT({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_sx",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sx",
+  "expected": 3.821199091908193,
+  "source": "Excel 16: =STDEV.S({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_sigma_x",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sigma_x",
+  "expected": 3.6026610535362145,
+  "source": "Excel 16: =STDEV.P({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_var",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "var",
+  "expected": 14.6015625,
+  "source": "Excel 16: =VAR.S({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_mean",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "mean",
+  "expected": 3.6666666666666665,
+  "source": "Excel 16: =AVERAGE({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_median",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "median",
+  "expected": 3.0,
+  "source": "Excel 16: =MEDIAN({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_q1",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "q1",
+  "expected": 2.0,
+  "source": "Excel 16: =QUARTILE.INC({3,1,3,1,2,5,5,9,4},1)",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_q3",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "q3",
+  "expected": 5.0,
+  "source": "Excel 16: =QUARTILE.INC({3,1,3,1,2,5,5,9,4},3)",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_skew",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "skew",
+  "expected": 1.165714285714286,
+  "source": "Excel 16: =SKEW({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_kurt",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "kurt",
+  "expected": 1.7691428571428567,
+  "source": "Excel 16: =KURT({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_sx",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sx",
+  "expected": 2.5,
+  "source": "Excel 16: =STDEV.S({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_sigma_x",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "sigma_x",
+  "expected": 2.3570226039551585,
+  "source": "Excel 16: =STDEV.P({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_var",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "var",
+  "expected": 6.25,
+  "source": "Excel 16: =VAR.S({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_a_modes",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     2,
+     4,
+     4,
+     4,
+     5,
+     5,
+     7,
+     9
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "modes",
+  "expected": [
+   4.0
+  ],
+  "source": "Excel 16: =MODE.MULT({2,4,4,4,5,5,7,9})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_c_modes",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     3,
+     1,
+     3,
+     1,
+     2,
+     5,
+     5,
+     9,
+     4
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "modes",
+  "expected": [
+   1.0,
+   3.0,
+   5.0
+  ],
+  "source": "Excel 16: =MODE.MULT({3,1,3,1,2,5,5,9,4})",
+  "tol": 1e-09
+ },
+ {
+  "id": "stats_desc_b_modes",
+  "sheet": "stats",
+  "call": {
+   "sheet": "stats",
+   "action": "describe",
+   "inputs": {
+    "X": [
+     -3.5,
+     2.25,
+     0.5,
+     -1.75,
+     8,
+     4.125,
+     -0.5,
+     6.75,
+     1.0
+    ],
+    "F": null
+   },
+   "settings": {}
+  },
+  "expect_key": "modes",
+  "expected": [],
+  "source": "定義值：=MODE.MULT({-3.5,2.25,0.5,-1.75,8,4.125,-0.5,6.75,1.0})",
+  "tol": 1e-09
  }
 ]

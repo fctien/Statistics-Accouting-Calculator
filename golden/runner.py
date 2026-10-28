@@ -29,8 +29,20 @@ def _value(case, call_fn):
     return values[key], None
 
 
+def _list_close(got, exp, tol):
+    """got 須為 list、長度與 exp 相同，且逐項數值相對誤差在 tol 內（bool 不算數值）。"""
+    if not isinstance(got, list) or len(got) != len(exp):
+        return False
+    for g, e in zip(got, exp):
+        if isinstance(g, bool) or not isinstance(g, (int, float)):
+            return False
+        if not rel_close(g, e, tol):
+            return False
+    return True
+
+
 def run(cases, call_fn):
-    """逐案比對（expected 為字串時完全相等，否則數值相對誤差），回傳失敗訊息清單（空 list 表示全部通過）。"""
+    """逐案比對（expected 為字串時完全相等，為 list 時逐項數值比對，否則數值相對誤差），回傳失敗訊息清單（空 list 表示全部通過）。"""
     fails = []
     for case in cases:
         got, msg = _value(case, call_fn)
@@ -41,6 +53,11 @@ def run(cases, call_fn):
         tol = case.get("tol", 1e-9)
         if isinstance(exp, str):  # 字串案例：完全相等（不容許型別轉換）
             if not isinstance(got, str) or got != exp:
+                fails.append("%s: %s 期望 %r 實得 %r" % (
+                    case["id"], case["expect_key"], exp, got))
+            continue
+        if isinstance(exp, list):  # 數值 list 案例（如眾數）：長度相同且逐項比對
+            if not _list_close(got, exp, tol):
                 fails.append("%s: %s 期望 %r 實得 %r" % (
                     case["id"], case["expect_key"], exp, got))
             continue

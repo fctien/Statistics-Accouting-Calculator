@@ -11,7 +11,7 @@ settings（皆可省略）：
     angle     "DEG" 或 "RAD"（只有 calc 使用，三角函數的角度單位）；預設 "DEG"
 回應（response）：引擎的 ok／err 字典；成功時另加 "display"：
     純量（整數／浮點）→ 格式化字串（整數固定 0 位小數）；
-    "rows"（折舊表、攤還表）→ 同形狀的二維字串陣列；其他（日期 list、字串）不放入 display。
+    "rows"（折舊表、攤還表）→ 同形狀的二維字串陣列；"modes"（眾數 list）→ 字串 list；其他（日期 list、字串）不放入 display。
 
 輸入鍵對照表（UI 依此表送值；空白＝null 或省略；百分比用百分數，10 代表 10%）：
     tvm / solve            N, IY, PV, PMT, FV（恰留一格空白）, PY, CY, BGN(bool)
@@ -21,6 +21,9 @@ settings（皆可省略）：
                            CF0, flows=[[金額, 次數], ...], I, RI（mirr 用）
     iconv / to_eff         NOM, CY        iconv / to_nom   EFF, CY
     stats / one_var        X, F（選填，次數）
+    stats / describe       X, F（選填，次數）；回傳 n、sum、mean、median、modes(list，
+                           遞增；無眾數為空 list)、min、max、range、q1、q3、iqr、var、
+                           sx、sigma_x、cv、skew、kurt（算不出來的鍵省略並附 warnings）
     stats / two_var        X, Y, model(LIN|LN|EXP|PWR)
     stats / predict        model, A, B, X 或 Y（恰給其一）
     bond / price           SDT, RDT([y,m,d]), CPN, RV, basis(ACT|360), freq(1|2), YLD
@@ -55,7 +58,7 @@ settings（皆可省略）：
 import json
 
 from engine import (amort, base, bond, business, calc, cashflow, dates, depr,
-                    iconv, stats, tvm, units)
+                    describe, iconv, stats, tvm, units)
 from engine.fmt import format_number
 from engine.result import _all_finite, err, is_finite
 
@@ -232,6 +235,10 @@ def _r_to_nom(inp, st):
 
 def _r_one_var(inp, st):
     return stats.one_var(_num_list(inp, "X"), _num_list(inp, "F", False))
+
+
+def _r_describe(inp, st):
+    return describe.describe(_num_list(inp, "X"), _num_list(inp, "F", False))
 
 
 def _r_two_var(inp, st):
@@ -420,6 +427,7 @@ ROUTES = {
     ("iconv", "to_eff"): _r_to_eff,
     ("iconv", "to_nom"): _r_to_nom,
     ("stats", "one_var"): _r_one_var,
+    ("stats", "describe"): _r_describe,
     ("stats", "two_var"): _r_two_var,
     ("stats", "predict"): _r_predict,
     ("bond", "price"): _r_bond_price,
@@ -482,6 +490,8 @@ def _display(values, st):
     for key, v in values.items():
         if _is_scalar(v):
             out[key] = _fmt_scalar(v, st)
+        elif key == "modes" and isinstance(v, list):
+            out[key] = [_fmt_scalar(c, st) for c in v]
         elif key == "rows" and isinstance(v, list):
             out[key] = [[_fmt_scalar(c, st) if _is_scalar(c) else str(c)
                          for c in row] for row in v]

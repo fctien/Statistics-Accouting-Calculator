@@ -63,6 +63,19 @@ async function runChecks() {
       if ((a ?? null) !== b || b === null) bad.push(`${id}: MicroPython=${a} CPython=${b}（無數值）`);
       continue;
     }
+    if (Array.isArray(a) || Array.isArray(b)) {  // 數值 list（眾數）：長度相同、逐項相對誤差
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+        bad.push(`${id}: MicroPython=${JSON.stringify(a)} CPython=${JSON.stringify(b)}（list 長度或型別不同）`);
+        continue;
+      }
+      a.forEach((x, k) => {
+        if (!isNum(x) || !isNum(b[k])) { bad.push(`${id}[${k}]: 非有限數值 MicroPython=${x} CPython=${b[k]}`); return; }
+        const dk = Math.abs(x - b[k]) / Math.max(1, Math.abs(b[k]));
+        if (dk > maxDiff) { maxDiff = dk; maxId = id; }
+        if (!(dk <= TOL)) bad.push(`${id}[${k}]: MicroPython=${x} CPython=${b[k]} diff=${dk}`);
+      });
+      continue;
+    }
     if (typeof a === "string" || typeof b === "string") {  // 字串值（base）：完全相等
       if (a !== b) bad.push(`${id}: MicroPython=${JSON.stringify(a)} CPython=${JSON.stringify(b)}（字串不相等）`);
       continue;
@@ -133,6 +146,10 @@ function selfTest() {
     const g4 = structuredClone(g); const bi = g4.findIndex((c) => typeof c.expected === "string");
     g4[bi].expected += "0";
     const r6 = run(g4, e);
+    // list 案例：把第一個 list 期望值的某項弄壞，必須被擋下
+    const g5 = structuredClone(g); const li = g5.findIndex((c) => Array.isArray(c.expected));
+    g5[li].expected[0] += 1;
+    const r7 = run(g5, e);
     const r1 = run(g2, e), r2 = run(g, e2), r3 = run([], e), r4 = run(g3, e), r5 = run(g, []);
     const res = [
       ["未損壞副本", base.status === 0],
@@ -142,6 +159,7 @@ function selfTest() {
       ["golden expected 為字串", r4.status === 1],
       ["空 error 集合", r5.status === 1],
       ["壞字串 golden", r6.status === 1 && r6.stdout.includes("FAIL golden")],
+      ["壞 list golden", r7.status === 1 && r7.stdout.includes("FAIL golden")],
     ];
     res.forEach(([n, ok]) => console.log(`${ok ? "OK  " : "FAIL"} self-test: ${n}`));
     return res.every(([, ok]) => ok);

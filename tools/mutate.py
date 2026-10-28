@@ -65,6 +65,8 @@ MUTATIONS = [
      "base = src[4] * value", "溫度仿射換算拿掉 offset（b）"),
     ("engine/base.py", "return value & ((1 << width) - 1)", "return value",
      "二補數位元型樣遮罩拿掉（負數不轉成補數）"),
+    ("engine/describe.py", "pos = (n - 1) * p", "pos = (n + 1) * p",
+     "QUARTILE.INC 內插位置 (n-1)p 改成 (n+1)p"),
     ("engine/cashflow.py", "if t > 0 and prev < 0 <= cum:",
      "if t > 0 and prev < 0 < cum:", "回收期邊界（累計剛好為 0）判斷改嚴格"),
 ]
