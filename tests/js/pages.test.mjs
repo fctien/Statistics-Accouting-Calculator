@@ -37,10 +37,11 @@ test("每個既有工作表（含設定）都恰好出現在一個頁面", () =>
   assert.equal(itemByRoute("settings").page, null);
 });
 
-test("尚未完成的畫面為 placeholder（sheet 為 null）", () => {
-  for (const r of ["stat/desc", "stat/dist", "stat/infer"]) {
-    assert.equal(itemByRoute(r).sheet, null, r);
-  }
+test("D3：統計頁的敘述統計、機率分配、信賴區間與檢定已有畫面；不再有 placeholder", () => {
+  assert.equal(itemByRoute("stat/desc").sheet, "describe");
+  assert.equal(itemByRoute("stat/dist").sheet, "dist");
+  assert.equal(itemByRoute("stat/infer").sheet, "infer");
+  for (const it of allItems()) assert.ok(it.sheet, `${it.full} 沒有畫面`);
 });
 
 test("新網址解析", () => {

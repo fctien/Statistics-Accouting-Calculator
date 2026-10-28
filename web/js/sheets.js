@@ -9,7 +9,8 @@
 //   alias    （選用）引擎錯誤 field 的其他寫法（例：現金流錯誤 field 為 "CF"）
 //   label    繁中名稱；abbr 英文／TI 縮寫；unit 單位（可空字串）
 //   help     一行說明，含具體例子；example 輸入範例（也用作 placeholder）
-//   kind     number | percent | date | direction | select | bool | list | text
+//   kind     number | percent | date | direction | select | bool | list | text | matrix
+//            matrix＝二維數表（列以分號或換行分隔，例：10 20; 30 40；統計頁由表格提供）
 //            direction＝金額＋「收到 ↓／付出 ↑」切換（收到為正、付出為負）
 //            percent＝百分數（5 或 5% 都代表 5）；text＝自由文字（算式、星期等）
 //   options  select 的選項 [{value, label}]
@@ -22,7 +23,7 @@
 //   solve（留一格空白的可求解引擎鍵；全部有值時，上次求出的欄位再當未知數，見 input.resolveBlanks）
 
 /** 合法的 kind（text 用於算式與文字輸出）。 */
-export const KINDS = ["number", "percent", "date", "direction", "select", "bool", "list", "text"];
+export const KINDS = ["number", "percent", "date", "direction", "select", "bool", "list", "text", "matrix"];
 
 const BASIS = [
   { value: "ACT", label: "實際天數 ACT" },
@@ -251,6 +252,147 @@ export const SHEETS = {
         // a、b 是迴歸求出的係數：過期（改了模型或資料）時不可拿來預測
         fresh: ["A", "B"], freshHint: "請先重新計算迴歸（按「迴歸」）再預測",
       },
+    ],
+  },
+
+  describe: {
+    title: "敘述統計 DESC", short: "敘述統計", route: "desc", engine: "stats",
+    intro: "輸入資料（可加次數、可從 Excel 貼上），求集中趨勢、離散程度、四分位數與分配形狀",
+    fields: [
+      { id: "X", label: "X 資料", abbr: "X", unit: "", kind: "list", example: "2 4 4 4 5 5 7 9", help: "以空白或換行分隔的數字，例：2 4 4 4 5 5 7 9" },
+      { id: "F", label: "次數", abbr: "FRQ", unit: "次", kind: "list", example: "1 1 1 1 1 1 1 1", help: "每個 X 出現的次數（選填），例：1 1 1 1 1 1 1 1" },
+      { id: "n", label: "樣本數", abbr: "n", unit: "筆", kind: "number", example: "8", output: true, help: "資料筆數（含次數），例：8" },
+      { id: "sum", label: "總和", abbr: "Σx", unit: "", kind: "number", example: "40", output: true, help: "所有資料的總和，例：40" },
+      { id: "mean", label: "平均數", abbr: "x̄", unit: "", kind: "number", example: "5", output: true, help: "算術平均，例：5" },
+      { id: "median", label: "中位數", abbr: "Med", unit: "", kind: "number", example: "4.5", output: true, help: "排序後位於中間的值，例：4.5" },
+      { id: "min", label: "最小值", abbr: "Min", unit: "", kind: "number", example: "2", output: true, help: "最小的資料，例：2" },
+      { id: "max", label: "最大值", abbr: "Max", unit: "", kind: "number", example: "9", output: true, help: "最大的資料，例：9" },
+      { id: "range", label: "全距", abbr: "Range", unit: "", kind: "number", example: "7", output: true, help: "最大值 − 最小值，例：7" },
+      { id: "var", label: "樣本變異數", abbr: "s²", unit: "", kind: "number", example: "4.57", output: true, help: "除以 n−1 的變異數（Excel VAR.S），例：4.57" },
+      { id: "sx", label: "樣本標準差", abbr: "Sx", unit: "", kind: "number", example: "2.14", output: true, help: "除以 n−1 的標準差（Excel STDEV.S），例：2.14" },
+      { id: "sigma_x", label: "母體標準差", abbr: "σx", unit: "", kind: "number", example: "2", output: true, help: "除以 n 的標準差（Excel STDEV.P），例：2" },
+      { id: "cv", label: "變異係數", abbr: "CV", unit: "", kind: "number", example: "0.43", output: true, help: "Sx ÷ 平均數，例：0.43" },
+      { id: "q1", label: "第一四分位數", abbr: "Q1", unit: "", kind: "number", example: "4", output: true, help: "下半部資料的中位數，例：4" },
+      { id: "q3", label: "第三四分位數", abbr: "Q3", unit: "", kind: "number", example: "5.5", output: true, help: "上半部資料的中位數，例：5.5" },
+      { id: "iqr", label: "四分位距", abbr: "IQR", unit: "", kind: "number", example: "1.5", output: true, help: "Q3 − Q1，例：1.5" },
+      { id: "skew", label: "偏態", abbr: "Skew", unit: "", kind: "number", example: "0.82", output: true, help: "分配左右不對稱的程度（Excel SKEW），例：0.82（右偏）" },
+      { id: "kurt", label: "峰態", abbr: "Kurt", unit: "", kind: "number", example: "0.94", output: true, help: "尾巴厚薄的程度（超額峰態，Excel KURT），例：0.94" },
+    ],
+    actions: [{ id: "describe", label: "計算", primary: true, send: ["X", "F"] }],
+  },
+
+  dist: {
+    title: "機率分配 DIST", short: "機率分配", route: "dist", engine: "dist",
+    intro: "選分配與功能：pdf／pmf（機率密度／機率）、cdf（累積機率）、inv（給機率反查臨界值）",
+    fields: [
+      {
+        id: "DIST", label: "分配", abbr: "DIST", unit: "", kind: "select", example: "normal", initial: "normal",
+        options: [
+          { value: "normal", label: "常態 Normal(μ, σ)" },
+          { value: "t", label: "t 分配 t(df)" },
+          { value: "chi2", label: "卡方 χ²(df)" },
+          { value: "binom", label: "二項 Binomial(n, p)" },
+          { value: "poisson", label: "Poisson(λ)" },
+        ],
+        help: "機率分配的種類，例：考試成績近似常態 → 常態",
+      },
+      {
+        id: "FUNC", label: "功能", abbr: "FUNC", unit: "", kind: "select", example: "cdf", initial: "cdf",
+        options: [
+          { value: "pdf", label: "pdf／pmf：密度或 P(X = k)" },
+          { value: "cdf", label: "cdf：累積機率 P(X ≤ x)" },
+          { value: "inv", label: "inv：給機率反查臨界值" },
+        ],
+        help: "要算什麼，例：P(Z ≤ 1.96) 選 cdf；找 97.5% 分位數選 inv",
+      },
+      { id: "MU", label: "平均數", abbr: "μ", unit: "", kind: "number", example: "0", initial: "0", help: "常態分配的平均數，例：標準常態 μ = 0" },
+      { id: "SIGMA", label: "標準差", abbr: "σ", unit: "", kind: "number", example: "1", initial: "1", positive: true, help: "常態分配的標準差（> 0），例：標準常態 σ = 1" },
+      { id: "DF", label: "自由度", abbr: "df", unit: "", kind: "number", example: "5", positive: true, help: "t 或卡方的自由度（可非整數），例：樣本 6 筆的 t → df = 5" },
+      { id: "N", label: "試驗次數", abbr: "n", unit: "次", kind: "number", example: "10", integer: true, help: "二項分配的試驗次數，例：丟 10 次硬幣 → 10" },
+      { id: "P", label: "成功機率", abbr: "p", unit: "", kind: "number", example: "0.3", help: "每次試驗成功的機率（0～1），例：0.3" },
+      { id: "LAMBDA", label: "平均次數", abbr: "λ", unit: "", kind: "number", example: "2", positive: true, help: "Poisson 單位時間平均發生次數，例：每小時平均 2 位客人 → 2" },
+      { id: "X", label: "x 值", abbr: "x", unit: "", kind: "number", example: "1.96", help: "要算密度或累積機率的位置，例：1.96" },
+      { id: "K", label: "次數", abbr: "k", unit: "次", kind: "number", example: "3", integer: true, help: "離散分配的次數（整數 ≥ 0），例：10 次中成功 3 次 → 3" },
+      { id: "PROB", label: "機率", abbr: "p", unit: "", kind: "number", example: "0.975", help: "反查用的機率（0～1，不含兩端）；左尾、右尾、雙尾臨界值分別使 P(X ≤ x)、P(X > x)、雙尾機率等於 p，例：0.975" },
+    ],
+    // 動作＝分配（bridge action）；畫面只顯示一個「計算」鈕，依「分配」選單決定送哪一個
+    actions: [
+      { id: "normal", label: "計算", primary: true, send: ["FUNC", "MU", "SIGMA", "X", "PROB"] },
+      { id: "t", label: "計算 t", send: ["FUNC", "DF", "X", "PROB"] },
+      { id: "chi2", label: "計算 χ²", send: ["FUNC", "DF", "X", "PROB"] },
+      { id: "binom", label: "計算二項", send: ["FUNC", "N", "P", "K"] },
+      { id: "poisson", label: "計算 Poisson", send: ["FUNC", "LAMBDA", "K"] },
+    ],
+  },
+
+  infer: {
+    title: "信賴區間與檢定 INFER", short: "信賴區間與檢定", route: "infer", engine: "infer",
+    intro: "選類型 → 輸入資料或摘要值 → 得到區間或檢定統計量、p 值與結論",
+    fields: [
+      {
+        id: "TYPE", label: "類型", abbr: "TYPE", unit: "", kind: "select", example: "ci_mean_z", initial: "ci_mean_z",
+        options: [
+          { value: "ci_mean_z", label: "平均數信賴區間（σ 已知，z）" },
+          { value: "ci_mean_t", label: "平均數信賴區間（σ 未知，t）" },
+          { value: "ci_prop", label: "比例信賴區間" },
+          { value: "t1", label: "單樣本 t 檢定" },
+          { value: "t2", label: "兩樣本 t 檢定（合併／Welch）" },
+          { value: "tpaired", label: "成對 t 檢定" },
+          { value: "chi_gof", label: "卡方適合度檢定" },
+          { value: "chi_ind", label: "卡方獨立性檢定" },
+        ],
+        help: "要做哪一種推論，例：比較兩班平均成績 → 兩樣本 t 檢定",
+      },
+      {
+        id: "CI_INPUT", label: "資料形式", abbr: "INPUT", unit: "", kind: "select", example: "data", initial: "data",
+        options: [{ value: "data", label: "原始資料（表格）" }, { value: "summary", label: "摘要值（x̄、Sx、n）" }],
+        help: "用原始資料或已算好的摘要值，例：只知道平均 50、標準差 12 → 摘要值",
+      },
+      {
+        id: "GOF_EXP", label: "期望", abbr: "EXP", unit: "", kind: "select", example: "uniform", initial: "uniform",
+        options: [
+          { value: "uniform", label: "各類別均等" },
+          { value: "exp", label: "自訂期望次數" },
+          { value: "probs", label: "自訂機率" },
+        ],
+        help: "各類別的期望，例：骰子公平 → 均等；已知比例 2:1:1 → 自訂機率 0.5 0.25 0.25",
+      },
+      { id: "MEAN", label: "樣本平均", abbr: "x̄", unit: "", kind: "number", example: "50", help: "樣本平均數，例：50" },
+      { id: "SIGMA", label: "母體標準差", abbr: "σ", unit: "", kind: "number", example: "10", positive: true, help: "已知的母體標準差，例：10" },
+      { id: "SX", label: "樣本標準差", abbr: "Sx", unit: "", kind: "number", example: "12", positive: true, help: "樣本標準差（除以 n−1），例：12" },
+      { id: "XC", key: "X", label: "成功數", abbr: "x", unit: "", kind: "number", example: "12", integer: true, help: "樣本中具有該特性的個數，例：30 人中 12 人贊成 → 12" },
+      { id: "N", label: "樣本數", abbr: "n", unit: "筆", kind: "number", example: "30", integer: true, help: "樣本大小，例：30" },
+      { id: "MU0", label: "假設平均", abbr: "μ0", unit: "", kind: "number", example: "25", help: "虛無假設的母體平均，例：H0：μ = 25" },
+      { id: "EQUAL_VAR", label: "假設變異數相等（合併 pooled）", abbr: "POOLED", unit: "", kind: "bool", example: "否", help: "勾選＝合併變異數（Excel T.TEST type 2）；不勾＝Welch（type 3），例：不確定時不勾" },
+      {
+        id: "H1", label: "對立假設", abbr: "H1", unit: "", kind: "select", example: "two", initial: "two",
+        options: [
+          { value: "two", label: "雙尾 ≠" },
+          { value: "less", label: "左尾 <" },
+          { value: "greater", label: "右尾 >" },
+        ],
+        help: "對立假設的方向，例：新方法是否「提高」成績 → 右尾 >",
+      },
+      { id: "CONF", label: "信賴水準", abbr: "CONF", unit: "", kind: "number", example: "0.95", initial: "0.95", help: "0～1 之間，例：95% 信賴區間 → 0.95" },
+      { id: "ALPHA", label: "顯著水準", abbr: "α", unit: "", kind: "number", example: "0.05", initial: "0.05", help: "拒絕 H0 的門檻（0～1），例：0.05" },
+      // 以下由表格提供（畫面不顯示這些欄位；欄位定義讓 bridge 鍵對照表測試能以 example 實測）
+      { id: "XS", key: "X", label: "X 資料", abbr: "X", unit: "", kind: "list", example: "23 25 28 30 27 26", help: "樣本資料（表格），例：23 25 28 30 27 26" },
+      { id: "YS", key: "Y", label: "Y 資料", abbr: "Y", unit: "", kind: "list", example: "20 22 21 25 23 19", help: "第二組或成對的資料（表格），例：20 22 21 25 23 19" },
+      { id: "OBS", label: "觀察次數", abbr: "OBS", unit: "", kind: "list", example: "18 22 20", help: "各類別的觀察次數（表格），例：18 22 20" },
+      { id: "EXP", label: "期望次數", abbr: "EXP", unit: "", kind: "list", example: "20 20 20", help: "各類別的期望次數（表格），例：20 20 20" },
+      { id: "PROBS", label: "期望機率", abbr: "PROBS", unit: "", kind: "list", example: "0.5 0.25 0.25", help: "各類別的機率（表格），例：0.5 0.25 0.25" },
+      { id: "TABLE", label: "列聯表", abbr: "TABLE", unit: "", kind: "matrix", example: "10 20; 30 40", help: "r × c 觀察次數（表格），例：10 20; 30 40" },
+    ],
+    // 動作＝類型（bridge action）；畫面只顯示一個「計算」鈕，依「類型」選單決定送哪一個
+    actions: [
+      { id: "ci_mean_z", label: "計算", primary: true, send: ["MEAN", "SIGMA", "N", "CONF"] },
+      { id: "ci_mean_t", label: "計算 CI t", send: ["XS", "MEAN", "SX", "N", "CONF"] },
+      { id: "ci_prop", label: "計算比例 CI", send: ["XC", "N", "CONF"] },
+      { id: "t1", label: "單樣本 t", send: ["XS", "MU0", "ALPHA"] },
+      { id: "t2", label: "兩樣本 t", send: ["XS", "YS", "EQUAL_VAR", "ALPHA"] },
+      { id: "tpaired", label: "成對 t", send: ["XS", "YS", "ALPHA"] },
+      { id: "chi_gof", label: "適合度", send: ["OBS", "EXP", "PROBS", "ALPHA"] },
+      { id: "chi_ind", label: "獨立性", send: ["TABLE", "ALPHA"] },
     ],
   },
 
@@ -506,7 +648,7 @@ export const TAX_PRESETS = {
 
 /** 全部工作表（順序僅供測試與資料遍歷；導覽結構見 pages.js）。 */
 export const SHEET_ORDER = [
-  "tvm", "amort", "cashflow", "iconv", "bond", "depr", "stats",
+  "tvm", "amort", "cashflow", "iconv", "bond", "depr", "stats", "describe", "dist", "infer",
   "business-profit", "business-breakeven", "business-pct", "tax", "date",
   "calc", "units", "base", "base-bitwise", "settings",
 ];

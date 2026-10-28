@@ -131,6 +131,23 @@ export function parseList(text, sep = "us", pairs = false) {
   return out;
 }
 
+/**
+ * 二維數表（matrix，例：卡方獨立性的列聯表）：列以換行或分號分隔，每列內以空白分隔（同 parseList）。
+ * 每列欄數必須相同；空白、任一格不合法或列長不一回傳 null。
+ */
+export function parseMatrix(text, sep = "us") {
+  if (typeof text !== "string") return null;
+  const rows = normalize(text).split(/[\n;；]+/).map((t) => t.trim()).filter(Boolean);
+  if (rows.length === 0) return null;
+  const out = [];
+  for (const r of rows) {
+    const v = parseList(r, sep);
+    if (v === null || v.length === 0) return null;
+    out.push(v);
+  }
+  return out.every((r) => r.length === out[0].length) ? out : null;
+}
+
 /** 收到（in）為正、付出（out）為負；value 為 null 時回傳 null。 */
 export function toSigned(value, direction) {
   if (direction !== "in" && direction !== "out") {
@@ -206,6 +223,11 @@ function parseOne(raw, spec, sep) {
         };
       }
       return { value: v };
+    }
+    case "matrix": {
+      if (isBlank(raw)) return { value: null };
+      const v = parseMatrix(String(raw), sep);
+      return v === null ? { error: `${L}格式錯誤：每列以分號或換行分隔，例如 10 20; 30 40` } : { value: v };
     }
     case "text":
       return { value: isBlank(raw) ? null : String(raw).trim() };

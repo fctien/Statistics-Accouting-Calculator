@@ -109,9 +109,15 @@ export function isGeneration(sheetId, token) {
  *   opts.onExtraError(err)  表格讀取錯誤時通知畫面標出出錯的格子
  *   opts.mapError(response) 引擎失敗時先讓畫面認領錯誤（例：field 指向表格而非某個欄位）；
  *                           回傳要顯示的 response（例：field 改為 null 變成表單層級訊息）
+ * 統計頁（欄位依選單顯示／隱藏、結果自行排版）另有兩個選項：
+ *   opts.prepare(inputs, errors) 讀完欄位後改寫 {inputs, errors}（例：只送看得到的欄位、
+ *                           忽略隱藏欄位的格式錯誤、pdf 轉 pmf）；回傳新的 {inputs, errors}
+ *   opts.showValues         false＝不把回傳值填進同名欄位（結果由畫面自己顯示；警告與錯誤照常顯示）
  */
 export async function runEngineAction(sheetId, actionId, opts = {}) {
-  const { isCurrent = () => true, live = false, onFail, extra, onExtraError, mapError } = opts;
+  const {
+    isCurrent = () => true, live = false, onFail, extra, onExtraError, mapError, prepare, showValues = true,
+  } = opts;
   const sheet = SHEETS[sheetId];
   const active = live ? document.activeElement : null;
   const restore = () => {
@@ -126,7 +132,8 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
     restore();
     return null;
   }
-  const { inputs, errors } = readInputs(sheetId, actionId);
+  let { inputs, errors } = readInputs(sheetId, actionId);
+  if (prepare) ({ inputs, errors } = prepare(inputs, errors));
   const more = extra ? extra() : null;
   const extraError = more && more.error ? more.error : null;
   if (Object.keys(errors).length || extraError) {
@@ -155,7 +162,8 @@ export async function runEngineAction(sheetId, actionId, opts = {}) {
     if (!live) setBusy(sheetId, false);
   }
   if (!isCurrent() || !guard.isCurrent(sheetId, token)) return null; // 請求期間輸入已改：丟棄舊回應
-  const toShow = response.ok !== true && mapError ? (mapError(response) || response) : response;
+  let toShow = response.ok !== true && mapError ? (mapError(response) || response) : response;
+  if (response.ok === true && !showValues) toShow = { ...response, values: {} };
   const shown = showResult(toShow, sheetId, actionId);
   if (response.ok === true) {
     clearStale(sheetId, shown.filled, sendFields(sheetId, actionId).map((f) => f.id)); // 解除送出∪填入的欄位

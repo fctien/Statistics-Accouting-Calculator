@@ -1263,3 +1263,158 @@ input[type="checkbox"].control {
   opacity: 0.65;
   text-decoration: line-through;
 }
+
+/* ---- D3：統計頁（敘述統計、機率分配、信賴區間與檢定） ---- */
+.fields .field[hidden],
+.grid-section[hidden],
+.grid-actions[hidden],
+.actions button[hidden] {
+  display: none;
+}
+
+#infer-grid-section {
+  margin: 12px 0;
+}
+
+.stat-groups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.stat-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0;
+  min-width: 0;
+}
+
+.stat-group legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.stat-modes {
+  display: block;
+  min-height: 40px;
+}
+
+.stat-head {
+  font-size: 1rem;
+  margin: 12px 0 6px;
+}
+
+.stat-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-result dt {
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.stat-result dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.stat-hyp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 4px 0 8px;
+}
+
+.stat-conclusion {
+  font-weight: 700;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 4px solid var(--primary);
+  background: var(--surface);
+}
+
+.stat-note {
+  color: var(--warn);
+  margin: 4px 0 8px;
+}
+
+.stat-chart {
+  margin: 8px 0;
+  max-width: 520px;
+}
+
+.stat-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.stat-chart .axis {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.stat-chart .curve {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+.stat-chart .area {
+  fill: var(--primary);
+  fill-opacity: 0.3;
+  stroke: none;
+}
+
+.stat-chart .bar {
+  fill: var(--border);
+  fill-opacity: 0.45;
+}
+
+.stat-chart .bar.shaded {
+  fill: var(--primary);
+  fill-opacity: 0.6;
+}
+
+.stat-chart .bar.hit {
+  fill: var(--focus);
+  fill-opacity: 1;
+}
+
+.stat-chart .marker {
+  stroke: var(--bad);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.stat-chart .tick {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.stat-chart figcaption {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+@media (min-width: 900px) {
+  .stat-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

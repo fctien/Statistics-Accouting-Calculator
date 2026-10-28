@@ -19,6 +19,14 @@ BLANKS = {
     "business-breakeven.breakeven": ["Q"],
     "business-pct.pct_change": ["PCT"],
     "date.solve": ["DBD"],
+    # 機率分配：cdf 不送反查機率 PROB（畫面上 inv 時才顯示）
+    "dist.normal": ["PROB"],
+    "dist.t": ["PROB"],
+    "dist.chi2": ["PROB"],
+    # CI t：原始資料與摘要值擇一（畫面以「資料形式」切換）
+    "infer.ci_mean_t": ["MEAN", "SX", "N"],
+    # 適合度：期望次數與機率擇一
+    "infer.chi_gof": ["PROBS"],
 }
 
 
@@ -94,11 +102,7 @@ def test_sheet_actions_cover_bridge_routes(requests):
     """bridge 的每個路由都有對應的工作表動作（UI 不會漏功能）。"""
     from engine.bridge import ROUTES
     have = {(r["engine"], r["action"]) for r in requests if r["engine"]}
-    # stats/describe 的 UI（統計頁）由 D3 加入，屆時一併移除此豁免；
-    # dist/*（機率分配）、infer/*（信賴區間與檢定）的 UI 亦由 D3 加入，屆時移除 "dist"、"infer" 豁免
-    routes = {r for r in ROUTES
-              if r[0] not in ("dist", "infer")
-              and r != ("stats", "describe")}
+    routes = set(ROUTES)  # D3 起不再有豁免：所有 engine 路由都必須有 UI
     assert routes <= have, sorted(routes - have)
 
 

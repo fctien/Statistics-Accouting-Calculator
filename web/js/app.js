@@ -17,6 +17,9 @@ import * as businessView from "./views/business.js";
 import * as dateView from "./views/date.js";
 import * as cashflowView from "./views/cashflow.js";
 import * as statsView from "./views/stats.js";
+import * as describeView from "./views/describe.js";
+import * as distView from "./views/dist.js";
+import * as inferView from "./views/infer.js";
 import * as bondView from "./views/bond.js";
 import * as deprView from "./views/depr.js";
 import * as calcView from "./views/calc.js";
@@ -83,6 +86,9 @@ const VIEWS = {
   date: dateView,
   cashflow: cashflowView,
   stats: statsView,
+  describe: describeView,
+  dist: distView,
+  infer: inferView,
   bond: bondView,
   depr: deprView,
   calc: calcView,

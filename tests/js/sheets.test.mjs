@@ -11,6 +11,7 @@ import {
 const REQUIRED_SHEETS = [
   "tvm", "amort", "cashflow", "iconv", "stats", "bond", "depr", "business-profit",
   "business-breakeven", "business-pct", "tax", "date", "calc", "units", "base", "base-bitwise", "settings",
+  "describe", "dist", "infer",
 ];
 
 test("所有規定的工作表都存在，順序表一致", () => {

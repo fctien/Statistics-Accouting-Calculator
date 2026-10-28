@@ -1,7 +1,7 @@
 // 導覽資料與路由解析（純函式、不碰 DOM，可用 node 測試）。
 // 三大頁面：工程 ENG｜統計 STAT｜會計 ACCT，加上共用的「設定」。
 // 網址格式：#<頁>/<項目>（例：#acct/tvm、#stat/reg），設定為 #settings。
-// sheet 欄位對應 sheets.js 的工作表 id；sheet 為 null 表示畫面尚未完成（D2／D3），顯示「即將推出」。
+// sheet 欄位對應 sheets.js 的工作表 id；sheet 為 null 表示畫面尚未完成，顯示「即將推出」（D3 起所有項目都已有畫面）。
 // 舊網址（#tvm、#cf、#stat、#calc…）與舊的記憶值（工作表 id）都導向新位置。
 
 export const PAGE_ORDER = ["eng", "stat", "acct"];
@@ -19,9 +19,9 @@ export const PAGES = {
     title: "統計", abbr: "STAT",
     items: [
       { route: "reg", sheet: "stats", title: "迴歸與單變數" },
-      { route: "desc", sheet: null, title: "敘述統計" },
-      { route: "dist", sheet: null, title: "機率分配" },
-      { route: "infer", sheet: null, title: "信賴區間與檢定" },
+      { route: "desc", sheet: "describe", title: "敘述統計" },
+      { route: "dist", sheet: "dist", title: "機率分配" },
+      { route: "infer", sheet: "infer", title: "信賴區間與檢定" },
     ],
   },
   acct: {
@@ -53,6 +53,7 @@ export const LEGACY_ROUTES = {
   bond: "acct/bond", depr: "acct/depr", profit: "acct/profit", brkevn: "acct/brkevn",
   pct: "acct/pct", tax: "acct/tax", date: "acct/date",
   stat: "stat/reg", calc: "eng/calc", units: "eng/units", base: "eng/base", settings: "settings",
+  desc: "stat/desc", dist: "stat/dist", infer: "stat/infer", // 短網址（工作表 route）
 };
 
 /** 全部項目（含頁面 id），設定的 page 為 null。 */
