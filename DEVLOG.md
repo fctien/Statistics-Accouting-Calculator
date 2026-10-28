@@ -1788,3 +1788,40 @@
 
 **待辦**
 - 紙帶的「ANS×2」若 ANS 來自三角結果，紙帶項目不標角度（只看算式本身是否含三角函數）；記憶 M0～M9 的來源角度也不追蹤
+
+## 2026-10-28 D3 統計頁畫面（敘述統計、機率分配、信賴區間與檢定）
+
+**需求**
+- 統計頁三個 placeholder 換成真畫面：#stat/desc（表格＋分組結果、modes 清單）、#stat/dist（分配選單→參數→pdf／cdf／inv，標籤分清機率與臨界值、分配圖、非整數 df 註記）、#stat/infer（8 種類型、表格或摘要值、卡方獨立性 r×c、α 可設、H0／H1 與結論）
+- p 值與機率不得被 2 位小數吃掉，且不在 JS 格式化；移除 bridge 路由豁免；情境、匯出入、stale、generation guard 都要支援；不改 engine
+
+**做法**
+- TDD：先寫 tests/js/stat.test.mjs（RED：模組不存在），再寫 web/js/stat.js（GREEN 36 項）：prepareDist／prepareInfer（只送看得到的欄位、忽略隱藏欄位的格式錯誤、pdf→pmf、H1→TAILS／ALT）、distRows／inferRows（kind：prob／density／crit／num）、floatSettings、hypotheses、readInferGrid／readDescribeTable、chartRange／discreteRange／chartGeometry
+- 機率類欄位：計算成功後同一 inputs 再呼叫一次引擎（settings.decimals=null），取引擎的浮動格式（10 位有效數字、極小值科學記號）
+- 分配圖：x 範圍用引擎 inv(0.001／0.999)（t 用 0.005／0.995），61 點 pdf 或 ≤101 根 pmf，全部由引擎算，JS 只換算座標畫 SVG；cdf 陰影左尾、inv 陰影到左尾臨界值
+- sheets.js 新增 describe、dist、infer；動作＝bridge action，畫面只留一個「計算」鈕依選單決定；表格欄位（XS、YS、OBS、EXP、PROBS、TABLE）不顯示但保留定義，讓 test_web_sheets 以 example 實測 bridge
+- run.js 加 prepare、showValues 選項；input.js 加 matrix kind（列聯表文字 10 20; 30 40）
+- infer 換類型時表格版面跟著換（各版面內容暫存）；情境載入先依 TYPE 換版面（獨立性依欄數）再還原 __grid
+- pages.js 三項改指向新工作表，LEGACY_ROUTES 加 desc／dist／infer 短網址；app.js VIEWS、sw.js APP_SHELL 加入新檔
+
+**產出**
+- web/js/stat.js、views/statui.js、views/describe.js、views/dist.js、views/infer.js（新）；sheets.js、run.js、input.js、pages.js、app.js、sw.js、css/app.css
+- tests/js/stat.test.mjs（新，38 項含 parseMatrix 與匯入）；test_web_sheets.py（BLANKS、移除豁免）、sheets.test、pages.test
+- logs/d3-*.jpg 6 張；logs/verify-20261028-1423.html（附瀏覽器實測表）
+
+**驗證**
+- node 223/223；pytest 全過；build_web --check、check_shell 通過；verify_all --quick PASS
+- 瀏覽器（1280、375）：describe 中位數 4.50、Q1 4.00、Q3 5.50、σx 2.00；常態 cdf(1.96)=0.9750021049；t inv(0.975,5)=2.5706（4 位小數）；二項 P(X=3)=0.266827932；兩樣本 t 與 Excel T.TEST golden 一致（Welch 0.004737140238）；卡方獨立性 2×2 p 0.3729984836；極小 p 9.026604758E-207；情境含表格存取正常；375 無水平捲動
+
+**問題與修正**
+- 第一次批次貼上兩欄資料（Y 欄最後一格空白）被 paste.js 整批拒絕（中間空格規則），改成兩欄分別貼上；這是既有貼上規則，不改
+- PROB 原本標「左尾機率」，但同一個 p 也用於右尾、雙尾臨界值（雙尾臨界值 0.03 看起來很怪）：改標「機率 p」並在說明寫清三種臨界值的定義
+- 欄位 label 與 abbr 重複（「次數 k k」「機率 p p」）：label 去掉符號
+- 二項長條圖未著色長條與著色長條在深色模式分不清、橘色標示長條被透明度蓋掉：調整 CSS
+- fieldForKey 會把引擎回傳的 n、mean、sx 以不分大小寫對到隱藏的 N、MEAN、SX 欄位並填值：dist／infer 改用 showValues:false，結果只由自訂清單顯示
+- in-app 瀏覽器反註冊 SW 後無法重新註冊（sw.js fetch 200，但 register 報 unknown error，D2 同現象），離線／SW 更新未在此環境驗證
+
+**待辦**
+- 卡方的期望次數（expected）引擎沒有 display，依「不在 JS 格式化」規則暫不顯示；若要顯示需引擎 display 支援 list／表
+- 表格內容在千分位設定改變後不會改寫（與既有 CF、STAT 表格相同）
+- 離線與 SW 更新需在一般瀏覽器重驗

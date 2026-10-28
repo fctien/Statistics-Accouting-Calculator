@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BACalc 一鍵驗證</title><style>:root{--bg:#fff;--fg:#1d2330;--line:#d9dee7;--ok:#0a7a3d;--ng:#b3261e;--code:#f3f5f9}
+@media (prefers-color-scheme: dark){:root{--bg:#14171c;--fg:#e6e9ef;--line:#2c323c;--ok:#5fd18f;--ng:#ff8a80;--code:#1d2129}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,"Microsoft JhengHei",sans-serif;margin:0;padding:16px;max-width:1200px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:4px 6px;vertical-align:top;text-align:left}
+code,pre{background:var(--code);font-family:Consolas,monospace}pre{margin:0;white-space:pre-wrap;font-size:12px}
+.ok{color:var(--ok);font-weight:600}.ng{color:var(--ng);font-weight:600}</style></head><body><h1>BACalc 一鍵驗證</h1><p class=ok>總結：PASS（8 項全過；mutate 未執行（--quick））</p><table><tr><th>時間</th><td>2026-10-28 14:23:03 +08:00</td></tr><tr><th>commit</th><td>28c1d3e8e02952b55935d093d54cd98b44dc467e（短碼 28c1d3e）</td></tr><tr><th>分支</th><td>impl</td></tr><tr><th>git 狀態</th><td>乾淨（執行前 git status --porcelain 為空）</td></tr><tr><th>Python</th><td>3.11.7</td></tr><tr><th>Node</th><td>v22.15.0</td></tr><tr><th>MicroPython 套件</th><td>1.29.0-6</td></tr><tr><th>SHELL_HASH</th><td>4bfaf6985c0b79a2</td></tr><tr><th>模式</th><td>quick（略過 mutate）</td></tr></table><h2>各項結果</h2><table><tr><th>項目</th><th>指令</th><th>結果</th><th>耗時</th><th>輸出（通過＝末 3 行；失敗＝末 60 行）</th></tr><tr><td>check_portable（engine／golden 可攜性）</td><td><code>python.exe tools/check_portable.py engine golden</code></td><td class=ok>PASS</td><td>0.2 秒</td><td><pre>可攜性檢查通過：engine golden</pre></td></tr><tr><td>pytest（含 golden）</td><td><code>python.exe -m pytest</code></td><td class=ok>PASS</td><td>47.6 秒</td><td><pre>........................................................................ [ 95%]
+..........................................                               [100%]
+978 passed in 46.08s</pre></td></tr><tr><td>build_web --check</td><td><code>python.exe tools/build_web.py --check</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>web/ 建置檔皆為最新</pre></td></tr><tr><td>check_shell（PWA 殼）</td><td><code>python.exe tools/check_shell.py</code></td><td class=ok>PASS</td><td>0.1 秒</td><td><pre>check_shell：通過</pre></td></tr><tr><td>JS 單元測試（node --test）</td><td><code>node.EXE --test C:\Users\User\Desktop\Tien Research\BACalc\tests\js\backup.test.mjs C:\Users\User\Desktop\Tien Research\ … tests/js/*.test.mjs</code></td><td class=ok>PASS</td><td>0.7 秒</td><td><pre># skipped 0
+# todo 0
+# duration_ms 580.7112</pre></td></tr><tr><td>check_worker（Worker 佇列與 golden）</td><td><code>node.EXE tools/check_worker.mjs</code></td><td class=ok>PASS</td><td>2.5 秒</td><td><pre>statuses loading -&gt; ready；佇列：送出時 loading，EFF=12.682503013196978
+golden 355、錯誤路徑 85 案
+PASS</pre></td></tr><tr><td>test:mpy（MicroPython golden）</td><td><code>node.EXE tools/run_mpy_golden.mjs</code></td><td class=ok>PASS</td><td>1.1 秒</td><td><pre>355/355 passed, max diff vs CPython 2.55e-15 (dist_binom_cdf_3_10)
+85/85 error cases identical</pre></td></tr><tr><td>test:mpy --self-test</td><td><code>node.EXE tools/run_mpy_golden.mjs --self-test</code></td><td class=ok>PASS</td><td>6.7 秒</td><td><pre>OK   self-test: 空 error 集合
+OK   self-test: 壞字串 golden
+OK   self-test: 壞 list golden</pre></td></tr><tr><td>mutate（突變測試）</td><td>—</td><td>未執行</td><td>—</td><td>--quick：略過，不是完整驗證</td></tr></table><h2>D3 瀏覽器實測（手動，in-app 瀏覽器；commit 62cc6eb 程式＋28c1d3e 截圖）</h2>
+<p>步驟：<code>python tools/build_web.py</code> → <code>python -m http.server 8765 -d web</code> → 反註冊 Service Worker、清除 caches 後重新整理（確認載入新 sheets.js：統計頁三項不再是「即將推出」）。表格以模擬 Excel 貼上（paste 事件、tab／換行）輸入。測完已停止伺服器、視窗恢復桌面尺寸。</p>
+<table>
+<tr><th>項目</th><th>寬度</th><th>操作</th><th>預期</th><th>結果</th></tr>
+<tr><td>敘述統計</td><td>1280／375</td><td>貼上 2,4,4,4,5,5,7,9 → 計算</td><td>中位數 4.5、Q1 4、Q3 5.5、σx 2、眾數 4</td><td class=ok>4.50／4.00／5.50／2.00；眾數 4；Sx 2.14、峰態 0.94；分組顯示</td></tr>
+<tr><td>常態 cdf(1.96)</td><td>1280</td><td>常態、cdf、x=1.96</td><td>0.975（機率浮動格式）</td><td class=ok>左尾 0.9750021049、右尾 0.02499789515、雙尾 0.0499957903；圖陰影到 1.96</td></tr>
+<tr><td>t inv(0.975, 5)</td><td>1280</td><td>t、inv、df=5、p=0.975，小數 4 位</td><td>2.5706（臨界值，依小數位數）</td><td class=ok>左尾臨界值 2.5706、右尾臨界值 −2.5706、雙尾臨界值 ± 0.0329（標籤皆為臨界值）</td></tr>
+<tr><td>非整數 df</td><td>1280</td><td>df=5.5</td><td>顯示 Excel 截整數註記</td><td class=ok>2.5019，註記出現</td></tr>
+<tr><td>二項 P(X=3; 10, 0.3)</td><td>1280／375</td><td>二項、pdf/pmf</td><td>0.2668</td><td class=ok>0.266827932；k=3 長條標示；cdf 0.6496107184、inv 選項停用</td></tr>
+<tr><td>極小機率</td><td>1280</td><td>常態 cdf(−12)</td><td>科學記號</td><td class=ok>1.776482112E-33（圖註記 x 在範圍外）</td></tr>
+<tr><td>兩樣本 t vs Excel T.TEST</td><td>1280</td><td>golden infer_t2_a：X 23..24（7 筆）、Y 20..19（6 筆）</td><td>Welch 0.004737140238、合併 0.004986961599、右尾合併 0.0024934808（golden 取 10 位有效數字）</td><td class=ok>0.004737140238／0.004986961599／0.0024934808（10 位有效數字，一致）；結論「拒絕 H0」</td></tr>
+<tr><td>卡方獨立性 2×2</td><td>1280</td><td>10 20 / 30 40</td><td>p 0.3730，不拒絕</td><td class=ok>χ² 0.79、df 1、p 0.3729984836、不拒絕 H0</td></tr>
+<tr><td>極小 p 值</td><td>1280／375</td><td>獨立性 500 10 / 10 500（另測 2×3 新增／刪除一欄）</td><td>科學記號</td><td class=ok>9.026604758E-207；2×3 為 1.285505882E-205</td></tr>
+<tr><td>CI 與適合度</td><td>1280</td><td>CI z、比例 CI、CI t 摘要值、適合度均等</td><td>有區間與結論</td><td class=ok>[46.42, 53.58]；Wald [0.2246954919, 0.5753045081]、Wilson；[45.52, 54.48]；p 0.8187307531</td></tr>
+<tr><td>過期（stale）</td><td>1280</td><td>計算後改一格表格</td><td>結果清除</td><td class=ok>結果清除；重算一致</td></tr>
+<tr><td>情境含表格</td><td>1280</td><td>t2 存情境 → 切到獨立性 → 載入</td><td>類型與表格還原</td><td class=ok>類型 t2、13 格還原、重算 p 一致；測試情境已刪除</td></tr>
+<tr><td>375 版面</td><td>375</td><td>三頁捲動</td><td>無水平捲動</td><td class=ok>scrollWidth = 375</td></tr>
+</table>
+<p>截圖：logs/d3-desktop-describe.jpg、d3-desktop-dist-normal-cdf.jpg、d3-desktop-infer-t2-welch.jpg、d3-375-describe.jpg、d3-375-dist-binom-cdf.jpg、d3-375-infer-chi-ind-tiny-p.jpg</p>
+<p>主控台：反註冊 SW 後本 in-app 瀏覽器重新註冊 SW 失敗（「An unknown error occurred when fetching the script」，sw.js 本身 fetch 200；D2 已記錄同一現象），以及第一次載入時舊快取的 PRIMARY_SHEETS 匯入錯誤（目前原始碼已無此名稱）。離線／SW 更新未能在此環境驗證。</p>
+</body></html>
