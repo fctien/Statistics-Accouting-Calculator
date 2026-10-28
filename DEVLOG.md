@@ -1935,3 +1935,30 @@
 
 **待辦**
 - 無
+
+## 2026-10-28 E 修正第 1 輪（使用說明影片）
+
+**需求**
+- controller 回饋：迴歸段加預測示範（D5 已修好預測）；字幕不可遮住 UI；剪掉每段 1–6 秒的 Playwright 尾段；修正 e2e 檢查表「未安裝 Playwright」的說法
+
+**做法**
+- script.py 迴歸段加 fill X'=6 → 預測 → highlight Y'，expect 以 engine stats/predict（A 2.2、B 0.6 為 two_var 的全精度值）核對 5.80；旁白加一句
+- record.mjs viewport 改 1280×640；build_video.py 以 pad 在下方加 80px 深色字幕帶（0x111827）成 1280×720，字幕 FontSize 16、MarginV 8 置中於帶內；每則最多 24 字
+- 段落長度改用 record.json 的實際操作秒數：D = max(操作秒數, 旁白＋0.5)，webm 尾段剪掉
+- run_video.py：port 8765 被其他程式（使用者／其他任務開的 http.server，PID 13152）占用，不動它，改向系統要空 port（本次 58023）
+- e2e/checklist.md 開頭說明改為：錄影用上一層已有的 Playwright，沒有安裝任何套件，本表仍為人工檢查
+
+**產出**
+- teaching/video/{script,build_video,run_video}.py、record.mjs、out/BACalc_使用說明.srt；e2e/checklist.md；logs/verify-20261028-1548.html
+- out/BACalc_使用說明.mp4：9:07.86、1280×720、aac 48 kHz（不進 git）
+
+**驗證**
+- dry run 15 段 expect 全過；正式錄影 15 段全過；pytest 1001 passed；node 228/228；verify_all --quick PASS
+- 目視 5 張影格＋預測畫面（Y' 5.80）：字幕只在底部字幕帶，未遮任何 UI
+
+**問題與修正**
+- controller 說預測結果為 12.10，但影片的資料（X 1–5、Y 2 4 5 4 5）迴歸 a=2.2、b=0.6，X'=6 時引擎與畫面都是 5.80；12.10 應是 controller 用了別組資料，影片採引擎實算值
+- 第一次 dry run 後發現 8765 有別的伺服器在跑（不是本任務啟動的，未關閉它），因此加入改用空 port 的機制
+
+**待辦**
+- 旁白與畫面仍是比例同步，非逐字對齊
