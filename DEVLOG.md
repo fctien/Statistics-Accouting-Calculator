@@ -1878,3 +1878,35 @@
 **待辦**
 - 手機真機的離線與 PWA 安裝；是否加「有新版本」提示
 - push／部署與 tag 推送由 controller 處理
+
+## 2026-10-28 E1–E3 使用說明影片（實際操作錄影＋旁白＋字幕）
+
+**需求**
+- 自動產生 BACalc 使用說明影片：實際 App 操作錄影、中文旁白（Microsoft Yating）、字幕，長度 8–12 分鐘，一個指令重建
+
+**做法**
+- `teaching/video/script.py` 單一來源 SEGMENTS 15 段（id、title、start、narration、actions、expect）；數值 expect 附 bridge 請求
+- `record.mjs`：Playwright（上層 node_modules，隨附 Chromium）每段新 context＋recordVideo 1280×720；注入游標圓點、點擊漣漪、外框 highlight、2 秒字卡；動作節奏依旁白長度分配；每段核對 expect，不符即 exit 1
+- `narrate.py`：pywin32 SAPI 取 OneCore Yating token → SpFileStream 24 kHz wav；以旁白雜湊快取
+- `build_video.py`：剪掉載入時間、tpad clone 補到 max(錄影, 旁白＋0.5)、混音、concat、SRT 依標點斷句按字數分配、subtitles 濾鏡燒入
+- `run_video.py`：build_web → script.json → narrate → 啟停 http.server 8765 → record → compose → 探測與抽 5 張影格
+
+**產出**
+- teaching/video/{script,narrate,build_video,run_video}.py、record.mjs、out/BACalc_使用說明.srt（124 則）；tests/test_video_script.py；README 小節；.gitignore（build/、mp4、frames、webm、wav）
+- teaching/video/out/BACalc_使用說明.mp4（9:23、1280×720、h264＋aac 48 kHz 單聲道，不進 git）
+
+**驗證**
+- test_video_script.py 先 RED（ImportError）後 GREEN；全部 pytest 1001 passed；node 227/227；verify_all --quick PASS（logs/verify-20261028-1522.html）
+- dry run 15 段 expect 全過；正式錄影 15 段全過；ffmpeg -i：Duration 00:09:23.08、1280x720、Audio aac 48000 Hz；音量 mean −19.5 dB
+- 目視 5 張影格＋片頭 2 張（描述見 task-E-report.md）
+
+**問題與修正**
+- 第一版旁白合計 7.54 分（Yating 約每分鐘 270 字，比 220 字估計快）→ 補充內容（記憶格、次數欄、回收期、含稅反推、匯入合併／取代等）到 8.90 分
+- 字幕用 BorderStyle=3（不透明底框）時框底出現鋸齒狀殘線 → 改白字黑邊 BorderStyle=1，重新合成（--skip-record）
+- 系統沒有 ffprobe：改用 imageio_ffmpeg 的 `ffmpeg -i` 取得相同的長度／解析度／音軌資訊
+- Playwright 的 webm 沒有 duration 標頭：以 `-f null` 解碼量實際長度
+- 迴歸頁「預測」探測時 YP 沒有輸出（未深究），影片不示範預測
+
+**待辦**
+- 迴歸「預測」按鈕在填 XP 後沒有顯示 YP，需確認是使用方式還是缺陷
+- 錄影節奏是依比例分配，旁白與畫面不是逐字同步；如要更精準可在 actions 加 sync 標記
