@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   SHEETS, SHEET_ORDER, KINDS, fieldMap, sendFields, fieldForKey,
-  staleBlock, staleAfterSuccess, staleAfterEdit,
+  staleBlock, staleAfterSuccess, staleAfterEdit, staleScope,
 } from "../../web/js/sheets.js";
 
 const REQUIRED_SHEETS = [
@@ -156,4 +156,24 @@ test("A0：使用者編輯欄位後，該欄位的過期標記移除，其他不
   assert.deepEqual(staleAfterEdit(["PMT", "N"], "PMT"), ["N"]);
   assert.deepEqual(staleAfterEdit(["A", "B"], "XP"), ["A", "B"], "編輯別的欄位不洗白 A、B");
   assert.deepEqual(staleAfterEdit([], "PMT"), []);
+});
+
+test("D5：編輯 X'／Y' 只影響預測欄位，不讓 a、b 過期；編輯模型或表格影響全部", () => {
+  const xp = staleScope("stats", "XP");
+  assert.ok(xp && xp.has("XP") && xp.has("YP"));
+  assert.ok(!xp.has("A") && !xp.has("B") && !xp.has("r"), "a、b、r 不在範圍內");
+  assert.deepEqual([...staleScope("stats", "YP")].sort(), ["XP", "YP"]);
+  assert.equal(staleScope("stats", "model"), null, "改模型：全部過期");
+  assert.equal(staleScope("stats", null), null, "表格編輯（無單一欄位）：全部過期");
+  assert.equal(staleScope("stats", "X"), null);
+  // 其他工作表維持預設
+  for (const id of Object.keys(SHEETS)) {
+    if (id === "stats") continue;
+    for (const f of SHEETS[id].fields) assert.equal(staleScope(id, f.id), null, `${id}.${f.id}`);
+  }
+  // affects 引用的欄位都存在
+  for (const sh of Object.values(SHEETS)) {
+    const ids = new Set(sh.fields.map((f) => f.id));
+    for (const f of sh.fields) for (const a of f.affects || []) assert.ok(ids.has(a), a);
+  }
 });

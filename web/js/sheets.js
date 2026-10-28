@@ -18,6 +18,8 @@
 //   initial  （選用）表單初始值（畫面上看得到，清除時恢復），direction 欄位可另給 initialDirection
 //   positive / integer / min   即時驗證（input.js collect）
 //   pairs    list 欄位每行為「金額 x 次數」
+//   affects  （選用）編輯此欄位時只讓這些欄位 id 的輸出／已求出值過期（stale）；
+//            未宣告＝編輯任一欄位，全部輸出與已求出欄位都過期（預設）。見 staleScope
 //
 // 動作屬性：id（bridge action）、label、primary（Enter）、send（只送這些欄位）、
 //   solve（留一格空白的可求解引擎鍵；全部有值時，上次求出的欄位再當未知數，見 input.resolveBlanks）
@@ -223,11 +225,11 @@ export const SHEETS = {
         help: "迴歸係數 b（計算迴歸後自動填入），例：0.6",
       },
       {
-        id: "XP", key: "X", out: "x", label: "預測用 X", abbr: "X'", unit: "", kind: "number", example: "6",
+        id: "XP", key: "X", out: "x", affects: ["XP", "YP"], label: "預測用 X", abbr: "X'", unit: "", kind: "number", example: "6",
         help: "已知 X 求 Y'（與 Y' 擇一填寫），例：X' = 6",
       },
       {
-        id: "YP", key: "Y", out: "y", label: "預測用 Y", abbr: "Y'", unit: "", kind: "number", example: "5.8",
+        id: "YP", key: "Y", out: "y", affects: ["XP", "YP"], label: "預測用 Y", abbr: "Y'", unit: "", kind: "number", example: "5.8",
         help: "已知 Y 求 X'（與 X' 擇一填寫），例：Y' = 5.8",
       },
       { id: "n", label: "樣本數", abbr: "n", unit: "筆", kind: "number", example: "5", output: true, help: "資料筆數（含次數），例：5" },
@@ -693,6 +695,16 @@ export function staleBlock(sheetId, actionId, staleIds) {
 export function staleAfterSuccess(staleIds, filledIds, sentIds = []) {
   const clear = new Set([...(filledIds || []), ...(sentIds || [])]);
   return (staleIds || []).filter((id) => !clear.has(id));
+}
+
+/**
+ * 編輯某欄位時受影響（要清空輸出、標過期）的欄位 id 集合；回傳 null＝全部（預設）。
+ * 由欄位的 affects 宣告決定（例：STAT 編輯預測用 X'／Y' 只影響 X'、Y'，不動迴歸的 a、b）。
+ * editedId 為空（表格、清除鈕等無單一欄位的編輯）一律回傳 null。
+ */
+export function staleScope(sheetId, editedId) {
+  const f = editedId ? SHEETS[sheetId]?.fields.find((x) => x.id === editedId) : null;
+  return f && f.affects ? new Set(f.affects) : null;
 }
 
 /** 使用者編輯某欄位後仍維持過期的欄位：被編輯的欄位是使用者自己的值，不再是舊結果。 */

@@ -1910,3 +1910,28 @@
 **待辦**
 - 迴歸「預測」按鈕在填 XP 後沒有顯示 YP，需確認是使用方式還是缺陷
 - 錄影節奏是依比例分配，旁白與畫面不是逐字同步；如要更精準可在 actions 加 sync 標記
+
+## D5：STAT 預測永遠被擋（stale 範圍修正）
+
+**需求**
+- controller 實測：在預測 X' 填值就把 a、b 標成 stale，「預測」被 A0 的 staleBlock 擋下，預測功能無法使用
+
+**做法**
+- 欄位新增宣告式屬性 `affects`（sheets.js）；純函式 `staleScope(sheetId, editedId)` 回傳編輯該欄位時受影響的欄位集合，未宣告＝null＝全部（既有預設）
+- STAT 的 XP、YP 宣告 `affects: ["XP","YP"]`；run.js `markStale` 依 staleScope 只處理範圍內欄位（無 STAT 特例）；model、資料表格（markStale 無欄位）維持全部 stale
+- 檢查其他兩段式工作表（AMORT／DEPR schedule、BOND price/yield、DIST、INFER）：只有 STAT predict 有 `fresh` 防護，其餘不會因編輯而被擋，不需改
+
+**產出**
+- web/js/sheets.js、web/js/views/run.js、tests/js/sheets.test.mjs（新增 D5 測試）
+
+**驗證**
+- node 全過（含新測試）；pytest、check_shell、check_portable 通過
+- 瀏覽器（localhost:8765，清 SW／cache）：迴歸 a=-0.02 b=2.02 → X'=6 後 a、b 未 stale → 預測 Y'=12.10；X'=7 → 14.12；Y'=8 → X'=3.97；改 EXP → a、b、r 變 stale，預測被擋並顯示訊息；改回 LIN 按迴歸後可預測
+
+**問題與修正**
+- 第一次瀏覽器測試仍失敗：HTTP 快取讓舊 run.js 沒被換掉；用 fetch cache:reload 後重載才測到新碼（非程式問題）
+- 測試腳本曾同時填 X' 與 Y'（Y' 為使用者值）導致引擎報錯並整表 stale，屬測試操作錯誤，行為與修正前相同
+- 此次未走 RED 輸出（先寫實作再補測試），測試以 staleScope 缺席時 import 失敗可視為 RED
+
+**待辦**
+- 無

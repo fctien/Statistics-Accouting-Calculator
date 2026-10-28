@@ -4,7 +4,7 @@
 // - watchStale：使用者改了任何輸入，就清掉輸出欄位與結果列、把已求出的欄位標為過期；
 //   下一次成功計算才解除。專屬畫面（tvm.js、amort.js …）都經由這裡，不各自重寫。
 import { callEngine } from "../py-client.js";
-import { SHEETS, staleBlock, staleAfterSuccess, staleAfterEdit, sendFields } from "../sheets.js";
+import { SHEETS, staleBlock, staleAfterSuccess, staleAfterEdit, staleScope, sendFields } from "../sheets.js";
 import * as settingsStore from "../settings.js";
 import { createGuard } from "../generation.js";
 import { readInputs, showErrors, showResult, setBusy, showFormMessage, getOnAction } from "./form.js";
@@ -47,7 +47,10 @@ export function markStale(sheetId, exceptWrap = null) {
   lastOk.delete(sheetId);
   const form = formOf(sheetId);
   if (!form) return;
+  // 欄位若宣告 affects（例：STAT 的 X'／Y'），只影響那些欄位；否則全部（預設）
+  const scope = staleScope(sheetId, exceptWrap?.dataset.field);
   for (const wrap of form.querySelectorAll(".field")) {
+    if (scope && !scope.has(wrap.dataset.field)) continue;
     const ctrl = wrap.querySelector(".control");
     if (wrap.classList.contains("output")) {
       ctrl.value = "";
