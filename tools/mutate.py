@@ -63,6 +63,8 @@ MUTATIONS = [
      "dep = min(dep, avail / (lif - k))", "DBX 轉直線法改取較小者"),
     ("engine/units.py", "base = src[4] * value + src[5]",
      "base = src[4] * value", "溫度仿射換算拿掉 offset（b）"),
+    ("engine/base.py", "return value & ((1 << width) - 1)", "return value",
+     "二補數位元型樣遮罩拿掉（負數不轉成補數）"),
     ("engine/cashflow.py", "if t > 0 and prev < 0 <= cum:",
      "if t > 0 and prev < 0 < cum:", "回收期邊界（累計剛好為 0）判斷改嚴格"),
 ]

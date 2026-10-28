@@ -1525,3 +1525,28 @@
 
 **B2 修正輪 1 追加**
 - 問題與修正：並行跑了兩個 mutate 導致一次 commit 誤含突變中的 engine/dates.py（a==99）；已還原並重跑，22/22 killed、verify_all --quick PASS
+
+## 2026-10-28 B3 進位轉換與位元運算
+
+**需求**
+- engine/base.py：convert_base、bitwise（AND/OR/XOR/NOT/SHL/SHR/SAR），位寬 8/16/32/64、有號／無號；bridge base 路由；字串型 golden；測試
+
+**做法**
+- 先寫 tests/test_base.py（RED：ImportError），再實作（GREEN）
+- 規則：BIN／OCT／HEX 補滿位寬、DEC 無千分位；前綴 0b/0o/0x 須與進位相符，正負號只限 10 進位，非法字元回報原字串第幾個字元；超範圍一律報錯；SAR 只適用有號數（無號報錯，避免默默改變語意）
+- golden runner 的 expected 為字串時完全相等；run_mpy_golden.mjs、check_worker.mjs、web/selftest.html 同步支援，數值比對不變；make_golden_excel.py 以 excel.string 旗標要求字串結果
+- bridge 對 base 路由的 display 直接等於字串（不經 format_number）
+
+**產出**
+- engine/base.py、engine/bridge.py、golden/cases.py（30 筆）、golden/runner.py、tests/golden/*.json（現有 109 筆 expected 不變，經 diff 確認）、tests/test_base.py、tests/test_golden_file.py（runner 字串／數值測試）、tools/*、web/selftest.html、web/sw.js、mutate 新增 1 個突變
+
+**驗證**
+- pytest 全綠；mpy golden 139/139、error 53/53、self-test 7 項全 OK；check_portable 通過
+
+**問題與修正**
+- MicroPython 沒有 str.isalnum（內部錯誤：AttributeError），改用 _DIGITS.find；CPython 測試完全看不出，靠雙環境 golden 抓到
+- check_worker／selftest 原本只比數值，字串案例失敗，已補字串比對
+- 測試中 "0B1"（16 進位）我先寫錯期望 11，正確是 0x0B1 = 177
+
+**待辦**
+- D2 工程頁介面完成後移除 test_web_sheets 對 base 的路由豁免
