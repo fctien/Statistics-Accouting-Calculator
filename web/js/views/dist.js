@@ -9,7 +9,7 @@ import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import {
   DISTS, distFields, prepareDist, distRows, dfNote, rangeProbs, chartRange, chartXs, discreteRange,
-  pointRequest, invRequest, CHART_POINTS, withPoint, distHint,
+  pointRequest, invRequest, CHART_POINTS, withPoint, distHint, layoutSyncNeeded,
 } from "../stat.js";
 import { renderForm } from "./form.js";
 import { runEngineAction, watchStale, generation, isGeneration } from "./run.js";
@@ -36,10 +36,12 @@ export function mount(container) {
     showOnly(form, distFields(distSel.value, funcSel.value));
   }
 
-  form.addEventListener("change", (e) => {
-    if (e.target === distSel || e.target === funcSel) sync();
-  });
-  form.addEventListener("form-reset", sync);
+  // 選單改變、清除、情境載入（scenario-apply 與表單層級 change）都要重新同步欄位
+  for (const type of ["change", "form-reset", "scenario-apply"]) {
+    form.addEventListener(type, (e) => {
+      if (layoutSyncNeeded(type, e.target, form, [distSel, funcSel])) sync();
+    });
+  }
   watchStale(SHEET, () => { seq++; }); // 輸入改了：進行中的圖、浮動格式請求作廢
   sync();
 

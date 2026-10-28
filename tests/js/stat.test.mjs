@@ -383,3 +383,23 @@ test("inv 結果的提示：雙尾 α = 0.05 時輸入 p = 0.05；其他功能�
   assert.equal(distHint("chi2", "inv"), null); // 卡方沒有雙尾臨界值
   assert.equal(distHint("t", "cdf"), null);
 });
+
+// ---------------------------------------------------------------- 版面同步判斷（情境載入後欄位要跟著選單）
+
+test("layoutSyncNeeded：情境載入（scenario-apply、表單層級 change）與選單改變都要重新同步欄位", async () => {
+  const { layoutSyncNeeded } = await import("../../web/js/stat.js");
+  const form = { name: "form" };
+  const distSel = { name: "DIST" };
+  const funcSel = { name: "FUNC" };
+  const other = { name: "X" };
+  const controls = [distSel, funcSel];
+  // 回歸：applyScenario 在 form 上派送 change（target 是 form 本身）與 scenario-apply
+  assert.equal(layoutSyncNeeded("change", form, form, controls), true);
+  assert.equal(layoutSyncNeeded("scenario-apply", form, form, controls), true);
+  assert.equal(layoutSyncNeeded("form-reset", form, form, controls), true);
+  assert.equal(layoutSyncNeeded("change", distSel, form, controls), true);
+  assert.equal(layoutSyncNeeded("change", funcSel, form, controls), true);
+  // 一般數值欄位改變不必重排版面
+  assert.equal(layoutSyncNeeded("change", other, form, controls), false);
+  assert.equal(layoutSyncNeeded("input", form, form, controls), false);
+});

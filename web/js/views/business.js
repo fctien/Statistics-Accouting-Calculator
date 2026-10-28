@@ -58,7 +58,8 @@ function buildPresets(panel) {
       showSource(CUSTOM);
     }
   };
-  for (const type of ["input", "click", "keydown"]) panel.addEventListener(type, sync);
+  // change：情境載入（applyScenario 在表單上派送 change）後稅率可能已不是預設值，要回到「自訂」
+  for (const type of ["input", "click", "keydown", "change"]) panel.addEventListener(type, sync);
   // 設定頁選了預設稅率：開啟稅額分頁時自動選取並帶入稅率（表單已先 renderForm）
   const preferred = settingsStore.get().taxPreset;
   if (preferred in TAX_PRESETS) {

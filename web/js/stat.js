@@ -39,6 +39,19 @@ export function distFields(dist, func) {
 }
 
 /**
+ * 版面同步判斷（純函式）：哪些事件之後要依選單重新決定顯示哪些欄位。
+ * - 選單本身（controls）的 change
+ * - 表單層級的 change（target 是 form 本身：情境載入 applyScenario 會這樣派送）
+ * - scenario-apply（情境載入）、form-reset（清除鈕／Esc）
+ * 否則情境載入後選單已換、欄位卻還是舊的，計算用的是看不到的參數（誤導）。
+ */
+export function layoutSyncNeeded(type, target, form, controls) {
+  if (type === "scenario-apply" || type === "form-reset") return true;
+  if (type !== "change") return false;
+  return target === form || controls.includes(target);
+}
+
+/**
  * 組出分配的引擎 inputs：只送目前看得到的欄位；隱藏欄位的格式錯誤忽略（使用者看不到，也不會送出）。
  * 畫面上的 pdf 對離散分配送成 pmf；離散分配選 inv 回傳 FUNC 錯誤。
  * inputs 是 collect 的結果（引擎鍵）、errors 以欄位 id 為鍵；回傳 {inputs, errors}。

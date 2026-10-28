@@ -7,6 +7,7 @@ import { runEngineAction, watchStale, generation, isGeneration } from "./run.js"
 import { callEngine } from "../py-client.js";
 import * as settingsStore from "../settings.js";
 import { toCSV, download, exportSettings, plainNumberRows } from "../csv.js";
+import { layoutSyncNeeded } from "../stat.js";
 
 const SHEET = "depr";
 const HEADERS = ["年度", "折舊 DEP", "剩餘帳面價值 RBV", "剩餘可折舊價值 RDV"];
@@ -112,6 +113,11 @@ export function mount(container) {
     }
   };
   method.addEventListener("change", () => syncM01(true));
-  form.addEventListener("form-reset", () => syncM01(false));
+  // 清除、情境載入（scenario-apply 與表單層級 change）：提示跟著載入的方法，不改值
+  for (const type of ["change", "form-reset", "scenario-apply"]) {
+    form.addEventListener(type, (e) => {
+      if (e.target !== method && layoutSyncNeeded(type, e.target, form, [])) syncM01(false);
+    });
+  }
   syncM01(false);
 }

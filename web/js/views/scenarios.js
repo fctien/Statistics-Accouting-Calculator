@@ -39,9 +39,14 @@ export function defaultName(worksheet, now = Date.now()) {
   return `${SHEETS[worksheet].title} ${localStamp(now)}`;
 }
 
-/** 目前掛載中的工作表表單的 sheetId；沒有（或是設定、計算機）回傳 null。 */
+/**
+ * 目前「看得到的」工作表表單的 sheetId；沒有（或是設定、計算機）回傳 null。
+ * 商業頁四個子分頁的表單同時在 DOM（未選的 hidden）：只取不在 hidden 容器內的那張，
+ * 否則在稅額分頁存的情境其實是隱藏的 PROFIT 表單內容（誤導）。
+ */
 export function currentWorksheet(root = document) {
-  const form = root.querySelector("#sheet form.sheet-form[data-sheet]");
+  const forms = [...root.querySelectorAll("#sheet form.sheet-form[data-sheet]")];
+  const form = forms.find((f) => !f.closest("[hidden]"));
   const id = form ? form.dataset.sheet : null;
   return id && SHEETS[id] && !NO_BAR.has(id) ? id : null;
 }
@@ -214,7 +219,7 @@ export function mount(container) {
   if (sheetBox) {
     new MutationObserver(() => {
       if (currentWorksheet() !== current) refresh();
-    }).observe(sheetBox, { childList: true, subtree: true });
+    }).observe(sheetBox, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] }); // 子分頁切換只改 hidden
   }
   document.addEventListener("bacalc-data-changed", () => refresh());
   refresh();
