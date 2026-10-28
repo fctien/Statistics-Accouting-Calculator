@@ -179,3 +179,10 @@ def test_small_angle_kept_and_rad_reduction():
     assert _v("sin(-1e-12)") != 0.0
     assert abs(_v("sin(1+2*pi)", angle="RAD") - 0.8414709848078965) < 1e-12
     assert abs(_v("sin(1+2*pi*1000)", angle="RAD") - 0.8414709848078965) < 1e-9
+
+
+def test_large_angle_non_multiple_needs_reduction():
+    # 非 90 倍數的超大角度：沒有 fmod 縮減時誤差會超過容許值
+    assert abs(_v("sin(30+360*1000000000000)") - 0.5) < 1e-9
+    assert abs(_v("cos(60-360*1000000000000)") - 0.5) < 1e-9
+    assert abs(_v("tan(45+360*1000000000000)") - 1.0) < 1e-9
