@@ -74,7 +74,7 @@ MUTATIONS = [
      "t cdf 對稱關係選錯一側（t>0 也把 |t| 的單尾當左尾）"),
     ("engine/dist.py", "p, q = gammainc(kk + 1.0, lm)",
      "p, q = gammainc(float(kk), lm)",
-     "Poisson cdf 少加一項（Q(k+1,λ) 改成 Q(k,λ)＝P(X≤k-1)）"),
+     "Poisson cdf 少加一項（Q(k+1,λ) 改成 Q(k,λ)＝P(X<=k-1)）"),
 ]
 
 
