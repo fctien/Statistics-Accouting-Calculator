@@ -89,6 +89,38 @@ try {
   await page.evaluate(() => document.querySelector("#calc-tape-list").scrollIntoView({ block: "end" }));
   await snap(page, "calc_tape.png");
 
+  // v0.2 工程頁：科學計算機 sin(30)（DEG）
+  await open(page, "eng/calc");
+  await page.locator("#calc-expr").fill("sin(30)");
+  await page.locator("#calc-expr").press("Enter");
+  await page.waitForTimeout(800);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await snap(page, "eng_calc.png");
+
+  // v0.2 統計頁：常態分配累積機率 x=1.96 與分配圖
+  await open(page, "stat/dist");
+  await page.locator("#f-dist-DIST").selectOption("normal");
+  await page.locator("#f-dist-FUNC").selectOption("cdf");
+  await fill(page, "f-dist-MU", "0");
+  await fill(page, "f-dist-SIGMA", "1");
+  await fill(page, "f-dist-X", "1.96");
+  await clickAction(page, "計算");
+  await page.waitForTimeout(800);
+  await page.evaluate(() => document.querySelector("#dist-result").scrollIntoView({ block: "start" }));
+  await snap(page, "stat_dist.png");
+
+  // v0.2 統計頁：兩樣本 t 檢定（5..9 對 3..7）與結論
+  await open(page, "stat/infer");
+  await page.locator("#f-infer-TYPE").selectOption("t2");
+  await page.waitForTimeout(300);
+  for (let i = 0; i < 5; i++) {
+    await page.locator("#infer-table-r" + (i + 1) + "c1").fill(String(5 + i));
+    await page.locator("#infer-table-r" + (i + 1) + "c2").fill(String(3 + i));
+  }
+  await clickAction(page, "計算");
+  await page.evaluate(() => document.querySelector("#infer-result").scrollIntoView({ block: "center" }));
+  await snap(page, "stat_infer.png");
+
   // 設定：捲到「關於」
   await open(page, "settings");
   await page.waitForTimeout(1500); // 等啟動計時填入
@@ -108,6 +140,12 @@ try {
   await fill(mp, "f-tvm-FV", "0");
   await clickAction(mp, "計算");
   await snap(mp, "mobile_tvm.png");
+  // v0.2 手機版：工程頁與底部三分頁
+  await open(mp, "eng/calc");
+  await mp.locator("#calc-expr").fill("sin(30)");
+  await mp.locator("#calc-expr").press("Enter");
+  await mp.waitForTimeout(800);
+  await snap(mp, "mobile_nav.png");
   await m.close();
 } finally {
   await browser.close();

@@ -1,6 +1,6 @@
 """教學單一來源 teaching/prompts.py 的自測（self-test）。
 
-檢查：10 個步驟順序、必要欄位非空、四段式 Prompt 標籤、驗收指令引用的檔案在對應 git tag 上存在、
+檢查：11 個步驟順序、必要欄位非空、四段式 Prompt 標籤、驗收指令引用的檔案在對應 git tag 上存在、
 EMBA 起點 tag 存在、所有字串沒有全形句點「。」（簡報規則）、兩層 CLAUDE.md 範本結構、
 BA II Plus 按鍵標示「未實機驗證」
 
@@ -17,7 +17,7 @@ import pytest
 from teaching import prompts
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STEP_IDS = ["step%d" % i for i in range(10)]
+STEP_IDS = ["step%d" % i for i in range(11)]
 FOUR_LABELS = ["【任務】", "【介面】", "【限制】", "【驗收】"]
 # 驗收指令中被視為「repo 內路徑」的前綴與根目錄檔案
 PATH_PREFIXES = ("tools/", "tests/", "engine/", "web/", "e2e/", "docs/",
@@ -35,8 +35,8 @@ def _git(*args):
     return p.returncode, p.stdout
 
 
-def _tags():
-    code, out = _git("tag", "-l", "step*")
+def _tags(pattern="step*"):
+    code, out = _git("tag", "-l", pattern)
     return set(out.split()) if code == 0 else set()
 
 
@@ -104,7 +104,7 @@ def _nonempty(v):
 
 # ---------- 結構 ----------
 
-def test_ten_steps_in_order():
+def test_eleven_steps_in_order():
     assert [s["id"] for s in prompts.STEPS] == STEP_IDS
 
 
@@ -246,7 +246,8 @@ def test_untagged_steps_paths_exist_in_worktree(sid):
 
 
 def test_emba_start_tag_exists():
-    tags = _need_tags()
+    _need_tags()
+    tags = _tags("*")  # step10 以版本 tag v0.1.0 為起點
     for s in prompts.STEPS:
         st = s["emba"]["start_tag"]
         if st is None:

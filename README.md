@@ -105,7 +105,7 @@ python run_all.py
   上一層資料夾還要有肖像 `Tien 肖像.jpg` 與校徽 `Taipei Tech Logo.png`（可用 `DECK_RES` 指定所在資料夾）；需要 `python-pptx`
 - PDF 用 PowerPoint COM（pywin32）匯出，需要 Windows＋PowerPoint：**PowerPoint 正在執行時不會匯出**（避免影響開著的檔案），
   `export_pdf.py` 回 2、`run_all.py` 停在這一步；關閉 PowerPoint 後重跑。tasklist 失敗或輸出無法解析時同樣視為「可能在執行」而不匯出；匯出途中失敗會刪掉本次的 PDF
-- 學生版 zip（`teaching/out/BACalc_AI_student.zip`、`BACalc_EMBA_student.zip`）只放 Prompt 卡、簡報 PDF、
+- 學生版 zip（`teaching/out/v0.2/BACalc_AI_student.zip`、`BACalc_EMBA_student.zip`）只放 Prompt 卡、簡報 PDF、
   `docs/google-oauth-setup.html` 與學生說明，不含 pptx 與講稿；沒有 PDF，或 PDF 比 pptx 舊，就不產生 zip
 - 課前演練紀錄：`teaching/rehearse.md`
 

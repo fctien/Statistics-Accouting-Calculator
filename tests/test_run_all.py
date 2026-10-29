@@ -59,7 +59,7 @@ def test_failure_exit_1(tmp_path):
 def test_visual_pages_found_in_real_deck():
     # CI（Linux）只裝 pytest：沒有 python-pptx 就無法讀簡報，跳過而非失敗
     pytest.importorskip("pptx", reason="需要 python-pptx 才能讀簡報（CI 未安裝）")
-    out = os.path.join(ROOT, "teaching", "out")
+    out = os.path.join(ROOT, "teaching", "out", "v0.2")
     if not os.path.exists(os.path.join(out, "BACalc_AI.pptx")):
         pytest.skip("teaching/out 沒有簡報（請先跑 build_deck.py）")
     rows = run_all.find_visual_pages(out)

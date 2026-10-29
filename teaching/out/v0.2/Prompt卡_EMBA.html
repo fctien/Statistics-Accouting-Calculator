@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BACalc Prompt 卡（EMBA 版）</title>
+<style>
+:root {
+  --bg: #faf8f5; --card: #ffffff; --ink: #1d1c1a; --muted: #5a5751; --line: #d8d4cc;
+  --navy: #1f3a5f; --brick: #c0562f; --soft: #f4f1ec; --code-bg: #262b33; --code-ink: #e8e4dc;
+  --ok: #3f6b5c; --warn-bg: #fbeee6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181d; --card: #1e232a; --ink: #ece8e1; --muted: #a9a49b; --line: #3a4049;
+    --navy: #9fbadb; --brick: #e8946f; --soft: #262c34; --code-bg: #0f1216; --code-ink: #e8e4dc;
+    --ok: #8cc2ad; --warn-bg: #3a2a22;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181d; --card: #1e232a; --ink: #ece8e1; --muted: #a9a49b; --line: #3a4049;
+  --navy: #9fbadb; --brick: #e8946f; --soft: #262c34; --code-bg: #0f1216; --code-ink: #e8e4dc;
+  --ok: #8cc2ad; --warn-bg: #3a2a22;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Microsoft JhengHei", "微軟正黑體", "Segoe UI", system-ui, sans-serif;
+  font-size: 17px; line-height: 1.6;
+}
+header.top { max-width: 960px; margin: 0 auto; padding: 24px 16px 8px; }
+header.top h1 { color: var(--navy); font-size: 28px; margin: 0 0 4px; }
+header.top p { color: var(--muted); margin: 4px 0; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+nav.toc a { color: var(--navy); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px;
+  text-decoration: none; font-size: 15px; background: var(--card); }
+main { max-width: 960px; margin: 0 auto; padding: 0 16px 40px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px 22px; margin: 18px 0; }
+.card h2 { color: var(--navy); margin: 0 0 4px; font-size: 24px; }
+.eyebrow { color: var(--brick); font-weight: bold; font-size: 15px; letter-spacing: .02em; }
+.badge { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 14px;
+  background: var(--soft); border: 1px solid var(--line); color: var(--muted); margin-left: 6px; }
+.badge.optional { background: var(--warn-bg); color: var(--brick); border-color: var(--brick); }
+.card h3 { font-size: 17px; color: var(--brick); margin: 16px 0 6px; }
+.card p, .card li { margin: 4px 0; }
+.card ul, .card ol { padding-left: 22px; margin: 4px 0; }
+.prompt-wrap { position: relative; }
+pre { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 14px 16px;
+  white-space: pre-wrap; word-break: break-word; font-family: Consolas, "Microsoft JhengHei", monospace;
+  font-size: 15px; line-height: 1.55; margin: 6px 0; }
+code { font-family: Consolas, monospace; background: var(--soft); border-radius: 4px; padding: 0 4px; }
+li code { word-break: break-all; }
+button { font: inherit; font-size: 15px; cursor: pointer; border-radius: 8px; padding: 4px 12px;
+  border: 1px solid var(--navy); background: var(--card); color: var(--navy); }
+button.copy { position: absolute; top: 8px; right: 8px; }
+button.copied { background: var(--ok); color: #fff; border-color: var(--ok); }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.compare > div { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.compare .label { font-weight: bold; color: var(--navy); }
+.guess { color: var(--brick); font-weight: bold; }
+.tagline { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); color: var(--muted); }
+@media (max-width: 640px) {
+  .compare { grid-template-columns: 1fr; }
+  .card { padding: 16px 14px; }
+  button.copy { position: static; margin-bottom: 4px; }
+}
+@media print {
+  :root, :root[data-theme="dark"] {
+    --bg: #fff; --card: #fff; --ink: #000; --muted: #333; --line: #999; --navy: #1f3a5f;
+    --brick: #a0401f; --soft: #f4f4f4; --code-bg: #f4f4f4; --code-ink: #000; --warn-bg: #fff;
+  }
+  @page { size: A4; margin: 12mm; }
+  body { font-size: 10.5pt; line-height: 1.45; }
+  .card h2 { font-size: 16pt; }
+  .card h3 { font-size: 11pt; margin: 8px 0 3px; }
+  header.top { padding: 0 0 6px; }
+  header.top .toolbar, nav.toc, button { display: none !important; }
+  .card { break-after: page; page-break-after: always; border: none; margin: 0; padding: 0; }
+  .card:last-child { break-after: auto; page-break-after: auto; }
+  pre { border: 1px solid #999; font-size: 9.5pt; line-height: 1.4; padding: 8px 10px; }
+}
+</style></head><body>
+<header class="top"><h1>BACalc Prompt 卡（EMBA 版）</h1><p>對象：商管背景、幾乎不寫程式；每一步從起點 tag 接手，只下該步的關鍵 Prompt，再用 Excel 或 BA II Plus 對答案</p>
+<p>由 teaching/prompts.py 產生（python teaching/build_cards.py），請勿手改本檔</p>
+<div class="toolbar"><button type="button" id="print-btn">列印（每張卡一頁）</button><button type="button" id="theme-toggle">切換深色／淺色</button></div>
+<nav class="toc" aria-label="步驟"><a href="#step0">step0</a><a href="#step1">step1</a><a href="#step2">step2</a><a href="#step3">step3</a><a href="#step4">step4</a><a href="#step5">step5</a><a href="#step6">step6</a><a href="#step7">step7</a><a href="#step8">step8</a><a href="#step9">step9</a><a href="#step10">step10</a></nav></header>
+<main>
+<section class="card" id="claude-md" data-step="claude-md">
+<div class="eyebrow">開始之前</div>
+<h2>兩層 CLAUDE.md 範本</h2>
+<p>使用者層級（~/.claude/CLAUDE.md）放個人通用習慣，所有專案共用；專案層級（專案根目錄 CLAUDE.md）放這個專案的規則</p>
+<h3>使用者層級 USER_CLAUDE_MD</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="user-claude-md">複製 Prompt</button><pre id="user-claude-md"># 我的通用規則（~/.claude/CLAUDE.md，所有專案共用）
+
+- 回答用繁體中文，重要名詞附英文（例如 單元測試 unit test）
+- 不確定就直接說「不確定」，不要編造；查資料要附連結與搜尋關鍵字
+- 寫完程式要自己測試，貼出實際執行的指令與結果再回報
+- 大改動先給我計畫，我同意後再動手
+- 安裝套件、刪除檔案、推送 GitHub、關閉我開著的程式之前，先問我
+</pre></div>
+<h3>專案層級 PROJECT_CLAUDE_MD</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="project-claude-md">複製 Prompt</button><pre id="project-claude-md"># BACalc 專案規範（專案層級 CLAUDE.md）
+
+仿 TI BA II Plus 的財務計算 PWA，Python 計算引擎在瀏覽器裡用 MicroPython 執行，手機電腦都能用、可離線
+（下面的指令在後面的步驟才會建立，先寫下來讓 AI 知道目標）
+
+## 常用指令
+
+- 引擎測試：`python -m pytest -q`
+- 可攜性檢查：`python tools/check_portable.py engine`
+- 建置網頁：`python tools/build_web.py`
+- 本機預覽：`python -m http.server 8765 -d web`，開 http://localhost:8765/
+- 一鍵驗證：`python tools/verify_all.py`（產生 `logs/verify-*.html`）
+
+## 專案結構
+
+- Model：`engine/*.py`，純 Python 計算，沒有 I/O、不碰瀏覽器
+- Controller：`engine/bridge.py`（唯一入口）、`web/js/app.js`、`web/js/py-worker.js`
+- View：`web/index.html`、`web/css/`、`web/js/views/`
+- 測試：`tests/`；golden 值：`tests/golden/excel.json`，每筆附 Excel 公式出處
+
+## 程式風格
+
+- Python、PEP 8；註解用繁體中文，重要名詞附英文
+- 金額用「分」整數（`engine/money.py`），日期用序數日（`engine/dates.py`）
+
+## 工作方式
+
+- 先寫會失敗的測試，再寫程式（TDD），RED 與 GREEN 的輸出都要貼
+- 改完先跑 `python -m pytest -q`，通過再回報
+- 每次工作結束把過程追加到 `DEVLOG.md`：需求／做法／產出／驗證／問題與修正／待辦，只追加不改寫，失敗的嘗試也要寫
+- 大改動先給計畫
+
+## 重要規則
+
+- MVC 分層，計算只放在 Model
+- 絕不產生看起來正常但錯誤的數字：算不出來回 `{&quot;ok&quot;: false, &quot;error&quot;: 中文原因}`，不用 0 或預設值
+- 禁止 `eval`／`exec`（MicroPython 沒有 `ast`），算式用自寫遞迴下降剖析器
+- `engine/` 只能 import `math`、`json`（MicroPython 沒有 decimal、datetime、dataclasses）
+- golden 值對不上就停下來回報，不改 golden、不放寬容差
+</pre></div>
+</section>
+<section class="card" id="step0" data-step="step0">
+<div class="eyebrow">Step 0 <span class="badge">step0</span></div>
+<h2>兩層 CLAUDE.md：先教 AI 規矩</h2>
+<h3>目標</h3><p>使用者層級放個人通用習慣，專案層級放這個專案的規則，AI 每次開工都會先讀到，不用每次重講</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step0">複製 Prompt</button><pre id="prompt-step0">【任務】
+我要做一個像 BA II Plus 的財務計算機 App，請先幫我寫一份工作規則檔 CLAUDE.md
+【介面】
+規則檔放在專案資料夾最上層，分成：常用指令、專案結構、程式風格、工作方式、重要規則
+【限制】
+- 算不出來時要說明原因，絕對不能顯示看起來正常但錯誤的數字
+- 每個結果都要能拿 Excel 或計算機對得起來
+- 每次改完要自己測試，再用白話告訴我測了什麼
+【驗收】
+寫完請用三句白話告訴我，你會遵守哪三條最重要的規則</pre></div>
+<h3>預期產出</h3><p>得到一份 CLAUDE.md；AI 能用白話說出「不回假數字」「要能用 Excel 對答案」「改完先測」</p>
+<h3>驗收</h3><ul><li>打開 step0 的 CLAUDE.md，找到「絕不產生看起來正常但錯誤的數字」這一條</li><li>先在 Excel 輸入 =PMT(0.06/12,360,300000)，得到 -1,798.65，記下這個房貸數字，之後每一步都用它當對照</li><li>開新對話問 AI「如果期數算出 24.5 期，你會怎麼顯示」，答案應該是回報錯誤，而不是四捨五入成 24 或 25</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>規則沒寫清楚，AI 就會自己決定：本專案的程式曾把 24.5 期直接當成 24 期算，數字看起來完全正常</li><li>規則要寫成可以檢查的句子，例如「算不出來要說原因」，不要只寫「要正確」</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step0</code>　·　完成後的參考答案 tag：<code>step0</code></p>
+</section>
+<section class="card" id="step1" data-step="step1">
+<div class="eyebrow">Step 1 <span class="badge">step1</span></div>
+<h2>用 plan mode 先規劃再動手</h2>
+<h3>目標</h3><p>讓 AI 先寫規格書與實作計畫，確認 MVC、測試方式與每一步怎麼驗收，同意後才寫程式</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step1">複製 Prompt</button><pre id="prompt-step1">【任務】
+先不要寫程式，請先規劃這個計算機 App 要有哪些功能、分幾步做、每一步怎麼驗收
+【介面】
+給我一份看得懂的計畫：每一步寫「做完會看到什麼」和「我要怎麼對答案」
+【限制】
+- 功能以 BA II Plus 為準：貨幣時間價值、攤還、現金流、利率換算、統計、債券、折舊
+- 每個功能至少 3 題可以用 Excel 對答案的例題，附 Excel 公式
+- 你不確定的地方要直接說不確定
+【驗收】
+我會挑兩題例題自己在 Excel 算，數字要一樣</pre></div>
+<h3>預期產出</h3><p>一份分步驟的計畫，每個功能都附 Excel 公式例題，並列出需要我做決定的事</p>
+<h3>驗收</h3><ul><li>Excel 輸入 =PMT(0.06/12,360,300000)，應得 -1,798.65（可能顯示成貨幣格式）（計畫中的房貸例題）</li><li>Excel 輸入 =EFFECT(0.12,12)，應得 0.126825，也就是有效年利率 12.68%</li><li>逐項對照計畫：每個功能都要有例題與 Excel 公式，缺的請 AI 補上</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>例題的 Excel 公式本身也可能寫錯：本專案統計迴歸有一題公式少了一層 EXP，程式算 1.4042、公式算 0.3395，對不上才發現是公式錯</li><li>有些功能 Excel 沒有內建（例如回收期），這種例題要請 AI 列出逐期累計，以便手算核對</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step0</code>　·　完成後的參考答案 tag：<code>step1</code></p>
+</section>
+<section class="card" id="step2" data-step="step2">
+<div class="eyebrow">Step 2 <span class="badge">step2</span></div>
+<h2>TDD：TVM 貨幣時間價值引擎</h2>
+<h3>目標</h3><p>先寫會失敗的測試再寫程式，用 Excel 公式當標準答案，做出可以同時在 CPython 與 MicroPython 執行的 TVM 引擎</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step2">複製 Prompt</button><pre id="prompt-step2">【任務】
+請做出貨幣時間價值 TVM 的計算：期數、年利率、現值、每期付款、終值五格，空一格就算出那一格
+【介面】
+欄位名稱和 BA II Plus 一樣：N、I/Y、PV、PMT、FV、P/Y、C/Y、期初 BGN／期末 END
+【限制】
+- 收到的錢是正數、付出的錢是負數，和計算機一樣
+- 算不出來時說明原因，不要給 0 或亂猜的數字
+- 每個例題都要附 Excel 公式讓我自己對
+【驗收】
+房貸例題：30 年、年利率 6%、借 300,000、每月付款，告訴我每月付多少，並說明你怎麼測試</pre></div>
+<h3>預期產出</h3><p>AI 回報每月付款 -1,798.65（負號代表付出），並說明測試全部通過</p>
+<h3>驗收</h3><ul><li>Excel 輸入 =PMT(0.06/12,360,300000)，應得 -1,798.65（可能顯示成貨幣格式）</li><li>BA II Plus：[2ND][CLR TVM]，確認 [2ND][P/Y] 為 12 後 [2ND][QUIT]，360 [N]、6 [I/Y]、300000 [PV]、0 [FV]、[CPT][PMT]，應顯示 -1,798.65（按鍵依記憶撰寫，未實機驗證）</li><li>Excel 輸入 =FV(0.03/12,60,-500,0,1)，應得 32,404.16（每月月初存 500、5 年、年利率 3%）</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>PV 填 300,000（收到）時 PMT 是負的，這是對的；本專案在畫面上加了「收到／付出」提示</li><li>沒有答案的題目（借錢與還錢同號），程式初版曾回傳 -8.3 期這種沒意義的數字，後來改成直接報錯；看到奇怪的期數要請 AI 解釋</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step1</code>　·　完成後的參考答案 tag：<code>step2</code></p>
+</section>
+<section class="card" id="step3" data-step="step3">
+<div class="eyebrow">Step 3 <span class="badge">step3</span></div>
+<h2>其他工作表引擎與突變測試</h2>
+<h3>目標</h3><p>照 TVM 的 TDD 方式完成其餘工作表與 bridge，再用突變測試證明測試真的抓得到錯</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step3">複製 Prompt</button><pre id="prompt-step3">【任務】
+請加上現金流的計算：輸入期初投資與各期現金流，算出淨現值 NPV 與內部報酬率 IRR
+【介面】
+輸入方式和 BA II Plus 一樣：CF0、C01、F01（次數）…，折現率 I
+【限制】
+- IRR 沒有答案時（例如現金流全是正的）要說明原因，不能顯示 0
+- 現金流正負號變化不只一次、可能有多個 IRR 時要提醒我
+- 每個結果都附 Excel 公式讓我對
+【驗收】
+例題：期初投資 -10,000，之後四年 3,000、4,200、6,800、-1,500，折現率 10%，告訴我 NPV 和 IRR</pre></div>
+<h3>預期產出</h3><p>NPV 282.77、IRR 11.52%，並提醒現金流有兩次正負號變化</p>
+<h3>驗收</h3><ul><li>Excel 輸入 =-10000+NPV(0.1,3000,4200,6800,-1500)，應得 282.77</li><li>Excel 輸入 =IRR({-10000,3000,4200,6800,-1500})，儲存格設成百分比 2 位小數，應得 11.52%</li><li>BA II Plus：[CF][2ND][CLR WORK]，CF0 輸入 10000 [+|-] [ENTER]，[↓] C01=3000 [ENTER] [↓] F01=1，同樣輸入 C02=4200、C03=6800、C04=1500 [+|-]，[NPV] I=10 [ENTER] [↓][CPT] 應得 282.77；[IRR][CPT] 應得 11.52（按鍵依記憶撰寫，未實機驗證）</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>全部是正的現金流沒有 IRR，App 要顯示「IRR 無解：現金流沒有正負號變化」而不是 0</li><li>回收期在期初沒有投資時，程式初版回傳 0.0 看似合理，後來改成報錯</li><li>Excel 沒有內建回收期函式，這題要請 AI 列出逐期累計現金流，以便手算核對</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step2</code>　·　完成後的參考答案 tag：<code>step3</code></p>
+</section>
+<section class="card" id="step4" data-step="step4">
+<div class="eyebrow">Step 4 <span class="badge">step4</span></div>
+<h2>PWA 殼與 MicroPython（Web Worker）橋接</h2>
+<h3>目標</h3><p>先用 spike 證明 MicroPython 是雙精度，再讓畫面先顯示、Python 在背景載入，離線也能用；同一份 golden 在 MicroPython 也要全綠</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step4">複製 Prompt</button><pre id="prompt-step4">【任務】
+請把計算機做成手機也能用的網頁 App：打開就先看到畫面，計算功能在背景準備，沒網路也能用
+【介面】
+畫面上方顯示「載入中／就緒」；另外做一個自我測試頁，把所有例題重算一次，顯示通過或失敗
+【限制】
+- 選手機載入比較快的方案，告訴我兩種方案的下載大小與資料來源
+- 要安裝任何東西前先問我
+- 還沒準備好就按計算，不能出錯，要等準備好自動算出來
+【驗收】
+請幫我把 App 在電腦上開起來，告訴我網址，我要自己試算</pre></div>
+<h3>預期產出</h3><p>瀏覽器打開 App，狀態顯示就緒；自我測試頁全部通過；AI 說明 Pyodide 約 5.3 MB、MicroPython 約 0.23 MB，所以選 MicroPython</p>
+<h3>驗收</h3><ul><li>打開自我測試頁 selftest.html，每一題都應顯示 PASS</li><li>App 利率換算：名目利率 12、每年複利 12 次，有效利率應為 12.68；Excel =EFFECT(0.12,12) 得 0.126825</li><li>BA II Plus：[2ND][ICONV]，NOM=12 [ENTER]，[↓][↓] C/Y=12 [ENTER]，[↑] 到 EFF 按 [CPT]，應得 12.68（按鍵依記憶撰寫，未實機驗證）</li><li>請 AI 停掉伺服器（模擬沒網路）後重新整理，畫面仍在、仍能算出 12.68</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>改了 App 重新整理還是舊畫面：這是瀏覽器把舊版存起來（快取）造成的，本專案開發時遇過多次，要請 AI 做好自動更新，不是叫使用者一直清快取</li><li>AI 第一次安裝套件時裝錯資料夾（裝到上一層），原因是專案資料夾還沒有套件清單檔 package.json；安裝前要請 AI 先確認專案資料夾裡有 package.json</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step3</code>　·　完成後的參考答案 tag：<code>step4</code></p>
+</section>
+<section class="card" id="step5" data-step="step5">
+<div class="eyebrow">Step 5 <span class="badge">step5</span></div>
+<h2>人性化 UI：每張工作表的畫面</h2>
+<h3>目標</h3><p>手機與電腦都好操作：留一格空白就算、錯誤標出欄位、說明附真實範例、表格可匯出 CSV</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step5">複製 Prompt</button><pre id="prompt-step5">【任務】
+請把每個功能的畫面做得好用：欄位旁有說明和範例，算出來的格子要標出來，錯誤要指出是哪一格
+【介面】
+- 手機上一欄一欄往下排、下方有分頁；電腦左邊是選單
+- 攤還表、折舊表可以下載成 Excel 能開的 CSV
+【限制】
+- 說明裡的範例數字必須是 App 真的算出來的，不能用猜的
+- 下載的 CSV 數字要能在 Excel 直接加總
+- 輸入 5 或 5% 都當成 5%；可以打千分位
+【驗收】
+我會用三題例題在 App 上操作，數字要和 Excel 一樣</pre></div>
+<h3>預期產出</h3><p>每張工作表都能操作，錯誤時標紅該欄並說明原因</p>
+<h3>驗收</h3><ul><li>App 攤還：房貸例題 P1=1、P2=12，利息 INT 應為 -17,899.78；Excel =CUMIPMT(0.005,360,300000,1,12,0) 得 -17,899.78</li><li>BA II Plus：做完 TVM 房貸後 [2ND][AMORT]，P1=1 [ENTER] [↓] P2=12 [ENTER]，[↓] BAL=296,315.96、[↓] PRN=-3,684.04、[↓] INT=-17,899.78（按鍵依記憶撰寫，未實機驗證）</li><li>App 債券：交割日 2026-06-12、到期日 2036-01-01、票面 7%、殖利率 8%、半年付息、ACT，價格應為 93.40；Excel =PRICE(DATE(2026,6,12),DATE(2036,1,1),0.07,0.08,100,2,1) 得 93.40</li><li>下載攤還表 CSV 用 Excel 開啟，數字欄可以直接 =SUM，不會變成文字（儲存格左上角沒有綠色三角形）</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>說明裡的範例數字曾經是 AI 猜的（IRR 寫 13.7，實際 13.78），所以要求「範例必須真的算出來」</li><li>CSV 曾經匯出畫面上帶千分位的文字，Excel 不能加總，後來改成純數字</li><li>設定成歐洲數字格式時小數點是逗號（599,55），打 599.55 會被判格式錯誤</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step4</code>　·　完成後的參考答案 tag：<code>step5</code></p>
+</section>
+<section class="card" id="step6" data-step="step6">
+<div class="eyebrow">Step 6 <span class="badge">step6</span></div>
+<h2>本機儲存與 JSON 匯出入</h2>
+<h3>目標</h3><p>設定、紙帶、記憶、情境存在手機本機（IndexedDB），可匯出 JSON 備份並匯入還原</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step6">複製 Prompt</button><pre id="prompt-step6">【任務】
+請讓 App 記住我的資料：關掉再打開，設定、計算紀錄、記憶值都還在；還要能匯出備份檔、再匯入回來
+【介面】
+設定頁有「匯出 JSON」和「匯入 JSON」兩個按鈕（JSON 是一種純文字的備份檔格式）；匯入時讓我選「取代」或「合併」
+【限制】
+- 資料只存在我的裝置，不上傳
+- 匯入壞掉的檔案時要告訴我哪裡不對，不能弄壞現有資料
+【驗收】
+我會匯出、清空、再匯入，檢查數字一樣</pre></div>
+<h3>預期產出</h3><p>匯出得到 bacalc-backup-日期.json；清空後匯入，所有值恢復</p>
+<h3>驗收</h3><ul><li>TVM 算出房貸 PMT -1,798.65 後存成情境，匯出 JSON、清空資料、再匯入，載入情境應仍是 -1,798.65（Excel 輸入 =PMT(0.06/12,360,300000)，應得 -1,798.65（可能顯示成貨幣格式））</li><li>記憶 M1 存 1798.65，關掉瀏覽器再打開，M1 仍為 1,798.65</li><li>用記事本把備份檔改壞（刪掉一個大括號）再匯入，應出現中文錯誤原因，原有資料不變</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>情境曾經只存上方欄位、沒存現金流表格，載入後新舊資料混在一起；驗收時要整頁比對</li><li>同一份備份匯入兩次，紙帶紀錄曾經變兩倍，後來合併時會去掉重複</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step5</code>　·　完成後的參考答案 tag：<code>step6</code></p>
+</section>
+<section class="card" id="step7" data-step="step7">
+<div class="eyebrow">Step 7 <span class="badge">step7</span><span class="badge optional">選用，作者未實測</span></div>
+<h2>Google Drive 同步（選用，作者未實測）</h2>
+<h3>目標</h3><p>使用者自己申請 OAuth Client ID 後，可把備份手動上傳到 Drive 的 App 專屬資料夾；預設關閉<br>選用，作者未實測，沒有 step7 tag</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step7">複製 Prompt</button><pre id="prompt-step7">【任務】
+（選用）如果我想把備份放到 Google Drive，請說明要做哪些設定，並讓 App 可以手動上傳和下載
+【介面】
+設定頁有「Google Drive 同步」區塊，預設關閉
+【限制】
+- 只能存取這個 App 自己的資料夾，看不到我其他檔案
+- 雲端和手機上的資料不一樣時，先問我要用哪一份
+【驗收】
+用白話告訴我申請步驟，以及授權時會要求哪些權限</pre></div>
+<h3>預期產出</h3><p>AI 說明在 Google Cloud Console 申請 OAuth Client ID（Google 發給這個 App 的識別碼）的步驟，以及只要求「App 專屬資料」權限；不想申請的人改用 JSON 匯出存到任何雲端資料夾</p>
+<h3>驗收</h3><ul><li>照 docs/google-oauth-setup.html 核對 AI 的說明：授權畫面只應要求 App 專屬資料的權限</li><li>上傳後在另一台裝置下載，TVM 情境的 PMT 仍為 -1,798.65（Excel 輸入 =PMT(0.06/12,360,300000)，應得 -1,798.65（可能顯示成貨幣格式））</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>作者沒有用真的 Client ID 實測過，這一步請當作延伸閱讀</li><li>曾經只看時間判斷有沒有改，改了記憶值卻被當成沒改，後來改成比對內容</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step6</code>　·　沒有完成 tag（選用，作者未實測）</p>
+</section>
+<section class="card" id="step8" data-step="step8">
+<div class="eyebrow">Step 8 <span class="badge">step8</span></div>
+<h2>自我驗證 Loop 寫成 Skill</h2>
+<h3>目標</h3><p>一個指令跑完全部驗證並產生 HTML log，再寫成 Skill，讓 AI 每次改完都自己跑「改、驗、讀 log、修」</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step8">複製 Prompt</button><pre id="prompt-step8">【任務】
+請做一個「一鍵檢查」：一個指令把所有測試跑完，產生我看得懂的報告網頁，並把這個流程存成你以後會自動使用的技能 Skill
+【介面】
+報告放在 logs 資料夾，最上面寫總結：全部通過，或哪一項失敗
+【限制】
+- 測試沒過時只能修程式，不能改答案或放寬標準
+- 報告要記錄這是哪一個版本
+【驗收】
+跑一次給我看報告；再故意改壞一個公式跑一次，讓我看到失敗的樣子，然後還原</pre></div>
+<h3>預期產出</h3><p>logs/verify-日期時間.html 顯示全部 PASS；故意改壞時對應項目 FAIL</p>
+<h3>驗收</h3><ul><li>打開 logs 資料夾裡最新的報告，總結應為全部 PASS，並寫著這次檢查的版本編號</li><li>App 折舊：成本 10,000、殘值 1,000、5 年直線法，第 1 年折舊 1,800.00；Excel =SLN(10000,1000,5) 得 1,800</li><li>同一題第 2 年改用 200% 定率遞減，App 應得 2,400.00；Excel =DDB(10000,1000,5,2,2) 得 2,400</li><li>BA II Plus：[2ND][DEPR] 選 SL，用 [↓] 找到各欄輸入 LIF=5、M01=1、CST=10000、SAL=1000、YR=1，再找到 DEP 應為 1,800（欄位順序推測為 LIF、M01、CST、SAL、YR、DEP、RBV、RDV；按鍵依記憶撰寫，未實機驗證）</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>完整檢查約要 2 分多鐘（最慢的一項是「故意改壞公式，確認測試抓得到」），要等它跑完</li><li>故意改壞一個公式時不只一項會失敗（網頁版也跟著不一致），這是正常的</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step6</code>　·　完成後的參考答案 tag：<code>step8</code></p>
+</section>
+<section class="card" id="step9" data-step="step9">
+<div class="eyebrow">Step 9 <span class="badge">step9</span></div>
+<h2>部署到 GitHub Pages、安裝到手機</h2>
+<h3>目標</h3><p>push 到 main 時自動測試，全過才部署；手機安裝成 App（離線只在電腦版瀏覽器驗證過，手機實機待作者實測）</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step9">複製 Prompt</button><pre id="prompt-step9">【任務】
+請把 App 放到網路上，讓我用手機打開並安裝到主畫面，沒網路時也能用
+【介面】
+給我一個網址；說明文件寫 Android 與 iPhone 的安裝步驟
+【限制】
+- 上傳到 GitHub 之前先問我
+- 每次更新都要先自動測試，通過才上線
+【驗收】
+我會在手機安裝，開飛航模式算一題房貸和一題 NPV</pre></div>
+<h3>預期產出</h3><p>得到線上網址；手機安裝後，飛航模式仍可計算（作者尚未實機驗證，請自行測試）</p>
+<h3>驗收</h3><ul><li>手機開 https://fctien.github.io/Statistics-Accouting-Calculator/ ，Android 用 Chrome 選單「安裝應用程式」，iPhone 用 Safari 分享鈕「加入主畫面」</li><li>開飛航模式，TVM 房貸 PMT 應為 -1,798.65（Excel 輸入 =PMT(0.06/12,360,300000)，應得 -1,798.65（可能顯示成貨幣格式））</li><li>飛航模式下 CF：-10000、3000、4200、6800、-1500、I=10，NPV 應為 282.77（Excel 輸入 =-10000+NPV(0.1,3000,4200,6800,-1500)，應得 282.77）</li><li>用 BA II Plus 算同一題 NPV，App、Excel、計算機三者應一致</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>網址大小寫要完全一樣，打錯會出現 404</li><li>第一次打開要有網路，等畫面顯示 Python 就緒後再開飛航模式</li><li>iPhone 建議用 Safari 的「加入主畫面」（作者未在 iPhone 實測）；太久沒開可能清掉本機資料，記得定期匯出備份</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout step8</code>　·　完成後的參考答案 tag：<code>step9</code>（此 tag 尚未建立，作者完成實測後才會打）</p>
+</section>
+<section class="card" id="step10" data-step="step10">
+<div class="eyebrow">Step 10 <span class="badge">step10</span></div>
+<h2>三大頁整合：工程與統計擴充</h2>
+<h3>目標</h3><p>App 分成工程、統計、會計三大頁；工程加科學計算、單位換算、進位轉換，統計加敘述統計、機率分配、信賴區間與檢定</p>
+<h3>Prompt 原文</h3>
+<div class="prompt-wrap"><button type="button" class="copy" data-target="prompt-step10">複製 Prompt</button><pre id="prompt-step10">【任務】
+把計算機分成三頁：工程、統計、會計
+工程加科學計算、單位換算、進位轉換；統計加敘述統計、機率分配、信賴區間與檢定
+【介面】
+手機底部三個分頁，電腦版上方三個分頁；原本的會計功能和存好的情境都要保留
+【限制】
+- 先給我計畫，我同意再做
+- 每個新功能都要附 Excel 公式當標準答案；Excel 和教科書答案不同時先問我
+- 算不出來要說原因，不能顯示 0
+【驗收】
+我會用 Excel 對：1 英里換公里、常態分配 1.96 的累積機率、一組資料的四分位數、兩組資料的 t 檢定 p 值</pre></div>
+<h3>預期產出</h3><p>三大頁、每頁有子選單；手機底部三分頁；舊情境仍可載入</p>
+<h3>驗收</h3><ul><li>工程／單位換算：1 英里應為 1.609344 公里，預設顯示 2 位小數時為 1.61（Excel =CONVERT(1,&quot;mi&quot;,&quot;km&quot;)）</li><li>統計／機率分配：常態 μ=0、σ=1、x=1.96 的累積機率應為 0.9750（Excel =NORM.DIST(1.96,0,1,TRUE)）</li><li>統計／敘述統計：2,4,4,4,5,5,7,9 的 Q1 應為 4、Q3 應為 5.5（Excel =QUARTILE.INC(…,1) 與 (…,3)）</li><li>統計／檢定：23,25,28,30,27,26,24 與 20,22,21,25,23,19 合併變異數雙尾 t 檢定，p 應約 0.0050（Excel =T.TEST({23,25,28,30,27,26,24},{20,22,21,25,23,19},2,2)）</li></ul>
+<h3>常見坑（實際踩過）</h3><ul><li>Excel 的 T.DIST、CHISQ.DIST 會把 2.5 這種非整數自由度當成 2，App 依定義計算，兩者答案會不同</li><li>雙尾 α = 0.05 時，機率分配的反查輸入 p = 0.05（App 有提示），不是 0.025</li><li>p 值要看多位小數：0.046 和 0.054 四捨五入到兩位都是 0.05，結論卻相反</li><li>迴歸改了 X&#x27; 後「預測」被擋是 v0.2.0 的錯誤，v0.2.1 已修；遇到類似情況，附操作步驟與畫面請 AI 修正</li></ul>
+<p class="tagline">從這裡接手：<code>git checkout v0.1.0</code>　·　完成後的參考答案 tag：<code>step10</code></p>
+</section>
+</main>
+<script>
+(function () {
+  // 複製按鈕：優先用 Clipboard API，不支援時退回 textarea＋execCommand
+  function copyText(text, btn) {
+    function done() {
+      var old = btn.textContent; btn.textContent = '已複製'; btn.classList.add('copied');
+      setTimeout(function () { btn.textContent = old; btn.classList.remove('copied'); }, 1500);
+    }
+    function fallback() {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand('copy'); done(); } catch (e) { btn.textContent = '請手動選取'; }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = document.getElementById(btn.getAttribute('data-target'));
+      copyText(pre.textContent, btn);
+    });
+  });
+  // 主題切換：只存在本機 localStorage，讀寫失敗就忽略
+  var root = document.documentElement, KEY = 'bacalc.cards.theme';
+  try { var t = localStorage.getItem(KEY); if (t) root.setAttribute('data-theme', t); } catch (e) {}
+  var tb = document.getElementById('theme-toggle');
+  if (tb) tb.addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = dark ? 'light' : 'dark'; root.setAttribute('data-theme', next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+  });
+  var pb = document.getElementById('print-btn');
+  if (pb) pb.addEventListener('click', function () { window.print(); });
+})();
+</script>
+</body></html>

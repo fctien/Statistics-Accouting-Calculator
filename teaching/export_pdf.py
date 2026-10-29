@@ -20,7 +20,7 @@ import subprocess
 import sys
 
 TEACHING = os.path.dirname(os.path.abspath(__file__))
-OUT_DIR = os.path.join(TEACHING, "out")
+OUT_DIR = os.path.join(TEACHING, "out", "v0.2")  # v0.2 教材；v0.1 版留在 teaching/out/
 DECKS = ["BACalc_AI.pptx", "BACalc_EMBA.pptx"]
 PP_SAVE_AS_PDF = 32  # ppSaveAsPDF
 RUNNING_MESSAGE = ("PowerPoint 正在執行，為避免影響使用者開啟的檔案，未匯出 PDF；"

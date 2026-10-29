@@ -2,7 +2,7 @@
 
 用法
     python teaching/make_package.py          只檢查檔案是否齊全，不寫 zip
-    python teaching/make_package.py --zip    產生 teaching/out/BACalc_AI_student.zip、BACalc_EMBA_student.zip
+    python teaching/make_package.py --zip    產生 teaching/out/v0.2/BACalc_AI_student.zip、BACalc_EMBA_student.zip
 
 每份 zip 內容（使用者規定：簡報只放 PDF，不放 pptx、不放講稿）
 - Prompt卡_AI.html 或 Prompt卡_EMBA.html
@@ -24,7 +24,7 @@ if ROOT not in sys.path:
 
 from teaching import prompts  # noqa: E402  Model：步驟與 tag 的單一來源
 
-OUT_DIR = os.path.join(TEACHING, "out")
+OUT_DIR = os.path.join(TEACHING, "out", "v0.2")  # v0.2 教材；v0.1 版留在 teaching/out/
 DOCS_DIR = os.path.join(ROOT, "docs")
 REPO_URL = "https://github.com/fctien/Statistics-Accouting-Calculator.git"
 SITE_URL = "https://fctien.github.io/Statistics-Accouting-Calculator/"

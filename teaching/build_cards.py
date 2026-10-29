@@ -1,8 +1,8 @@
 """Prompt 卡產生器（generator）：由單一來源 teaching/prompts.py 產生兩份單一 HTML
 
 產出
-- teaching/out/Prompt卡_AI.html：AI Agent 版（四段式 Prompt、驗收指令、實際踩過的坑、git tag）
-- teaching/out/Prompt卡_EMBA.html：EMBA 版（白話 Prompt、用 Excel／BA II Plus 對答案、起點 tag）
+- teaching/out/v0.2/Prompt卡_AI.html：AI Agent 版（四段式 Prompt、驗收指令、實際踩過的坑、git tag）
+- teaching/out/v0.2/Prompt卡_EMBA.html：EMBA 版（白話 Prompt、用 Excel／BA II Plus 對答案、起點 tag）
 
 每個步驟一張卡：目標／Prompt 原文（複製按鈕）／預期產出／驗收／常見坑／tag
 可列印：@media print 每張卡一頁；顏色用 CSS 變數（token），支援深色與淺色；不載入任何外部網路資源
@@ -26,7 +26,7 @@ if ROOT not in sys.path:
 
 from teaching import prompts  # noqa: E402  Model：單一來源
 
-OUT_DIR = os.path.join(HERE, "out")
+OUT_DIR = os.path.join(HERE, "out", "v0.2")  # v0.2 教材；v0.1 版留在 teaching/out/
 OUTPUTS = {"ai": "Prompt卡_AI.html", "emba": "Prompt卡_EMBA.html"}
 TITLES = {
     "ai": "BACalc Prompt 卡（AI Agent 版）",

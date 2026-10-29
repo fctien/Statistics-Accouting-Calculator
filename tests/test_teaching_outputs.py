@@ -20,7 +20,7 @@ import pytest
 from teaching import prompts
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.environ.get("BACALC_TEACHING_OUT", os.path.join(ROOT, "teaching", "out"))
+OUT = os.environ.get("BACALC_TEACHING_OUT", os.path.join(ROOT, "teaching", "out", "v0.2"))
 DECKS = {
     "ai": ["BACalc_AI.pptx", "BACalc_AI_講稿.pptx"],
     "emba": ["BACalc_EMBA.pptx", "BACalc_EMBA_講稿.pptx"],
@@ -110,10 +110,10 @@ def test_slides_cover_all_steps(version):
     prs = _open(DECKS[version][0])
     seen = {}
     for i, sl in enumerate(prs.slides, 1):
-        m = re.search(r"Step (\d) · ", _slide_text(sl))
+        m = re.search(r"Step (\d+) · ", _slide_text(sl))
         if m:
             seen.setdefault("step" + m.group(1), []).append(i)
-    assert sorted(seen) == STEP_IDS, "缺少步驟頁：%s" % sorted(set(STEP_IDS) - set(seen))
+    assert sorted(seen, key=lambda k: int(k[4:])) == STEP_IDS, "缺少步驟頁：%s" % sorted(set(STEP_IDS) - set(seen))
     # 每步至少：概觀、Prompt、驗收、坑 四頁（AI 版另有一句話對照）
     least = 5 if version == "ai" else 4
     few = {k: len(v) for k, v in seen.items() if len(v) < least}

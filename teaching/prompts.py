@@ -6,7 +6,7 @@ Prompt 卡（HTML）與簡報（PPT）都由本檔產生，請只改這裡
 結構
 - USER_CLAUDE_MD：使用者層級 ~/.claude/CLAUDE.md 範本（五條通用原則）
 - PROJECT_CLAUDE_MD：專案層級 CLAUDE.md 範本（五段：常用指令／專案結構／程式風格／工作方式／重要規則）
-- STEPS：10 筆 dict，id 為 step0～step9，鍵如下
+- STEPS：11 筆 dict，id 為 step0～step10，鍵如下（step10 為 v0.2 三大頁整合）
   - id、title、goal
   - tag：本步完成後的參考答案 git tag；step7 為 None（使用者決定不打，Drive 作者未實測）
     step9 的 tag 要等部署與手機實測後才打
@@ -15,7 +15,7 @@ Prompt 卡（HTML）與簡報（PPT）都由本檔產生，請只改這裡
     - prompt：四段式【任務】【介面】【限制】【驗收】，【介面】只寫別人會依賴的東西
     - bad_prompt：一句話下法（對照組）
     - bad_result：一句話下法的結果；step0～step2 已演練，開頭「實測：」（2026-10-21 替身演練，
-      見 teaching/rehearse.md）；step3～step9 尚未實測，開頭「推測：」
+      見 teaching/rehearse.md）；step3～step10 尚未實測，開頭「推測：」
     - bad_evidence：本專案實際發生過的同類問題，開頭「實際踩過：」並附出處
     - expected：預期產出
     - verify：list[str]，在該步 tag 上存在、可執行的驗收指令
@@ -26,7 +26,8 @@ Prompt 卡（HTML）與簡報（PPT）都由本檔產生，請只改這裡
     - verify：list[str]，拿 Excel 或實體 BA II Plus 對答案的具體操作
     - pitfalls：list[str]，白話版的實際踩坑
     - start_tag：起點 tag（上一步完成的狀態），學生從這裡接手做本步
-      step0 以 step0 為起點（只有規格與 CLAUDE.md），step8 以 step6 為起點（step7 沒有 tag）
+      step0 以 step0 為起點（只有規格與 CLAUDE.md），step8 以 step6 為起點（step7 沒有 tag），
+      step10 以 v0.1.0 為起點（step9 尚未打 tag）
 
 字串規則（簡報規則）：不用全形句點，以換行或不加結尾標點；Prompt 可以用「你」稱呼 AI
 """
@@ -814,7 +815,7 @@ STEPS = [
     {
         "id": "step9",
         "title": "部署到 GitHub Pages、安裝到手機",
-        "goal": "push 到 main 時自動測試，全過才部署；手機安裝成 App，飛航模式也能算",
+        "goal": "push 到 main 時自動測試，全過才部署；手機安裝成 App（離線只在電腦版瀏覽器驗證過，手機實機待作者實測）",
         "tag": "step9",
         "optional": False,
         "ai": {
@@ -840,7 +841,7 @@ STEPS = [
                           "沒有測試就上線，web/py 沒建置導致線上無法計算",
             "bad_evidence": "實際踩過：計畫寫的 Actions 版本比實際最新的舊，實作時查 releases 頁才改用 checkout v7、"
                             "deploy-pages v5 等，再用 git ls-remote 確認 tag 存在（DEVLOG Task 28、progress ledger Task 28）",
-            "expected": ".github/workflows/pages.yml、README.md 安裝說明；線上網址可開、selftest 全綠；手機飛航模式可用",
+            "expected": ".github/workflows/pages.yml、README.md 安裝說明；線上網址可開、selftest 全綠；手機飛航模式可用（作者尚未實機驗證）",
             "verify": [
                 "python -m pytest -q",
                 "python tools/check_portable.py engine",
@@ -867,7 +868,7 @@ STEPS = [
 - 每次更新都要先自動測試，通過才上線
 【驗收】
 我會在手機安裝，開飛航模式算一題房貸和一題 NPV""",
-            "expected": "得到線上網址；手機安裝後，飛航模式仍可計算",
+            "expected": "得到線上網址；手機安裝後，飛航模式仍可計算（作者尚未實機驗證，請自行測試）",
             "verify": [
                 "手機開 https://fctien.github.io/Statistics-Accouting-Calculator/ ，"
                 "Android 用 Chrome 選單「安裝應用程式」，iPhone 用 Safari 分享鈕「加入主畫面」",
@@ -878,9 +879,94 @@ STEPS = [
             "pitfalls": [
                 "網址大小寫要完全一樣，打錯會出現 404",
                 "第一次打開要有網路，等畫面顯示 Python 就緒後再開飛航模式",
-                "iPhone 必須用 Safari 才能加入主畫面；太久沒開可能清掉本機資料，記得定期匯出備份",
+                "iPhone 建議用 Safari 的「加入主畫面」（作者未在 iPhone 實測）；太久沒開可能清掉本機資料，記得定期匯出備份",
             ],
             "start_tag": "step8",
+        },
+    },
+    # ----------------------------------------------------------------- step10
+    {
+        "id": "step10",
+        "title": "三大頁整合：工程與統計擴充",
+        "goal": "App 分成工程、統計、會計三大頁；工程加科學計算、單位換算、進位轉換，統計加敘述統計、機率分配、信賴區間與檢定",
+        "tag": "step10",
+        "optional": False,
+        "ai": {
+            "prompt": """\
+【任務】
+把 App 分成工程、統計、會計三大頁，並擴充工程與統計功能
+- 工程：科學計算機（sin cos tan、log、∛、π、e、DEG／RAD）、單位換算、進位轉換與位元運算
+- 統計：敘述統計、機率分配（常態、t、卡方、二項、Poisson）、信賴區間與檢定
+- 會計：沿用現有工作表
+【介面】
+- 新引擎模組 engine/units.py、base.py、describe.py、dist.py、infer.py，都經 engine/bridge.py 的 call(json) 進出
+- 網址 #<頁>/<項目>（例 #eng/calc、#stat/dist、#acct/tvm），舊網址（#tvm 等）自動導向
+- 情境儲存、JSON 匯出入格式不變，舊資料要能讀
+【限制】
+- 先寫計畫給我看，分成引擎、畫面、整合三段，每個 Task 列出 golden 值的 Excel 公式
+- engine/ 仍只能用可攜子集；不完全 Beta／Gamma 自己寫，不能 import scipy
+- 參數不合法、定義域錯誤（asin(2)、tan(90°)）回錯誤，不回 0
+- Excel 和數學定義不一致時停下來問我，不要硬湊
+【驗收】
+- 每個新模組有 golden 值（Excel CONVERT、DEC2BIN、QUARTILE.INC、NORM.DIST、T.TEST 等），CPython 與 MicroPython 誤差 ≤ 1e-9
+- python tools/verify_all.py 全過（含突變測試）
+- 瀏覽器實際操作三大頁各一題，貼截圖""",
+            "bad_prompt": "幫我加上工程和統計的功能",
+            "bad_result": "推測：AI 可能直接 import scipy（MicroPython 沒有）、拿 Excel 結果當標準卻沒發現 Excel 會截斷自由度，"
+                          "或只寫引擎不改導覽，三類功能擠在同一個選單",
+            "bad_evidence": "實際踩過：迴歸「預測」永遠被擋，編輯 X' 會把 a、b 一起標成過期；所有單元測試都通過，"
+                            "是在瀏覽器實際操作才發現，v0.2.1 修正（progress ledger Task D5、CHANGELOG v0.2.1）",
+            "expected": "三大頁導覽、五個新引擎模組與 golden 值（共 355 筆）、各子頁畫面；v0.2.1 部署上線",
+            "verify": [
+                "python -m pytest -q",
+                "python tools/check_portable.py engine",
+                "npm run test:mpy",
+                "npm run test:js",
+                "python tools/verify_all.py",
+                "本機預覽開 web/selftest.html 應顯示 PASS golden 355/355",
+            ],
+            "pitfalls": [
+                "Excel 的 T.*、CHISQ.* 會把非整數自由度截成整數（T.INV(0.975,2.5) 等於 T.INV(0.975,2)）；"
+                "golden 改用 BETA.DIST、GAMMA.DIST 恆等式，App 依定義計算（progress ledger Task C2 裁定）",
+                "mmHg 用慣用值 133.322387415 Pa，不是 torr 的 101325/760，兩者相對差 1.4e-7，"
+                "超過 1e-9 容差（progress ledger Task B2）",
+                "成對 t 檢定的差值全部相同時變異數為 0，判斷門檻要隨資料大小縮放，"
+                "否則浮點誤差會算出巨大的 t 值（progress ledger Task C3 第 2 輪修正）",
+                "兩個子代理同時跑突變測試，把改壞的 engine/dates.py 短暫 commit 進去；"
+                "之後規定突變測試不可同時執行（progress ledger Task B2）",
+                "機率分配載入情境後畫面仍顯示 μ、σ，計算卻用 t 分配的 df（最終審查 I1、CHANGELOG v0.2.1）",
+                "p 值只顯示兩位小數時 0.046 與 0.054 都是 0.05，結論卻相反；機率輸出要顯示更多位"
+                "（progress ledger Task C3）",
+            ],
+        },
+        "emba": {
+            "prompt": """\
+【任務】
+把計算機分成三頁：工程、統計、會計
+工程加科學計算、單位換算、進位轉換；統計加敘述統計、機率分配、信賴區間與檢定
+【介面】
+手機底部三個分頁，電腦版上方三個分頁；原本的會計功能和存好的情境都要保留
+【限制】
+- 先給我計畫，我同意再做
+- 每個新功能都要附 Excel 公式當標準答案；Excel 和教科書答案不同時先問我
+- 算不出來要說原因，不能顯示 0
+【驗收】
+我會用 Excel 對：1 英里換公里、常態分配 1.96 的累積機率、一組資料的四分位數、兩組資料的 t 檢定 p 值""",
+            "expected": "三大頁、每頁有子選單；手機底部三分頁；舊情境仍可載入",
+            "verify": [
+                "工程／單位換算：1 英里應為 1.609344 公里，預設顯示 2 位小數時為 1.61（Excel =CONVERT(1,\"mi\",\"km\")）",
+                "統計／機率分配：常態 μ=0、σ=1、x=1.96 的累積機率應為 0.9750（Excel =NORM.DIST(1.96,0,1,TRUE)）",
+                "統計／敘述統計：2,4,4,4,5,5,7,9 的 Q1 應為 4、Q3 應為 5.5（Excel =QUARTILE.INC(…,1) 與 (…,3)）",
+                "統計／檢定：23,25,28,30,27,26,24 與 20,22,21,25,23,19 合併變異數雙尾 t 檢定，p 應約 0.0050"
+                "（Excel =T.TEST({23,25,28,30,27,26,24},{20,22,21,25,23,19},2,2)）",
+            ],
+            "pitfalls": [
+                "Excel 的 T.DIST、CHISQ.DIST 會把 2.5 這種非整數自由度當成 2，App 依定義計算，兩者答案會不同",
+                "雙尾 α = 0.05 時，機率分配的反查輸入 p = 0.05（App 有提示），不是 0.025",
+                "p 值要看多位小數：0.046 和 0.054 四捨五入到兩位都是 0.05，結論卻相反",
+                "迴歸改了 X' 後「預測」被擋是 v0.2.0 的錯誤，v0.2.1 已修；遇到類似情況，附操作步驟與畫面請 AI 修正",
+            ],
+            "start_tag": "v0.1.0",
         },
     },
 ]

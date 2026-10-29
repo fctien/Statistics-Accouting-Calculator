@@ -155,7 +155,7 @@ def main(log_dir=None, runner=run_cmd, out_dir=None):
     ]
     if status != 0:
         meta.insert(-1, ("重跑前", RECOVERY_HINT))
-    out_dir = out_dir or os.path.join(ROOT, "teaching", "out")
+    out_dir = out_dir or os.path.join(ROOT, "teaching", "out", "v0.2")
     page = render(meta, results, not_run, status, find_visual_pages(out_dir))
     log_dir = log_dir or os.path.join(ROOT, "logs")
     os.makedirs(log_dir, exist_ok=True)

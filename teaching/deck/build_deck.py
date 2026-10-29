@@ -3,7 +3,7 @@
 版面用使用者的教材格式模組 deck_kit（tien-teaching-deck 技能）：16:9、深藍／磚紅／米白、
 封面肖像與校徽、流程圖附說明、每頁出處列、不用句點
 
-產出（只寫 teaching/out/，每次由原始資料重產，不覆蓋任何手改檔）
+產出（只寫 teaching/out/v0.2/，每次由原始資料重產；v0.1 版留在 teaching/out/ 不覆蓋）
 - BACalc_AI.pptx、BACalc_AI_講稿.pptx
 - BACalc_EMBA.pptx、BACalc_EMBA_講稿.pptx
   講稿版每頁備忘稿（notes）都有【講稿】與【投影片說明】兩段
@@ -34,7 +34,7 @@ TEACHING = os.path.dirname(HERE)
 ROOT = os.path.dirname(TEACHING)
 TIEN = os.path.dirname(ROOT)  # 上一層 Tien Research 資料夾
 ASSETS = os.path.join(TEACHING, "assets")
-OUT_DIR = os.path.join(TEACHING, "out")
+OUT_DIR = os.path.join(TEACHING, "out", "v0.2")  # v0.2 教材；v0.1 版留在 teaching/out/
 
 # deck_kit 在 import 時讀 DECK_RES／DECK_IMG，所以要先設好
 os.environ.setdefault("DECK_RES", TIEN + os.sep)
@@ -60,7 +60,7 @@ MIN_TEXT = 16           # 其他文字下限
 LINE_SPACING = 1.5      # 使用者規則：1.5–2 倍行距
 CONTENT_BOTTOM = 6.45   # deck_kit：內容區下緣（出處列在 6.52）
 OPTIONAL_NOTE = "選用，作者未實測"
-SHOT_DATE = "2026-10-21"
+SHOT_DATE = "2026-10-29"
 SHOT_SRC = "BACalc App 實際截圖（%s，本機 localhost:8765）" % SHOT_DATE
 
 VERSIONS = {
@@ -76,6 +76,10 @@ SHOTS = {
     "calc_tape": "計算機 CALC：算式與紙帶 Tape",
     "settings_about": "設定頁「關於」：MicroPython 版本與啟動時間",
     "mobile_tvm": "手機版 375 px：單欄與底部分頁列",
+    "eng_calc": "工程頁 科學計算機：sin(30) = 0.50（DEG）",
+    "stat_dist": "統計頁 機率分配：常態 P(X ≤ 1.96) = 0.975",
+    "stat_infer": "統計頁 兩樣本 t 檢定：t = 2.00、p = 0.081",
+    "mobile_nav": "手機版：工程頁與底部三分頁",
 }
 
 
@@ -363,11 +367,11 @@ def slide_cover(b):
     if b.version == "ai":
         eyebrow = "AI Agent 實作課 · Claude Code"
         title = ["BACalc 財務計算機", "用 AI Agent 做完整專案"]
-        sub = ["從 CLAUDE.md 到部署的 10 個步驟", "TDD、Skill、自我驗證 Loop、GitHub Pages"]
+        sub = ["從 CLAUDE.md 到三大頁整合的 11 個步驟", "TDD、Skill、自我驗證 Loop、GitHub Pages"]
     else:
         eyebrow = "EMBA · 用 AI 做出自己的工具"
         title = ["BACalc 財務計算機", "描述需求與驗收答案"]
-        sub = ["10 個步驟，每步從參考版本接手", "用 Excel 與 BA II Plus 對答案"]
+        sub = ["11 個步驟，每步從參考版本接手", "用 Excel 與 BA II Plus 對答案"]
     sl = cover(b.dk, eyebrow, title, sub, right=right, title_size=40)
     refline(sl, SHOT_SRC)
     b.notes.append((sl,
@@ -381,32 +385,33 @@ def slide_cover(b):
 
 def slide_agenda(b):
     sl = b.new()
-    y = header(sl, "課程架構", "十個步驟與 git tag", "每一步都有 Prompt、驗收方式與參考答案 tag（step0～step9）")
-    w, h, gx = 2.25, 1.12, 0.22
+    y = header(sl, "課程架構", "十一個步驟與 git tag", "每一步都有 Prompt、驗收方式與參考答案 tag（step0～step10）")
+    per = math.ceil(len(prompts.STEPS) / 2)  # 每排幾個（11 步 → 6）
+    w, h, gx = (12.13 - (per - 1) * 0.22) / per, 1.12, 0.22
     for i, s in enumerate(prompts.STEPS):
-        row, col = divmod(i, 5)
-        col = col if row == 0 else 4 - col  # 蛇形排列
+        row, col = divmod(i, per)
+        col = col if row == 0 else per - 1 - col  # 蛇形排列
         x = 0.6 + col * (w + gx)
         yy = y + 0.25 + row * (h + 0.55)
         fill = BRICK if s.get("optional") else (GREEN if i == 0 else NAVY)
         short = s["title"].split("：")[-1] if "：" in s["title"] else s["title"]
         short = re.sub(r"（.*?）", "", short) + ("（選用）" if s.get("optional") else "")
         node(sl, x, yy, w, h, s["id"], short, fill=fill, tsize=17, ssize=14)
-        if row == 0 and col < 4:
+        if row == 0 and col < per - 1:
             arrow(sl, x + w + 0.01, yy + h / 2 - 0.12, gx - 0.02, 0.24)
         if row == 1 and col > 0:
             arrow(sl, x - gx + 0.01, yy + h / 2 - 0.12, gx - 0.02, 0.24, shape=MSO_SHAPE.LEFT_ARROW)
-    arrow(sl, 0.6 + 4 * (w + gx) + w / 2 - 0.15, y + 0.25 + h + 0.08, 0.30, 0.40,
+    arrow(sl, 0.6 + (per - 1) * (w + gx) + w / 2 - 0.15, y + 0.25 + h + 0.08, 0.30, 0.40,
           shape=MSO_SHAPE.DOWN_ARROW)
     bottom = paras(sl, 0.6, y + 0.25 + 2 * h + 0.55 + 0.25, 12.13, [
-        "上圖為十個步驟的順序：上排由左而右，下排由右而左；磚紅色的 step7 為選用，作者未實測、沒有 tag",
+        "上圖為十一個步驟的順序：上排由左而右，下排由右而左；磚紅色的 step7 為選用，作者未實測、沒有 tag",
         ("每一步做完都打一個 git tag，教材中的 Prompt 都是實際用過的",),
     ], size=17)
     check_fit(bottom, "課程架構")
     refline(sl, "docs/spec-2026-10-19.md 5.2 節", "teaching/prompts.py STEPS")
-    b.done(sl, "整門課分成十步，從兩層 CLAUDE.md 開始，到部署上 GitHub Pages、安裝到手機結束；"
+    b.done(sl, "整門課分成十一步，從兩層 CLAUDE.md 開始，部署上 GitHub Pages、安裝到手機，最後一步把 App 擴充成工程、統計、會計三大頁；"
                "每一步完成都有一個 git tag，可以隨時切回參考答案；step7 Google Drive 同步是選用，作者沒有實測，所以沒有 tag",
-           "蛇形流程圖（flow diagram）列出 step0～step9；磚紅色方塊為選用步驟；下方文字說明讀圖順序")
+           "蛇形流程圖（flow diagram）列出 step0～step10；磚紅色方塊為選用步驟；下方文字說明讀圖順序")
 
 
 def slide_why(b):
@@ -414,14 +419,14 @@ def slide_why(b):
     y = header(sl, "為什麼選這個案例", "BACalc：仿 BA II Plus 的財務計算 PWA",
                "答案可以用 Excel 與實體計算機核對，適合練習「怎麼驗收 AI 的產出」")
     cards(sl, y + 0.2, [
-        ("BA II Plus 風格", "財務計算機 Financial Calculator",
-         "TVM、攤還、現金流、利率換算、統計、債券、折舊，欄位與正負號慣例和計算機一致",
+        ("三大頁 計算機", "工程 · 統計 · 會計",
+         "會計頁仿 BA II Plus（TVM、攤還、現金流、債券、折舊），另有科學計算、機率分配與檢定",
          "每題都有 Excel 公式當標準答案"),
         ("Python 在瀏覽器執行", "MicroPython＋WebAssembly",
          "計算引擎是純 Python，在 Web Worker 背景載入，畫面先顯示",
          "下載約 0.23 MB，比 Pyodide 小約 23 倍"),
         ("離線可用的 PWA", "Progressive Web App",
-         "純靜態檔、資料只存本機 IndexedDB，手機安裝後飛航模式也能算",
+         "純靜態檔、資料只存本機 IndexedDB，可安裝到手機主畫面（手機離線待實測）",
          "部署在 GitHub Pages"),
     ], h=3.05)
     bottom = paras(sl, 0.6, y + 3.5, 12.13, [
@@ -455,6 +460,28 @@ def slide_why(b):
                "求出每月付 1,798.65，紅色「付出」代表負號；右邊是手機版，一欄往下排，底部有分頁列",
            "左為桌面版截圖、中為手機版截圖（Playwright 驅動 Chrome 實際操作後擷取），右側為讀圖重點；"
            "數字與 Excel =PMT(0.06/12,360,300000) 一致")
+
+    # 第三頁：v0.2 三大頁（工程頁＋手機底部三分頁）
+    sl = b.new()
+    y = header(sl, "為什麼選這個案例", "v0.2：工程、統計、會計三大頁",
+               "頂端三個頁籤，左側是該頁的功能清單；手機版頁籤移到底部")
+    bottom1 = shot(sl, asset("eng_calc"), 0.6, y + 0.1, 7.2, SHOTS["eng_calc"])
+    mob = sl.shapes.add_picture(asset("mobile_nav"), In(8.1), In(y + 0.1), height=In(4.0))         if os.path.exists(asset("mobile_nav")) else None
+    if mob is not None:
+        mob.line.color.rgb = LINE
+    txt(sl, 8.1, y + 4.16, 2.2, 0.3, [{"text": "手機版 375 px", "size": 16, "color": MUT}])
+    paras(sl, 10.3, y + 0.1, 2.43, [
+        "工程：科學計算、單位換算、進位轉換",
+        "統計：迴歸、敘述統計、機率分配、檢定",
+        ("網址 #eng/calc 可加書籤",),
+    ], size=16)
+    check_fit(max(bottom1 + 0.36, y + 4.46), "三大頁畫面")
+    refline(sl, SHOT_SRC, "docs/CHANGELOG.md v0.2.0")
+    b.done(sl, "v0.2 把 App 分成工程、統計、會計三大頁：上方三個頁籤，左邊是這一頁的功能清單；"
+               "這張是工程頁的科學計算機，sin 30 度等於 0.5；右邊是手機版，三個頁籤移到畫面底部，"
+               "這部分在第十步示範怎麼請 AI 做",
+           "左為桌面版工程頁截圖、中為手機版截圖（Playwright 驅動 Chrome 實際操作後擷取），右側為三大頁的內容；"
+           "sin(30)=0.50 與 Excel =SIN(RADIANS(30)) 一致")
 
 
 def slide_mvc(b):
@@ -771,7 +798,7 @@ def slide_step_shot(b, step, names, notes, speech):
         w, gap = 5.25, 0.4
         x0 = (13.333 - 2 * w - gap) / 2
         b1 = shot(sl, asset(names[0]), x0, y, w, SHOTS[names[0]])
-        if names[1] == "mobile_tvm":  # 直式手機截圖：同高度放右側
+        if names[1].startswith("mobile_"):  # 直式手機截圖：同高度放右側
             b2 = _portrait(sl, asset(names[1]), x0 + w + gap, y, b1 - y, SHOTS[names[1]])
         else:
             b2 = shot(sl, asset(names[1]), x0 + w + gap, y, w, SHOTS[names[1]])
@@ -827,6 +854,12 @@ STEP_SHOTS = {
               ["手機寬度 375 px 的版面", "安裝到主畫面後可離線使用",
                ("此圖為桌面瀏覽器模擬手機寬度，手機實機與飛航模式由作者另行實測",)],
               "這張是用瀏覽器模擬手機寬度的截圖，不是手機實機；手機安裝與飛航模式要由作者親自測過才打 step9 tag"),
+    "step10": (["stat_dist", "stat_infer"],
+               ["常態 x = 1.96 左尾 0.975（=NORM.DIST）；t 檢定 t = 2.00、df = 8、p = 0.081，不拒絕 H0",
+                ("機率與 p 值顯示 10 位有效數字",)],
+               "左邊是機率分配，常態分配 1.96 的左尾機率是 0.975，和 Excel NORM.DIST 一樣，下面的圖用陰影標出面積；"
+               "右邊是兩樣本 t 檢定，t 值 2、自由度 8、p 值 0.081，大於 0.05，所以不拒絕虛無假設；"
+               "注意機率都顯示很多位，因為 0.046 和 0.054 四捨五入到兩位都是 0.05，結論卻相反"),
 }
 
 
@@ -883,7 +916,7 @@ def slide_closing(b):
             b.dk,
             "需求講清楚、例題附標準答案、對不上就附數字請 AI 修正",
             "課後練習",
-            ["用 Excel 核對房貸、NPV、債券三題", "手機安裝 App，開飛航模式算一題",
+            ["用 Excel 核對房貸、NPV、常態分配與 t 檢定", "手機安裝 App，試試離線能不能算",
              "替自己工作上的計算寫一份四段式需求"],
             "參考資料",
             ["Prompt卡_EMBA.html（teaching/out/）", "README.md 手機安裝步驟",
