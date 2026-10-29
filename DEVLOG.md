@@ -1999,3 +1999,37 @@
 **待辦**
 - teaching/deck/build_deck.py 第 424 行仍寫「手機安裝後飛航模式也能算」（簡報，非本次範圍），應改成與影片一致的說法後重建簡報
 - 手機實機（Android Chrome、iPhone Safari）安裝與飛航模式仍待作者親測
+
+## 2026-10-29 教材更新到 v0.2（Prompt 卡、簡報）
+
+**需求**
+- 使用者：「更新教材」；計畫經同意，但「skip the mp4 part. Do it later, and remind me」——影片相關教材（原計畫 step11「自動產生使用說明影片」、影片影格頁、學生包影片連結）延後
+
+**做法**
+- teaching/prompts.py：新增 step10「三大頁整合：工程與統計擴充」（AI 版四段式、一句話對照、實際踩過的坑取自 v0.2 progress ledger 與 CHANGELOG；EMBA 版白話四段式與 Excel 對答案：CONVERT、NORM.DIST、QUARTILE.INC、T.TEST，數值用 engine.bridge 與 golden 核對）
+- step9：goal／expected 改成「離線只在電腦版瀏覽器驗證過，手機實機待作者實測」；EMBA 坑「iPhone 必須用 Safari」改「建議用 Safari（作者未在 iPhone 實測）」
+- 本機 tag：v0.1.0 → ccba449（v0.1 完成狀態，step10 EMBA 起點）、step10 → 397e3cf（v0.2.1）；未推送
+- capture_shots.mjs 新增 eng_calc、stat_dist、stat_infer、mobile_nav，並重拍全部截圖（v0.2 頂端三頁籤）
+- build_deck.py：11 步、課程架構蛇形圖改成每排 ceil(n/2) 個；「為什麼選這個案例」卡片改三大頁並拿掉飛航模式說法、新增「v0.2 三大頁」截圖頁；step10 截圖頁（機率分配＋t 檢定）；課後練習改成常態分配與 t 檢定
+- 依專案規則不覆蓋原簡報：輸出改到 teaching/out/v0.2/（build_cards、build_deck、export_pdf、make_package、run_all 與測試同步），v0.1 版留在 teaching/out/
+
+**產出**
+- commit c8ca75a；teaching/out/v0.2/：BACalc_AI(.pptx／_講稿) 95 頁、BACalc_EMBA(.pptx／_講稿) 68 頁、Prompt卡_AI.html、Prompt卡_EMBA.html
+- logs/verify-20261029-1248.html（--quick，commit c8ca75a）
+
+**驗證**
+- pytest 全過（test_prompts 改為 11 步、起點 tag 可為版本 tag；test_teaching_outputs 步驟號支援兩位數並以數字排序）
+- verify_all --quick PASS
+- 截圖逐張目視：sin(30)=0.50、常態左尾 0.9750021049 與分配圖、t=2.00／df=8／p=0.08051623796「不拒絕 H0」、手機底部三分頁
+- 簡報版面只靠 check_fit 估算；PowerPoint 正在執行，未轉 PDF、未逐頁目視（不碰使用者的 PowerPoint）
+
+**問題與修正**
+- step10 驗收字串「web/selftest.html，應…」的全形逗號黏在路徑後，test_prompts 抓不到檔案；改成空白分隔
+- step10 截圖頁文字超出內容區（6.84 > 6.45 吋），縮短說明
+- test_slides_cover_all_steps 的正規式只認一位數步驟、且字串排序把 step10 排在 step1 後，改 \d+ 與數字排序
+
+**待辦**
+- 【延後，使用者要求提醒】影片相關教材：step11「自動產生使用說明影片」Prompt 卡與簡報、影片影格頁、學生包附影片說明
+- 關閉 PowerPoint 後 python run_all.py：轉 PDF、學生版 zip、目視密集頁（run_all.py 的 VISUAL_CHECKS 可加 step10 頁）
+- 推送 c8ca75a 與本機 tag v0.1.0、step10 前先問使用者
+- 手機實機安裝與離線仍待作者親測；step9 tag 實測後再打
